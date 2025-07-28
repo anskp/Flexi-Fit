@@ -1,6 +1,7 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
+apply plugin: "com.google.gms.google-services"
 
 
 apply from: "../../node_modules/react-native-vector-icons/fonts.gradle"
@@ -120,4 +121,8 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+    
+    // Google Play Services for Maps
+    implementation("com.google.android.gms:play-services-base:18.3.0")
+    implementation("com.google.android.gms:play-services-maps:18.2.0")
 }

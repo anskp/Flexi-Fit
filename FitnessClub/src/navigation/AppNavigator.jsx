@@ -22,7 +22,7 @@ const Stack = createNativeStackNavigator();
 const AppNavigator = () => {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="WorkoutLog">
+      <Stack.Navigator initialRouteName="Location">
 
         <Stack.Screen name="OpenPage" component={OpenPage}
         options={{ headerShown: false }}  />

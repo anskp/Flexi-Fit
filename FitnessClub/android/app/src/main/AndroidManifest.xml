@@ -5,7 +5,9 @@
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
 <uses-permission android:name="android.permission.BODY_SENSORS"/>
 
+
 <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 
 
 
@@ -21,7 +23,7 @@
 
       <meta-data
   android:name="com.google.android.geo.API_KEY"
-  android:value="AIzaSyD3Y05wPXe_G-90vBsHa2iz6YhALInzqK8"/>
+  android:value="AIzaSyA74lZvl2WzcyaRpjdCNa6MhmxBC8uw7tk"/>
 
       <activity
         android:name=".MainActivity"
