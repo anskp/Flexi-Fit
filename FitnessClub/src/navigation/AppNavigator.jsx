@@ -16,13 +16,17 @@ import MyGym from '../screens/Member/Mygym';
 import WorkoutLog from '../screens/Member/WorkoutLog';
 import Location from '../screens/Member/Location';
 import DietLog from '../screens/Member/DietLog';
+import BottomTabNavigator from './BottomTabNavigator';
 
 const Stack = createNativeStackNavigator();
 
 const AppNavigator = () => {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Location">
+      <Stack.Navigator initialRouteName="MainApp">
+
+        <Stack.Screen name="MainApp" component={BottomTabNavigator}
+        options={{ headerShown: false }} />
 
         <Stack.Screen name="OpenPage" component={OpenPage}
         options={{ headerShown: false }}  />
@@ -61,7 +65,6 @@ const AppNavigator = () => {
          
              <Stack.Screen name="DietLog" component={DietLog}  
          options={{ headerShown: false }} />
-
 
       </Stack.Navigator>
     </NavigationContainer>

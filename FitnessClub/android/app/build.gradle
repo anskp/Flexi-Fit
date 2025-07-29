@@ -111,6 +111,24 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
+    
+    packagingOptions {
+        pickFirst '**/libc++_shared.so'
+        pickFirst '**/libjsc.so'
+    }
+    
+    // Fix for react-native-camera variant conflict
+    buildFeatures {
+        buildConfig true
+    }
+    
+    // Specify product flavor for react-native-camera
+    flavorDimensions "react-native-camera"
+    productFlavors {
+        general {
+            dimension "react-native-camera"
+        }
+    }
 }
 
 dependencies {
@@ -126,3 +144,18 @@ dependencies {
         implementation jscFlavor
     }
 }
+
+configurations.all {
+    resolutionStrategy {
+        force 'com.facebook.react:react-native:0.76.0'
+    }
+}
+
+// Fix for react-native-camera variant conflict
+configurations.all {
+    resolutionStrategy {
+        force 'com.facebook.react:react-native:0.76.0'
+    }
+}
+
+

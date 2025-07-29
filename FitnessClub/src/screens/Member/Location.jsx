@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, StyleSheet, Text, ScrollView, TouchableOpacity, Image, Dimensions } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import { LinearGradient } from 'react-native-linear-gradient';
+import { Picker } from '@react-native-picker/picker';
 
 const Location = () => {
   const [selectedGym, setSelectedGym] = useState(null);
@@ -8,8 +10,10 @@ const Location = () => {
     latitude: 28.6139,
     longitude: 77.2090,
   });
+  const [selectedFilter, setSelectedFilter] = useState('all');
+  const [selectedSort, setSelectedSort] = useState('distance');
 
-  // Sample gym data
+  // Sample gym data with enhanced information
   const gyms = [
     {
       id: 1,
@@ -23,7 +27,12 @@ const Location = () => {
         longitude: 77.2090,
       },
       logo: "🏋️",
-      type: "Premium"
+      type: "Premium",
+      price: "₹2,500/month",
+      features: ["24/7 Access", "Personal Trainer", "Pool", "Spa"],
+      image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
+      openNow: true,
+      crowdLevel: "Low"
     },
     {
       id: 2,
@@ -37,7 +46,12 @@ const Location = () => {
         longitude: 77.2300,
       },
       logo: "💪",
-      type: "Standard"
+      type: "Standard",
+      price: "₹1,800/month",
+      features: ["Cardio Zone", "Weight Training", "Yoga Classes"],
+      image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
+      openNow: true,
+      crowdLevel: "Medium"
     },
     {
       id: 3,
@@ -51,7 +65,12 @@ const Location = () => {
         longitude: 77.2400,
       },
       logo: "🏃",
-      type: "Premium"
+      type: "Premium",
+      price: "₹3,200/month",
+      features: ["Olympic Pool", "Tennis Court", "Spa", "Restaurant"],
+      image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
+      openNow: false,
+      crowdLevel: "High"
     },
     {
       id: 4,
@@ -65,7 +84,12 @@ const Location = () => {
         longitude: 77.2000,
       },
       logo: "⚡",
-      type: "Express"
+      type: "Express",
+      price: "₹1,500/month",
+      features: ["Quick Workouts", "Express Classes", "No Contracts"],
+      image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
+      openNow: true,
+      crowdLevel: "Low"
     }
   ];
 
@@ -86,6 +110,21 @@ const Location = () => {
     console.log('Getting current location...');
   };
 
+  const filterOptions = [
+    { label: 'All Gyms', value: 'all' },
+    { label: 'Premium', value: 'premium' },
+    { label: 'Standard', value: 'standard' },
+    { label: 'Express', value: 'express' },
+    { label: 'Open Now', value: 'open' },
+  ];
+
+  const sortOptions = [
+    { label: 'Distance', value: 'distance' },
+    { label: 'Rating', value: 'rating' },
+    { label: 'Price', value: 'price' },
+    { label: 'Name', value: 'name' },
+  ];
+
   const handleFilter = () => {
     // Add filter functionality
     console.log('Opening filters...');
@@ -100,13 +139,17 @@ const Location = () => {
         showsUserLocation={true}
         showsMyLocationButton={false}
         provider={PROVIDER_GOOGLE}
+        mapType="standard"
+        showsBuildings={true}
+        showsTraffic={false}
+        showsIndoors={true}
       >
         {/* User Location Marker */}
         <Marker
           coordinate={userLocation}
           title="You are here"
           description="Your current location"
-          pinColor="blue"
+          pinColor="#3498db"
         />
         
         {/* Gym Markers */}
@@ -115,27 +158,42 @@ const Location = () => {
             key={gym.id}
             coordinate={gym.coordinates}
             title={gym.name}
-            description={gym.location}
-            pinColor={gym.isNearest ? "red" : "green"}
+            description={`${gym.distance} • ${gym.rating}⭐ • ${gym.price}`}
+            pinColor={gym.isNearest ? "#e74c3c" : "#27ae60"}
           />
         ))}
       </MapView>
 
-      {/* Map Control Buttons */}
+      {/* Enhanced Map Control Buttons */}
       <View style={styles.mapControls}>
-        <TouchableOpacity style={styles.controlButton} onPress={handleFilter}>
-          <Text style={styles.controlButtonText}>🔍</Text>
-        </TouchableOpacity>
         <TouchableOpacity style={styles.controlButton} onPress={handleMyLocation}>
-          <Text style={styles.controlButtonText}>📍</Text>
+          <LinearGradient
+            colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.8)']}
+            style={styles.controlButtonGradient}
+          >
+            <Text style={styles.controlButtonText}>📍</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </View>
 
-      {/* Bottom Sheet */}
+      {/* Enhanced Bottom Sheet */}
       <View style={styles.bottomSheet}>
+        <View style={styles.bottomSheetHandle} />
         <View style={styles.bottomSheetHeader}>
-          <Text style={styles.bottomSheetTitle}>Gyms around you</Text>
-          <Text style={styles.bottomSheetSubtitle}>In New Delhi</Text>
+          <View style={styles.headerInfo}>
+            <Text style={styles.bottomSheetTitle}>🏋️ Gyms Near You</Text>
+            <Text style={styles.bottomSheetSubtitle}>{gyms.length} fitness centers found</Text>
+          </View>
+          <View style={styles.headerStats}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{gyms.length}</Text>
+              <Text style={styles.statLabel}>Gyms</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>4.3</Text>
+              <Text style={styles.statLabel}>Avg Rating</Text>
+            </View>
+          </View>
         </View>
         
         <ScrollView style={styles.gymList} showsVerticalScrollIndicator={false}>
@@ -145,25 +203,64 @@ const Location = () => {
               style={styles.gymCard}
               onPress={() => handleGymPress(gym)}
             >
-              <View style={styles.gymLogo}>
-                <Text style={styles.gymLogoText}>{gym.logo}</Text>
+              <View style={styles.gymImageContainer}>
+                <Image
+                  source={{ uri: gym.image }}
+                  style={styles.gymImage}
+                  resizeMode="cover"
+                />
+                {gym.isNearest && (
+                  <View style={styles.nearestBadge}>
+                    <Text style={styles.nearestText}>Nearest</Text>
+                  </View>
+                )}
+                <View style={styles.gymLogo}>
+                  <Text style={styles.gymLogoText}>{gym.logo}</Text>
+                </View>
               </View>
               
               <View style={styles.gymInfo}>
-                <Text style={styles.gymName}>{gym.name}</Text>
+                <View style={styles.gymHeader}>
+                  <Text style={styles.gymName}>{gym.name}</Text>
+                  <View style={styles.gymType}>
+                    <Text style={styles.gymTypeText}>{gym.type}</Text>
+                  </View>
+                </View>
+                
                 <View style={styles.gymLocationRow}>
                   <Text style={styles.locationIcon}>📍</Text>
                   <Text style={styles.gymLocation}>{gym.location}</Text>
-                  {gym.isNearest && (
-                    <View style={styles.nearestTag}>
-                      <Text style={styles.nearestText}>Nearest</Text>
-                    </View>
-                  )}
                 </View>
-                <View style={styles.gymDetails}>
-                  <Text style={styles.gymDistance}>{gym.distance}</Text>
-                  <Text style={styles.gymRating}>⭐ {gym.rating}</Text>
-                  <Text style={styles.gymType}>{gym.type}</Text>
+                
+                <View style={styles.gymStats}>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statLabel}>Distance</Text>
+                    <Text style={styles.statValue}>{gym.distance}</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statLabel}>Rating</Text>
+                    <Text style={styles.statValue}>⭐ {gym.rating}</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statLabel}>Price</Text>
+                    <Text style={styles.statValue}>{gym.price}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.gymFeatures}>
+                  {gym.features.slice(0, 2).map((feature, index) => (
+                    <Text key={index} style={styles.featureTag}>{feature}</Text>
+                  ))}
+                </View>
+
+                <View style={styles.gymStatus}>
+                  <View style={styles.statusItem}>
+                    <View style={[styles.statusDot, { backgroundColor: gym.openNow ? '#27ae60' : '#e74c3c' }]} />
+                    <Text style={styles.statusText}>{gym.openNow ? 'Open Now' : 'Closed'}</Text>
+                  </View>
+                  <View style={styles.statusItem}>
+                    <Text style={styles.crowdLevel}>👥 {gym.crowdLevel}</Text>
+                  </View>
                 </View>
               </View>
               
@@ -180,38 +277,47 @@ const Location = () => {
 
 export default Location;
 
+const { width, height } = Dimensions.get('window');
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+
   map: {
-    flex: 1,
+    height: '50%',
   },
   mapControls: {
     position: 'absolute',
     right: 20,
-    top: 100,
-    gap: 10,
+    top: 50,
+    gap: 15,
   },
   controlButton: {
-    width: 50,
-    height: 50,
-    backgroundColor: 'white',
-    borderRadius: 25,
+    width: 55,
+    height: 55,
+    borderRadius: 27.5,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  controlButtonGradient: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 27.5,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   controlButtonText: {
-    fontSize: 20,
+    fontSize: 22,
   },
   bottomSheet: {
     position: 'absolute',
@@ -219,23 +325,40 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 20,
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    paddingTop: 15,
     paddingHorizontal: 20,
     paddingBottom: 30,
-    maxHeight: '60%',
+    height: '50%',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: -2,
+      height: -4,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  bottomSheetHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#ddd',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 15,
   },
   bottomSheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 20,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  headerInfo: {
+    flex: 1,
   },
   bottomSheetTitle: {
     fontSize: 24,
@@ -244,101 +367,169 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   bottomSheetSubtitle: {
+    fontSize: 16,
+    color: '#666',
+  },
+  headerStats: {
+    flexDirection: 'row',
+    gap: 20,
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statValue: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: '#e74c3c',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
   },
   gymList: {
     flex: 1,
   },
   gymCard: {
-    flexDirection: 'row',
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 15,
+    borderRadius: 18,
     marginBottom: 15,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 1,
+      height: 3,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 5,
+    overflow: 'hidden',
+  },
+  gymImageContainer: {
+    position: 'relative',
+    height: 120,
+  },
+  gymImage: {
+    width: '100%',
+    height: '100%',
+  },
+  nearestBadge: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    backgroundColor: '#e74c3c',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+  },
+  nearestText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
   },
   gymLogo: {
-    width: 50,
-    height: 50,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    width: 40,
+    height: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 15,
   },
   gymLogoText: {
-    fontSize: 24,
+    fontSize: 20,
   },
   gymInfo: {
-    flex: 1,
-    justifyContent: 'center',
+    padding: 18,
+  },
+  gymHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   gymName: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: 'bold',
     color: '#333',
-    marginBottom: 5,
+    flex: 1,
+  },
+  gymType: {
+    backgroundColor: '#f8f9fa',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  gymTypeText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '600',
   },
   gymLocationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 5,
+    marginBottom: 12,
   },
   locationIcon: {
-    fontSize: 12,
-    marginRight: 5,
+    fontSize: 14,
+    marginRight: 6,
   },
   gymLocation: {
     fontSize: 14,
     color: '#666',
     flex: 1,
   },
-  nearestTag: {
-    backgroundColor: '#e74c3c',
+  gymStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  gymFeatures: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 12,
+  },
+  featureTag: {
+    backgroundColor: '#f8f9fa',
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 4,
     borderRadius: 10,
-    marginLeft: 10,
+    fontSize: 11,
+    color: '#666',
+    marginRight: 8,
+    marginBottom: 4,
   },
-  nearestText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: '600',
+  gymStatus: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  gymDetails: {
+  statusItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 15,
   },
-  gymDistance: {
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  statusText: {
     fontSize: 12,
     color: '#666',
   },
-  gymRating: {
+  crowdLevel: {
     fontSize: 12,
     color: '#666',
-  },
-  gymType: {
-    fontSize: 12,
-    color: '#e74c3c',
-    fontWeight: '600',
   },
   gymArrow: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 30,
+    position: 'absolute',
+    right: 18,
+    top: '50%',
+    marginTop: -10,
   },
   arrowText: {
-    fontSize: 20,
+    fontSize: 24,
     color: '#ccc',
     fontWeight: 'bold',
   },
