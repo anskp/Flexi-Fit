@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, ScrollView, TouchableOpacity, Image, Dimensions } from 'react-native';
+import { View, StyleSheet, Text, ScrollView, TouchableOpacity, Image, Dimensions, TextInput, Modal, SafeAreaView, StatusBar, Platform, Alert } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { LinearGradient } from 'react-native-linear-gradient';
-import { Picker } from '@react-native-picker/picker';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 const Location = () => {
   const [selectedGym, setSelectedGym] = useState(null);
@@ -10,15 +10,19 @@ const Location = () => {
     latitude: 28.6139,
     longitude: 77.2090,
   });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [selectedSort, setSelectedSort] = useState('distance');
+
 
   // Sample gym data with enhanced information
   const gyms = [
     {
       id: 1,
-      name: "Fitness First Gym",
-      location: "Connaught Place, New Delhi",
+      name: "Oxygen Gym Almahboula",
+      location: "Almahboula, State...",
       distance: "0.5 km",
       rating: 4.5,
       isNearest: true,
@@ -26,7 +30,7 @@ const Location = () => {
         latitude: 28.6139,
         longitude: 77.2090,
       },
-      logo: "🏋️",
+      logo: "OXYGEN",
       type: "Premium",
       price: "₹2,500/month",
       features: ["24/7 Access", "Personal Trainer", "Pool", "Spa"],
@@ -36,8 +40,8 @@ const Location = () => {
     },
     {
       id: 2,
-      name: "Power House Fitness",
-      location: "Khan Market, New Delhi",
+      name: "Platinum Almahboula",
+      location: "Almahboula, State : Al Ahma...",
       distance: "1.2 km",
       rating: 4.2,
       isNearest: false,
@@ -45,7 +49,7 @@ const Location = () => {
         latitude: 28.6000,
         longitude: 77.2300,
       },
-      logo: "💪",
+      logo: "PLATINUM",
       type: "Standard",
       price: "₹1,800/month",
       features: ["Cardio Zone", "Weight Training", "Yoga Classes"],
@@ -110,6 +114,38 @@ const Location = () => {
     console.log('Getting current location...');
   };
 
+  const handleCameraPress = () => {
+    // Handle camera functionality - can be used for gym check-in, photo sharing, etc.
+    Alert.alert(
+      'Camera Options',
+      'What would you like to do?',
+      [
+        { 
+          text: '📸 Take Photo', 
+          onPress: () => {
+            console.log('Take photo pressed');
+            Alert.alert('Camera', 'Opening camera to take photo...');
+          }
+        },
+        { 
+          text: '📍 Check-in with Photo', 
+          onPress: () => {
+            console.log('Check-in with photo pressed');
+            Alert.alert('Check-in', 'Taking photo for gym check-in...');
+          }
+        },
+        { 
+          text: '🎯 Scan QR Code', 
+          onPress: () => {
+            console.log('Scan QR code pressed');
+            Alert.alert('QR Scanner', 'Opening QR code scanner...');
+          }
+        },
+        { text: 'Cancel', style: 'cancel' }
+      ]
+    );
+  };
+
   const filterOptions = [
     { label: 'All Gyms', value: 'all' },
     { label: 'Premium', value: 'premium' },
@@ -125,153 +161,307 @@ const Location = () => {
     { label: 'Name', value: 'name' },
   ];
 
-  const handleFilter = () => {
-    // Add filter functionality
-    console.log('Opening filters...');
-  };
+
+
+
 
   return (
-    <View style={styles.container}>
-      {/* Map Section */}
-      <MapView
-        style={styles.map}
-        initialRegion={initialRegion}
-        showsUserLocation={true}
-        showsMyLocationButton={false}
-        provider={PROVIDER_GOOGLE}
-        mapType="standard"
-        showsBuildings={true}
-        showsTraffic={false}
-        showsIndoors={true}
-      >
-        {/* User Location Marker */}
-        <Marker
-          coordinate={userLocation}
-          title="You are here"
-          description="Your current location"
-          pinColor="#3498db"
-        />
+    <SafeAreaView style={styles.container}>
+      <StatusBar backgroundColor="#ffffff" barStyle="dark-content" />
+      
+      {/* Header with Search and Camera */}
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.searchButton}
+          onPress={() => setShowSearchModal(true)}
+        >
+          <Icon name="search" size={28} color="#000" />
+        </TouchableOpacity>
         
-        {/* Gym Markers */}
-        {gyms.map((gym) => (
-          <Marker
-            key={gym.id}
-            coordinate={gym.coordinates}
-            title={gym.name}
-            description={`${gym.distance} • ${gym.rating}⭐ • ${gym.price}`}
-            pinColor={gym.isNearest ? "#e74c3c" : "#27ae60"}
-          />
-        ))}
-      </MapView>
-
-      {/* Enhanced Map Control Buttons */}
-      <View style={styles.mapControls}>
-        <TouchableOpacity style={styles.controlButton} onPress={handleMyLocation}>
-          <LinearGradient
-            colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.8)']}
-            style={styles.controlButtonGradient}
-          >
-            <Text style={styles.controlButtonText}>📍</Text>
-          </LinearGradient>
+        <TouchableOpacity 
+          style={styles.cameraButton}
+          onPress={handleCameraPress}
+          activeOpacity={0.8}
+        >
+          <Icon name="camera" size={32} color="#000" />
         </TouchableOpacity>
       </View>
 
-      {/* Enhanced Bottom Sheet */}
-      <View style={styles.bottomSheet}>
-        <View style={styles.bottomSheetHandle} />
-        <View style={styles.bottomSheetHeader}>
-          <View style={styles.headerInfo}>
-            <Text style={styles.bottomSheetTitle}>🏋️ Gyms Near You</Text>
-            <Text style={styles.bottomSheetSubtitle}>{gyms.length} fitness centers found</Text>
+      {/* Main Content */}
+      <View style={styles.mainContent}>
+        {/* Map Section */}
+        <MapView
+          style={styles.map}
+          initialRegion={initialRegion}
+          showsUserLocation={true}
+          showsMyLocationButton={false}
+          provider={PROVIDER_GOOGLE}
+          mapType="standard"
+          showsBuildings={true}
+          showsTraffic={false}
+          showsIndoors={true}
+        >
+          {/* User Location Marker */}
+          <Marker
+            coordinate={userLocation}
+            title="You are here"
+            description="Your current location"
+            pinColor="#e74c3c"
+          />
+          
+          {/* Gym Markers */}
+          {gyms.map((gym) => (
+            <Marker
+              key={gym.id}
+              coordinate={gym.coordinates}
+              title={gym.name}
+              description={`${gym.distance} • ${gym.rating}⭐ • ${gym.price}`}
+              pinColor={gym.isNearest ? "#e74c3c" : "#27ae60"}
+            />
+          ))}
+        </MapView>
+
+        {/* Filter Button inside Map */}
+        <View style={styles.mapFilterContainer}>
+          <TouchableOpacity 
+            style={styles.filterButton}
+            onPress={() => setShowFilterModal(true)}
+          >
+            <Icon name="filter" size={20} color="#333" />
+          </TouchableOpacity>
+        </View>
+
+
+
+        {/* Enhanced Bottom Sheet */}
+        <View style={styles.bottomSheet}>
+          <View style={styles.bottomSheetHandle} />
+          <View style={styles.bottomSheetHeader}>
+            <View style={styles.headerInfo}>
+              <View style={styles.titleRow}>
+                <Text style={styles.gymEmoji}>🏋️</Text>
+                <View style={styles.titleContainer}>
+                  <Text style={styles.bottomSheetTitle}>Gyms Near You</Text>
+                  <Text style={styles.subtitleText}>4 fitness centers found</Text>
+                </View>
+              </View>
+            </View>
+            <View style={styles.headerStats}>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>4</Text>
+                <Text style={styles.statLabel}>Gyms</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>4.3</Text>
+                <Text style={styles.statLabel}>Avg Rating</Text>
+              </View>
+            </View>
           </View>
-          <View style={styles.headerStats}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{gyms.length}</Text>
-              <Text style={styles.statLabel}>Gyms</Text>
+          
+          <ScrollView style={styles.gymList} showsVerticalScrollIndicator={false}>
+            {gyms.map((gym) => (
+              <TouchableOpacity
+                key={gym.id}
+                style={styles.gymCard}
+                onPress={() => handleGymPress(gym)}
+              >
+                <View style={styles.gymImageContainer}>
+                  <Image
+                    source={{ uri: gym.image }}
+                    style={styles.gymImage}
+                    resizeMode="cover"
+                  />
+                  {gym.isNearest && (
+                    <View style={styles.nearestBadge}>
+                      <Text style={styles.nearestText}>Nearest</Text>
+                    </View>
+                  )}
+                  <View style={styles.gymLogo}>
+                    <Text style={styles.gymLogoText}>{gym.logo}</Text>
+                  </View>
+                </View>
+                
+                <View style={styles.gymInfo}>
+                  <View style={styles.gymHeader}>
+                    <Text style={styles.gymName}>{gym.name}</Text>
+                    <View style={styles.gymType}>
+                      <Text style={styles.gymTypeText}>{gym.type}</Text>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.gymLocationRow}>
+                    <Text style={styles.locationIcon}>📍</Text>
+                    <Text style={styles.gymLocation}>{gym.location}</Text>
+                  </View>
+                  
+                  <View style={styles.gymStats}>
+                    <View style={styles.statItem}>
+                      <Text style={styles.statLabel}>Distance</Text>
+                      <Text style={styles.statValue}>{gym.distance}</Text>
+                    </View>
+                    <View style={styles.statItem}>
+                      <Text style={styles.statLabel}>Rating</Text>
+                      <Text style={styles.statValue}>⭐ {gym.rating}</Text>
+                    </View>
+                    <View style={styles.statItem}>
+                      <Text style={styles.statLabel}>Price</Text>
+                      <Text style={styles.statValue}>{gym.price}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.gymFeatures}>
+                    {gym.features.slice(0, 2).map((feature, index) => (
+                      <Text key={index} style={styles.featureTag}>{feature}</Text>
+                    ))}
+                  </View>
+
+                  <View style={styles.gymStatus}>
+                    <View style={styles.statusItem}>
+                      <View style={[styles.statusDot, { backgroundColor: gym.openNow ? '#27ae60' : '#e74c3c' }]} />
+                      <Text style={styles.statusText}>{gym.openNow ? 'Open Now' : 'Closed'}</Text>
+                    </View>
+                    <View style={styles.statusItem}>
+                      <Text style={styles.crowdLevel}>👥 {gym.crowdLevel}</Text>
+                    </View>
+                  </View>
+                </View>
+                
+                <View style={styles.gymArrow}>
+                  <Text style={styles.arrowText}>›</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </View>
+
+      {/* Search Modal */}
+      <Modal
+        visible={showSearchModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowSearchModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.searchModal}>
+            <View style={styles.searchModalHeader}>
+              <Text style={styles.searchModalTitle}>Search Gyms</Text>
+              <TouchableOpacity onPress={() => setShowSearchModal(false)}>
+                <Icon name="close" size={24} color="#333" />
+              </TouchableOpacity>
             </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>4.3</Text>
-              <Text style={styles.statLabel}>Avg Rating</Text>
+            
+            <View style={styles.searchInputContainer}>
+              <Icon name="search" size={20} color="#666" />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search by name, location, or features..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoFocus={true}
+              />
             </View>
+            
+            <ScrollView style={styles.searchResults}>
+              {gyms
+                .filter(gym => 
+                  gym.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  gym.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  gym.features.some(feature => 
+                    feature.toLowerCase().includes(searchQuery.toLowerCase())
+                  )
+                )
+                .map((gym) => (
+                  <TouchableOpacity
+                    key={gym.id}
+                    style={styles.searchResultItem}
+                    onPress={() => {
+                      setSelectedGym(gym);
+                      setShowSearchModal(false);
+                    }}
+                  >
+                    <Text style={styles.searchResultName}>{gym.name}</Text>
+                    <Text style={styles.searchResultLocation}>{gym.location}</Text>
+                  </TouchableOpacity>
+                ))}
+            </ScrollView>
           </View>
         </View>
-        
-        <ScrollView style={styles.gymList} showsVerticalScrollIndicator={false}>
-          {gyms.map((gym) => (
-            <TouchableOpacity
-              key={gym.id}
-              style={styles.gymCard}
-              onPress={() => handleGymPress(gym)}
-            >
-              <View style={styles.gymImageContainer}>
-                <Image
-                  source={{ uri: gym.image }}
-                  style={styles.gymImage}
-                  resizeMode="cover"
-                />
-                {gym.isNearest && (
-                  <View style={styles.nearestBadge}>
-                    <Text style={styles.nearestText}>Nearest</Text>
-                  </View>
-                )}
-                <View style={styles.gymLogo}>
-                  <Text style={styles.gymLogoText}>{gym.logo}</Text>
-                </View>
+              </Modal>
+
+        {/* Filter Modal */}
+        <Modal
+          visible={showFilterModal}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setShowFilterModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.filterModal}>
+              <View style={styles.filterModalHeader}>
+                <Text style={styles.filterModalTitle}>Filter & Sort</Text>
+                <TouchableOpacity onPress={() => setShowFilterModal(false)}>
+                  <Icon name="close" size={24} color="#333" />
+                </TouchableOpacity>
               </View>
               
-              <View style={styles.gymInfo}>
-                <View style={styles.gymHeader}>
-                  <Text style={styles.gymName}>{gym.name}</Text>
-                  <View style={styles.gymType}>
-                    <Text style={styles.gymTypeText}>{gym.type}</Text>
-                  </View>
-                </View>
-                
-                <View style={styles.gymLocationRow}>
-                  <Text style={styles.locationIcon}>📍</Text>
-                  <Text style={styles.gymLocation}>{gym.location}</Text>
-                </View>
-                
-                <View style={styles.gymStats}>
-                  <View style={styles.statItem}>
-                    <Text style={styles.statLabel}>Distance</Text>
-                    <Text style={styles.statValue}>{gym.distance}</Text>
-                  </View>
-                  <View style={styles.statItem}>
-                    <Text style={styles.statLabel}>Rating</Text>
-                    <Text style={styles.statValue}>⭐ {gym.rating}</Text>
-                  </View>
-                  <View style={styles.statItem}>
-                    <Text style={styles.statLabel}>Price</Text>
-                    <Text style={styles.statValue}>{gym.price}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.gymFeatures}>
-                  {gym.features.slice(0, 2).map((feature, index) => (
-                    <Text key={index} style={styles.featureTag}>{feature}</Text>
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>Filter by Type</Text>
+                <View style={styles.filterOptions}>
+                  {filterOptions.map((option) => (
+                    <TouchableOpacity
+                      key={option.value}
+                      style={[
+                        styles.filterOption,
+                        selectedFilter === option.value && styles.filterOptionSelected
+                      ]}
+                      onPress={() => setSelectedFilter(option.value)}
+                    >
+                      <Text style={[
+                        styles.filterOptionText,
+                        selectedFilter === option.value && styles.filterOptionTextSelected
+                      ]}>
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
                   ))}
                 </View>
-
-                <View style={styles.gymStatus}>
-                  <View style={styles.statusItem}>
-                    <View style={[styles.statusDot, { backgroundColor: gym.openNow ? '#27ae60' : '#e74c3c' }]} />
-                    <Text style={styles.statusText}>{gym.openNow ? 'Open Now' : 'Closed'}</Text>
-                  </View>
-                  <View style={styles.statusItem}>
-                    <Text style={styles.crowdLevel}>👥 {gym.crowdLevel}</Text>
-                  </View>
+              </View>
+              
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>Sort by</Text>
+                <View style={styles.sortOptions}>
+                  {sortOptions.map((option) => (
+                    <TouchableOpacity
+                      key={option.value}
+                      style={[
+                        styles.sortOption,
+                        selectedSort === option.value && styles.sortOptionSelected
+                      ]}
+                      onPress={() => setSelectedSort(option.value)}
+                    >
+                      <Text style={[
+                        styles.sortOptionText,
+                        selectedSort === option.value && styles.sortOptionTextSelected
+                      ]}>
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
               </View>
               
-              <View style={styles.gymArrow}>
-                <Text style={styles.arrowText}>›</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-    </View>
+              <TouchableOpacity
+                style={styles.applyFilterButton}
+                onPress={() => setShowFilterModal(false)}
+              >
+                <Text style={styles.applyFilterButtonText}>Apply Filters</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+    </SafeAreaView>
   );
 };
 
@@ -284,41 +474,80 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-
-  map: {
-    height: '50%',
-  },
-  mapControls: {
+  
+  // Header Styles
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    paddingTop: Platform.OS === 'ios' ? 80 : 45,
     position: 'absolute',
-    right: 20,
-    top: 50,
-    gap: 15,
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
   },
-  controlButton: {
+  searchButton: {
     width: 55,
     height: 55,
-    borderRadius: 27.5,
+    borderRadius: 42.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
     elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  controlButtonGradient: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 27.5,
+  cameraButton: {
+    width: 55,
+    height: 55,
+    borderRadius: 45,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  controlButtonText: {
-    fontSize: 22,
+
+  // Main Content
+  mainContent: {
+    flex: 1,
   },
+
+  map: {
+    height: '60%',
+  },
+  mapFilterContainer: {
+    position: 'absolute',
+    right: 20,
+    top: 400,
+    zIndex: 1000,
+  },
+  filterButton: {
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+
   bottomSheet: {
     position: 'absolute',
     bottom: 0,
@@ -330,7 +559,7 @@ const styles = StyleSheet.create({
     paddingTop: 15,
     paddingHorizontal: 20,
     paddingBottom: 30,
-    height: '50%',
+    height: '40%',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -340,14 +569,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 10,
   },
-  bottomSheetHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: '#ddd',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 15,
-  },
+
   bottomSheetHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -357,11 +579,27 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  gymEmoji: {
+    fontSize: 32,
+    marginRight: 12,
+  },
+  titleContainer: {
+    flex: 1,
+  },
+  subtitleText: {
+    fontSize: 14,
+    color: '#666666',
+    marginTop: 2,
+  },
   headerInfo: {
     flex: 1,
   },
   bottomSheetTitle: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 5,
@@ -381,6 +619,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#e74c3c',
+    textAlign: 'center',
   },
   statLabel: {
     fontSize: 12,
@@ -484,6 +723,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 12,
   },
+  statItem: {
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#e74c3c',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+  },
   gymFeatures: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -533,4 +784,156 @@ const styles = StyleSheet.create({
     color: '#ccc',
     fontWeight: 'bold',
   },
+
+
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  searchModal: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    height: '80%',
+    padding: 20,
+  },
+  filterModal: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    height: '70%',
+    padding: 20,
+  },
+
+  searchModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  filterModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+
+  searchModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  filterModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    marginBottom: 20,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 16,
+    color: '#333',
+  },
+  searchResults: {
+    flex: 1,
+  },
+  searchResultItem: {
+    paddingVertical: 15,
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  searchResultName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 5,
+  },
+  searchResultLocation: {
+    fontSize: 14,
+    color: '#666',
+  },
+  filterSection: {
+    marginBottom: 25,
+  },
+  filterSectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 15,
+  },
+  filterOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  filterOption: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#f5f5f5',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  filterOptionSelected: {
+    backgroundColor: '#e74c3c',
+    borderColor: '#e74c3c',
+  },
+  filterOptionText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  filterOptionTextSelected: {
+    color: 'white',
+    fontWeight: '600',
+  },
+  sortOptions: {
+    gap: 10,
+  },
+  sortOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 10,
+    backgroundColor: '#f5f5f5',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  sortOptionSelected: {
+    backgroundColor: '#e74c3c',
+    borderColor: '#e74c3c',
+  },
+  sortOptionText: {
+    fontSize: 16,
+    color: '#666',
+  },
+  sortOptionTextSelected: {
+    color: 'white',
+    fontWeight: '600',
+  },
+  applyFilterButton: {
+    backgroundColor: '#e74c3c',
+    paddingVertical: 15,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  applyFilterButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
 });

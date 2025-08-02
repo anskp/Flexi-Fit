@@ -122,13 +122,23 @@ android {
         buildConfig true
     }
     
-    // Specify product flavor for react-native-camera
+    // Specify product flavor for react-native-camera compatibility
     flavorDimensions "react-native-camera"
     productFlavors {
         general {
             dimension "react-native-camera"
         }
     }
+    
+    // Set default variant to avoid task ambiguity
+    defaultPublishConfig 'generalDebug'
+}
+
+// Create task aliases to resolve ambiguity
+tasks.register('installDebug') {
+    dependsOn 'installGeneralDebug'
+    group = 'Installation'
+    description = 'Installs the generalDebug variant'
 }
 
 dependencies {

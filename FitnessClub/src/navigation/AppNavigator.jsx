@@ -16,6 +16,7 @@ import MyGym from '../screens/Member/Mygym';
 import WorkoutLog from '../screens/Member/WorkoutLog';
 import Location from '../screens/Member/Location';
 import DietLog from '../screens/Member/DietLog';
+import FlexiFitAI from '../screens/Member/FlexiFitAI';
 import BottomTabNavigator from './BottomTabNavigator';
 
 const Stack = createNativeStackNavigator();
@@ -23,7 +24,7 @@ const Stack = createNativeStackNavigator();
 const AppNavigator = () => {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="MainApp">
+      <Stack.Navigator initialRouteName="MemberDashboard">
 
         <Stack.Screen name="MainApp" component={BottomTabNavigator}
         options={{ headerShown: false }} />
@@ -64,6 +65,9 @@ const AppNavigator = () => {
 
          
              <Stack.Screen name="DietLog" component={DietLog}  
+         options={{ headerShown: false }} />
+
+             <Stack.Screen name="FlexiFitAI" component={FlexiFitAI}  
          options={{ headerShown: false }} />
 
       </Stack.Navigator>

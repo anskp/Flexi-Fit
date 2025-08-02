@@ -4,10 +4,12 @@ import {
   View, Text, StyleSheet, ScrollView, Animated, TouchableOpacity,
   Dimensions, StatusBar, SafeAreaView, Alert, Platform,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 const MemberDashboard = () => {
+  const navigation = useNavigation();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   
@@ -178,13 +180,13 @@ const MemberDashboard = () => {
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.actionsGrid}>
             {[
-              { title: 'Start Workout', icon: '🏋️', color: '#FF6B6B' },
-              { title: 'Log Meal', icon: '🍽️', color: '#4ECDC4' },
-              { title: 'Track Water', icon: '💧', color: '#45B7D1' },
-              { title: 'Book Class', icon: '📅', color: '#96CEB4' },
+              { title: 'Start Workout', icon: '🏋️', color: '#FF6B6B', action: () => handleAction('Start Workout') },
+              { title: 'Log Meal', icon: '🍽️', color: '#4ECDC4', action: () => handleAction('Log Meal') },
+              { title: 'Track Water', icon: '💧', color: '#45B7D1', action: () => handleAction('Track Water') },
+              { title: 'Book Class', icon: '📅', color: '#96CEB4', action: () => handleAction('Book Class') },
             ].map((action, i) => (
               <TouchableOpacity key={i} style={[styles.actionButton, { backgroundColor: action.color }]}
-                onPress={() => handleAction(action.title)}>
+                onPress={action.action}>
                 <Text style={styles.icon}>{action.icon}</Text>
                 <Text style={styles.buttonText}>{action.title}</Text>
               </TouchableOpacity>

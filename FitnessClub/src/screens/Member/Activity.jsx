@@ -2,11 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Text, ScrollView, TouchableOpacity, Image, Dimensions, Animated } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
+import { useNavigation } from '@react-navigation/native';
 
 const Activity = () => {
+  const navigation = useNavigation();
   const [activeTab, setActiveTab] = useState('activity');
   const [selectedPeriod, setSelectedPeriod] = useState('week');
   const [fadeAnim] = useState(new Animated.Value(0));
+  const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
+  const [customStartDate, setCustomStartDate] = useState(new Date());
+  const [customEndDate, setCustomEndDate] = useState(new Date());
 
   const tabs = [
     { id: 'activity', title: 'Activity', icon: '📊' },
@@ -101,13 +106,19 @@ const Activity = () => {
 
   const renderActivityTab = () => (
     <Animated.View style={[styles.tabContent, { opacity: fadeAnim }]}>
-      {/* Period Selector */}
+      {/* Enhanced Period Selector */}
       <View style={styles.periodSelector}>
-        {['week', 'month', 'year'].map((period) => (
+        {['today', 'week', 'month', 'custom'].map((period) => (
           <TouchableOpacity
             key={period}
             style={[styles.periodButton, selectedPeriod === period && styles.activePeriodButton]}
-            onPress={() => setSelectedPeriod(period)}
+            onPress={() => {
+              if (period === 'custom') {
+                setShowCustomDatePicker(true);
+              } else {
+                setSelectedPeriod(period);
+              }
+            }}
           >
             <Text style={[styles.periodText, selectedPeriod === period && styles.activePeriodText]}>
               {period.charAt(0).toUpperCase() + period.slice(1)}
@@ -500,6 +511,64 @@ const Activity = () => {
         {activeTab === 'diet' && renderDietTab()}
         {activeTab === 'training' && renderTrainingTab()}
       </ScrollView>
+
+      {/* FlexiFit AI Button */}
+      <TouchableOpacity 
+        style={styles.flexiFitButton}
+        onPress={() => navigation.navigate('FlexiFitAI')}
+      >
+        <LinearGradient
+          colors={['#FF6B6B', '#FF8E8E']}
+          style={styles.flexiFitGradient}
+        >
+          <Text style={styles.flexiFitIcon}>🤖</Text>
+          <Text style={styles.flexiFitText}>FlexiFit AI</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+
+      {/* Custom Date Picker Modal */}
+      {showCustomDatePicker && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.customDateModal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Custom Date Range</Text>
+              <TouchableOpacity onPress={() => setShowCustomDatePicker(false)}>
+                <Text style={styles.closeButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.datePickerContainer}>
+              <View style={styles.dateInput}>
+                <Text style={styles.dateLabel}>Start Date</Text>
+                <TouchableOpacity style={styles.dateButton}>
+                  <Text style={styles.dateButtonText}>
+                    {customStartDate.toLocaleDateString()}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.dateInput}>
+                <Text style={styles.dateLabel}>End Date</Text>
+                <TouchableOpacity style={styles.dateButton}>
+                  <Text style={styles.dateButtonText}>
+                    {customEndDate.toLocaleDateString()}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            
+            <TouchableOpacity
+              style={styles.applyDateButton}
+              onPress={() => {
+                setSelectedPeriod('custom');
+                setShowCustomDatePicker(false);
+              }}
+            >
+              <Text style={styles.applyDateButtonText}>Apply Date Range</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </View>
   );
 };
@@ -1215,5 +1284,103 @@ const styles = StyleSheet.create({
   trainingStatLabel: {
     fontSize: 12,
     color: '#666',
+  },
+
+  // Custom Date Picker Modal Styles
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  customDateModal: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 20,
+    width: '90%',
+    maxWidth: 400,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  closeButton: {
+    fontSize: 24,
+    color: '#666',
+    fontWeight: 'bold',
+  },
+  datePickerContainer: {
+    marginBottom: 20,
+  },
+  dateInput: {
+    marginBottom: 15,
+  },
+  dateLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  dateButton: {
+    backgroundColor: '#f5f5f5',
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  dateButtonText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  applyDateButton: {
+    backgroundColor: '#e74c3c',
+    paddingVertical: 15,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  applyDateButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  flexiFitButton: {
+    position: 'absolute',
+    bottom: 30,
+    right: 20,
+    zIndex: 1000,
+  },
+  flexiFitGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  flexiFitIcon: {
+    fontSize: 20,
+    marginRight: 6,
+  },
+  flexiFitText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
 }); 

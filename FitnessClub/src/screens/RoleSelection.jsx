@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Alert, Linking } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 const roles = [
@@ -17,9 +17,34 @@ const RoleSelection = () => {
     if (roleLabel === 'Member') {
       navigation.navigate('MemberProfile');
     } else if (roleLabel === 'Trainer') {
-      navigation.navigate('TrainerProfile');
+      // Redirect trainers to website
+      Alert.alert(
+        'Trainer Registration',
+        'Trainer registration is available on our website. Would you like to visit the website?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Visit Website', 
+            onPress: () => Linking.openURL('https://fitnessclub.com/trainer-signup') 
+          }
+        ]
+      );
+    } else if (roleLabel === 'Gym Owner') {
+      // Redirect gym owners to website
+      Alert.alert(
+        'Gym Owner Registration',
+        'Gym owner registration is available on our website. Would you like to visit the website?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Visit Website', 
+            onPress: () => Linking.openURL('https://fitnessclub.com/gym-signup') 
+          }
+        ]
+      );
+    } else if (roleLabel === 'Multi-Gym Member') {
+      navigation.navigate('MemberProfile');
     }
-    // Add more navigation logic for other roles if needed
   };
 
   return (

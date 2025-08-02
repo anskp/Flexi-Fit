@@ -40,7 +40,7 @@ const OpenPage = () => {
             {/* Sign In Button */}
             <TouchableOpacity
               style={styles.signInButton}
-             onPress={() => {navigation.navigate('MyGym')}}
+             onPress={() => {navigation.navigate('LogIn')}}
               activeOpacity={0.8}
             >
               <Text style={styles.signInButtonText}>SIGN IN</Text>

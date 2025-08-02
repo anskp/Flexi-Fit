@@ -1,9 +1,17 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, StyleSheet, Text, ScrollView, TouchableOpacity, Image, Modal, TextInput } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 const Store = () => {
   const [activeTab, setActiveTab] = useState('shop');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedSort, setSelectedSort] = useState('popular');
+  const [priceRange, setPriceRange] = useState({ min: 0, max: 5000 });
+  const [showFilters, setShowFilters] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedEventCategory, setSelectedEventCategory] = useState('all');
+  const [selectedEventLocation, setSelectedEventLocation] = useState('all');
 
   const tabs = [
     { id: 'shop', title: 'Shop', icon: '🛍️' },
@@ -99,20 +107,74 @@ const Store = () => {
     { id: 'equipment', name: 'Equipment', icon: '🏋️' },
     { id: 'electronics', name: 'Electronics', icon: '📱' },
     { id: 'clothing', name: 'Clothing', icon: '👕' },
+    { id: 'nutrition', name: 'Nutrition', icon: '🥗' },
+  ];
+
+  const sortOptions = [
+    { id: 'popular', name: 'Most Popular' },
+    { id: 'price-low', name: 'Price: Low to High' },
+    { id: 'price-high', name: 'Price: High to Low' },
+    { id: 'rating', name: 'Highest Rated' },
+    { id: 'newest', name: 'Newest First' },
+  ];
+
+  const eventCategories = [
+    { id: 'all', name: 'All Events' },
+    { id: 'workshop', name: 'Workshops' },
+    { id: 'competition', name: 'Competitions' },
+    { id: 'expo', name: 'Expos' },
+    { id: 'seminar', name: 'Seminars' },
+  ];
+
+    const eventLocations = [
+    { id: 'all', name: 'All Locations' },
+    { id: 'delhi', name: 'Delhi' },
+    { id: 'mumbai', name: 'Mumbai' },
+    { id: 'bangalore', name: 'Bangalore' },
+    { id: 'online', name: 'Online' },
   ];
 
   const renderShopTab = () => (
     <View style={styles.tabContent}>
+      {/* Search and Filter Bar */}
+      <View style={styles.searchFilterBar}>
+        <TouchableOpacity style={styles.searchBar}>
+          <Icon name="search" size={20} color="#666" />
+          <Text style={styles.searchPlaceholder}>Search products...</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.filterButton}
+          onPress={() => setShowFilters(true)}
+        >
+          <Icon name="filter" size={20} color="white" />
+        </TouchableOpacity>
+      </View>
+
       {/* Categories */}
       <View style={styles.categoriesContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {categories.map((category) => (
             <TouchableOpacity
               key={category.id}
-              style={styles.categoryButton}
+              style={[
+                styles.categoryButton,
+                selectedCategory === category.id && styles.selectedCategoryButton
+              ]}
+              onPress={() => setSelectedCategory(category.id)}
             >
-              <Text style={styles.categoryIcon}>{category.icon}</Text>
-              <Text style={styles.categoryName}>{category.name}</Text>
+              <Text style={[
+                styles.categoryIcon,
+                selectedCategory === category.id && styles.selectedCategoryIcon
+              ]}>
+                {category.icon}
+              </Text>
+              <Text style={[
+                styles.categoryName,
+                selectedCategory === category.id && styles.selectedCategoryName
+              ]}>
+                {category.name}
+              </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -162,6 +224,57 @@ const Store = () => {
 
   const renderEventsTab = () => (
     <View style={styles.tabContent}>
+      {/* Event Filters */}
+      <View style={styles.eventFilters}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.eventFilterScroll}>
+          <View style={styles.filterSection}>
+            <Text style={styles.filterLabel}>Category:</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {eventCategories.map((category) => (
+                <TouchableOpacity
+                  key={category.id}
+                  style={[
+                    styles.filterChip,
+                    selectedEventCategory === category.id && styles.selectedFilterChip
+                  ]}
+                  onPress={() => setSelectedEventCategory(category.id)}
+                >
+                  <Text style={[
+                    styles.filterChipText,
+                    selectedEventCategory === category.id && styles.selectedFilterChipText
+                  ]}>
+                    {category.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+          
+          <View style={styles.filterSection}>
+            <Text style={styles.filterLabel}>Location:</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {eventLocations.map((location) => (
+                <TouchableOpacity
+                  key={location.id}
+                  style={[
+                    styles.filterChip,
+                    selectedEventLocation === location.id && styles.selectedFilterChip
+                  ]}
+                  onPress={() => setSelectedEventLocation(location.id)}
+                >
+                  <Text style={[
+                    styles.filterChipText,
+                    selectedEventLocation === location.id && styles.selectedFilterChipText
+                  ]}>
+                    {location.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </ScrollView>
+      </View>
+
       {/* Events List */}
       <View style={styles.eventsList}>
         {events.map((event) => (
@@ -248,6 +361,69 @@ const Store = () => {
         {activeTab === 'shop' && renderShopTab()}
         {activeTab === 'events' && renderEventsTab()}
       </ScrollView>
+
+      {/* Filter Modal */}
+      <Modal
+        visible={showFilters}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowFilters(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.filterModal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Filter & Sort</Text>
+              <TouchableOpacity onPress={() => setShowFilters(false)}>
+                <Icon name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Sort By</Text>
+              <View style={styles.sortOptionsContainer}>
+                {sortOptions.map((option) => (
+                  <TouchableOpacity
+                    key={option.id}
+                    style={[
+                      styles.sortOption,
+                      selectedSort === option.id && styles.selectedSortOption
+                    ]}
+                    onPress={() => setSelectedSort(option.id)}
+                  >
+                    <Text style={[
+                      styles.sortOptionText,
+                      selectedSort === option.id && styles.selectedSortOptionText
+                    ]}>
+                      {option.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+            
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Price Range</Text>
+              <View style={styles.priceRangeContainer}>
+                <Text style={styles.priceRangeText}>
+                  ₹{priceRange.min} - ₹{priceRange.max}
+                </Text>
+                <View style={styles.priceSlider}>
+                  <View style={styles.priceTrack}>
+                    <View style={[styles.priceFill, { width: '60%' }]} />
+                  </View>
+                </View>
+              </View>
+            </View>
+            
+            <TouchableOpacity
+              style={styles.applyFilterButton}
+              onPress={() => setShowFilters(false)}
+            >
+              <Text style={styles.applyFilterButtonText}>Apply Filters</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -532,6 +708,182 @@ const styles = StyleSheet.create({
   bookEventText: {
     color: 'white',
     fontSize: 14,
+    fontWeight: '600',
+  },
+
+  // Enhanced Filter Styles
+  searchFilterBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    gap: 10,
+  },
+  searchBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 25,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  searchPlaceholder: {
+    marginLeft: 10,
+    color: '#666',
+    fontSize: 16,
+  },
+  filterButton: {
+    backgroundColor: '#e74c3c',
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  selectedCategoryButton: {
+    backgroundColor: '#e74c3c',
+  },
+  selectedCategoryIcon: {
+    color: 'white',
+  },
+  selectedCategoryName: {
+    color: 'white',
+    fontWeight: '600',
+  },
+
+  // Event Filter Styles
+  eventFilters: {
+    marginBottom: 20,
+  },
+  eventFilterScroll: {
+    maxHeight: 120,
+  },
+  filterSection: {
+    marginBottom: 15,
+  },
+  filterLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  filterChip: {
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  selectedFilterChip: {
+    backgroundColor: '#e74c3c',
+    borderColor: '#e74c3c',
+  },
+  filterChipText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  selectedFilterChipText: {
+    color: 'white',
+    fontWeight: '600',
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  filterModal: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  filterSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 15,
+  },
+  sortOptionsContainer: {
+    gap: 10,
+  },
+  sortOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 10,
+    backgroundColor: '#f5f5f5',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  selectedSortOption: {
+    backgroundColor: '#e74c3c',
+    borderColor: '#e74c3c',
+  },
+  sortOptionText: {
+    fontSize: 16,
+    color: '#666',
+  },
+  selectedSortOptionText: {
+    color: 'white',
+    fontWeight: '600',
+  },
+  priceRangeContainer: {
+    marginBottom: 20,
+  },
+  priceRangeText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 10,
+  },
+  priceSlider: {
+    marginBottom: 10,
+  },
+  priceTrack: {
+    height: 4,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 2,
+  },
+  priceFill: {
+    height: '100%',
+    backgroundColor: '#e74c3c',
+    borderRadius: 2,
+  },
+  applyFilterButton: {
+    backgroundColor: '#e74c3c',
+    paddingVertical: 15,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  applyFilterButtonText: {
+    color: 'white',
+    fontSize: 16,
     fontWeight: '600',
   },
 });

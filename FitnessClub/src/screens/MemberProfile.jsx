@@ -91,7 +91,7 @@ const MemberProfile = () => {
       {/* Submit Button */}
       <TouchableOpacity style={styles.smallButton} 
         onPress={() => {
-            navigation.navigate('MemberDashboard');
+            navigation.navigate('MainApp');
           }}
       >
         <Text style={styles.buttonText}>Submit</Text>

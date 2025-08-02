@@ -1,12 +1,12 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text } from 'react-native';
+import { Text, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 // Import screens
 import Location from '../screens/Member/Location';
 import Activity from '../screens/Member/Activity';
-import Camera from '../screens/Member/Camera';
+import Community from '../screens/Member/Community';
 import Store from '../screens/Member/Store';
 import Profile from '../screens/Member/Profile';
 
@@ -23,8 +23,8 @@ const BottomTabNavigator = () => {
                    iconName = focused ? 'location' : 'location-outline';
                  } else if (route.name === 'Activity') {
                    iconName = focused ? 'fitness' : 'fitness-outline';
-                 } else if (route.name === 'Camera') {
-                   iconName = focused ? 'camera' : 'camera-outline';
+                 } else if (route.name === 'Community') {
+                   iconName = focused ? 'people' : 'people-outline';
                  } else if (route.name === 'Store') {
                    iconName = focused ? 'bag' : 'bag-outline';
                  } else if (route.name === 'Profile') {
@@ -39,9 +39,15 @@ const BottomTabNavigator = () => {
           backgroundColor: 'white',
           borderTopWidth: 1,
           borderTopColor: '#f0f0f0',
-          paddingBottom: 5,
+          paddingBottom: Platform.OS === 'ios' ? 20 : 10,
           paddingTop: 5,
-          height: 60,
+          height: Platform.OS === 'ios' ? 85 : 70,
+          paddingHorizontal: 10,
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
         },
         tabBarLabelStyle: {
           fontSize: 12,
@@ -65,10 +71,10 @@ const BottomTabNavigator = () => {
         }}
       />
       <Tab.Screen 
-        name="Camera" 
-        component={Camera}
+        name="Community" 
+        component={Community}
         options={{
-          title: 'Camera',
+          title: 'Community',
         }}
       />
       <Tab.Screen 
