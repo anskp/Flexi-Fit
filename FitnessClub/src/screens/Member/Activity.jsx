@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, ScrollView, TouchableOpacity, Image, Dimensions, Animated } from 'react-native';
+import { View, StyleSheet, Text, ScrollView, TouchableOpacity, Image, Dimensions, Animated, Alert } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
 import { useNavigation } from '@react-navigation/native';
+
 
 const Activity = () => {
   const navigation = useNavigation();
@@ -12,6 +13,9 @@ const Activity = () => {
   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
   const [customStartDate, setCustomStartDate] = useState(new Date());
   const [customEndDate, setCustomEndDate] = useState(new Date());
+  
+
+
 
   const tabs = [
     { id: 'activity', title: 'Activity', icon: '📊' },
@@ -104,6 +108,8 @@ const Activity = () => {
     }).start();
   }, []);
 
+
+
   const renderActivityTab = () => (
     <Animated.View style={[styles.tabContent, { opacity: fadeAnim }]}>
       {/* Enhanced Period Selector */}
@@ -126,6 +132,8 @@ const Activity = () => {
           </TouchableOpacity>
         ))}
       </View>
+
+
 
       {/* Today's Summary */}
       <View style={styles.summaryCard}>
@@ -569,6 +577,8 @@ const Activity = () => {
           </View>
         </View>
       )}
+
+
     </View>
   );
 };
@@ -1383,4 +1393,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  
+
 }); 

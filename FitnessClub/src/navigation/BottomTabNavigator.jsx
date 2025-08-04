@@ -10,6 +10,7 @@ import Community from '../screens/Member/Community';
 import Store from '../screens/Member/Store';
 import Profile from '../screens/Member/Profile';
 
+
 const Tab = createBottomTabNavigator();
 
 const BottomTabNavigator = () => {
@@ -84,6 +85,7 @@ const BottomTabNavigator = () => {
           title: 'Store',
         }}
       />
+
       <Tab.Screen 
         name="Profile" 
         component={Profile}

@@ -8,23 +8,22 @@ import OpenPage from '../screens/OpenPage';
 import LogIn from '../screens/LoginScreen';
 import SignIn from '../screens/SignupScreen';
 import RoleSelection from '../screens/RoleSelection';
-import MemberProfile from '../screens/MemberProfile';
-import TrainerProfile from '../screens/TrainerProfile';
-import MemberDashboard from '../screens/Member/MemberDashboard';
 
-import MyGym from '../screens/Member/Mygym';
-import WorkoutLog from '../screens/Member/WorkoutLog';
+
+
+
 import Location from '../screens/Member/Location';
 import DietLog from '../screens/Member/DietLog';
 import FlexiFitAI from '../screens/Member/FlexiFitAI';
 import BottomTabNavigator from './BottomTabNavigator';
+
 
 const Stack = createNativeStackNavigator();
 
 const AppNavigator = () => {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="MemberDashboard">
+      <Stack.Navigator initialRouteName="MainApp">
 
         <Stack.Screen name="MainApp" component={BottomTabNavigator}
         options={{ headerShown: false }} />
@@ -44,21 +43,8 @@ const AppNavigator = () => {
          <Stack.Screen name="RoleSelection" component={RoleSelection}  
          options={{ headerShown: false }} />
 
-           <Stack.Screen name="MemberProfile" component={MemberProfile}  
-         options={{ headerShown: false }} />
 
-            <Stack.Screen name="TrainerProfile" component={TrainerProfile}  
-         options={{ headerShown: false }} />
 
-            <Stack.Screen name="MemberDashboard" component={MemberDashboard}  
-         options={{ headerShown: false }} />
-
-           <Stack.Screen name="MyGym" component={MyGym}  
-         options={{ headerShown: false }} />
-
-         
-           <Stack.Screen name="WorkoutLog" component={WorkoutLog}  
-         options={{ headerShown: false }} />
 
              <Stack.Screen name="Location" component={Location}  
          options={{ headerShown: false }} />
@@ -69,6 +55,8 @@ const AppNavigator = () => {
 
              <Stack.Screen name="FlexiFitAI" component={FlexiFitAI}  
          options={{ headerShown: false }} />
+
+        
 
       </Stack.Navigator>
     </NavigationContainer>
