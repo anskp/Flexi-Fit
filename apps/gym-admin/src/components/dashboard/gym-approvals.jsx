@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
 import { Button } from "../ui/button"
 import { Badge } from "../ui/badge"
@@ -6,90 +6,43 @@ import { Search, Check, X, Eye, MapPin, Phone, Mail, Building2, Users, Calendar 
 import { Avatar, AvatarFallback } from "../ui/avatar"
 import { Input } from "../ui/input"
 
-const pendingApprovals = [
-  {
-    id: 1,
-    gymName: "Elite Fitness Center",
-    owner: "Sarah Johnson",
-    email: "sarah@elitefitness.com",
-    phone: "+1 (555) 123-4567",
-    address: "123 Main St, Downtown, NY 10001",
-    description: "Premium fitness center with state-of-the-art equipment and personal training services.",
-    memberCapacity: 500,
-    facilities: ["Cardio Zone", "Weight Room", "Yoga Studio", "Pool", "Spa"],
-    submittedDate: "2024-01-15",
-    status: "Pending",
-    documents: ["Business License", "Insurance Certificate", "Equipment List"],
-    avatar: "EF"
-  },
-  {
-    id: 2,
-    gymName: "CrossFit Warriors",
-    owner: "Mike Chen",
-    email: "mike@crossfitwarriors.com",
-    phone: "+1 (555) 234-5678",
-    address: "456 Oak Ave, Westside, NY 10002",
-    description: "High-intensity functional fitness training facility specializing in CrossFit methodology.",
-    memberCapacity: 200,
-    facilities: ["CrossFit Box", "Olympic Lifting Area", "Recovery Zone"],
-    submittedDate: "2024-01-18",
-    status: "Under Review",
-    documents: ["CrossFit Certification", "Safety Protocols", "Member Waivers"],
-    avatar: "CW"
-  },
-  {
-    id: 3,
-    gymName: "Zen Yoga Studio",
-    owner: "Emma Wilson",
-    email: "emma@zenyoga.com",
-    phone: "+1 (555) 345-6789",
-    address: "789 Peace St, Eastside, NY 10003",
-    description: "Serene yoga studio offering various styles from beginner to advanced levels.",
-    memberCapacity: 150,
-    facilities: ["Yoga Rooms", "Meditation Garden", "Wellness Center"],
-    submittedDate: "2024-01-20",
-    status: "Pending",
-    documents: ["Yoga Alliance Certification", "Studio Insurance", "Class Schedule"],
-    avatar: "ZY"
-  },
-  {
-    id: 4,
-    gymName: "PowerLift Pro",
-    owner: "Alex Rodriguez",
-    email: "alex@powerliftpro.com",
-    phone: "+1 (555) 456-7890",
-    address: "321 Strength Blvd, Southside, NY 10004",
-    description: "Specialized strength training facility for powerlifting and bodybuilding.",
-    memberCapacity: 100,
-    facilities: ["Powerlifting Platform", "Bodybuilding Area", "Recovery Room"],
-    submittedDate: "2024-01-22",
-    status: "Under Review",
-    documents: ["Powerlifting Certifications", "Equipment Safety", "Competition History"],
-    avatar: "PP"
-  },
-  {
-    id: 5,
-    gymName: "Cardio Express",
-    owner: "David Park",
-    email: "david@cardioexpress.com",
-    phone: "+1 (555) 567-8901",
-    address: "654 Fitness Way, Northside, NY 10005",
-    description: "Cardio-focused fitness center with modern equipment and group classes.",
-    memberCapacity: 300,
-    facilities: ["Cardio Machines", "Group Studio", "Personal Training"],
-    submittedDate: "2024-01-25",
-    status: "Pending",
-    documents: ["Fitness Certifications", "Equipment Maintenance", "Class Programs"],
-    avatar: "CE"
-  }
-]
+const pendingApprovals = []
 
 export function GymApprovals() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("all")
   const [selectedGym, setSelectedGym] = useState(null)
+  const [approvals, setApprovals] = useState(pendingApprovals)
 
-  const filteredApprovals = pendingApprovals.filter(approval => {
+  useEffect(() => {
+    let alive = true
+    import("../../lib/api.js").then(({ listPendingGyms }) =>
+      listPendingGyms()
+        .then((data) => {
+          if (!alive) return
+          const mapped = (data || []).map((g) => ({
+            id: g.id,
+            gymName: g.name,
+            owner: g.manager?.email || 'Owner',
+            email: g.manager?.email || '-',
+            phone: '-',
+            address: g.address || '-',
+            description: '—',
+            memberCapacity: 0,
+            facilities: Array.isArray(g.facilities) ? g.facilities : [],
+            submittedDate: new Date().toISOString().slice(0,10),
+            status: g.status || 'Pending',
+            documents: [],
+            avatar: (g.name || 'GY')[0] + (g.name || 'M')[1] || 'GY',
+          }))
+          setApprovals(mapped)
+        })
+        .catch(() => {})
+    )
+    return () => { alive = false }
+  }, [])
+
+  const filteredApprovals = approvals.filter(approval => {
     const matchesSearch = approval.gymName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          approval.owner.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = selectedStatus === "all" || approval.status === selectedStatus

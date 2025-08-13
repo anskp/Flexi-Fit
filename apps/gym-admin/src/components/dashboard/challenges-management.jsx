@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
@@ -8,143 +8,46 @@ import { Search, Plus, MoreHorizontal, Edit, Trash2, Target, Users, Calendar, Tr
 import { Avatar, AvatarFallback } from "../ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu"
 
-const challenges = [
-  {
-    id: 1,
-    name: "30-Day Fitness Challenge",
-    description: "Complete 30 days of consistent workouts",
-    category: "Consistency",
-    status: "Active",
-    participants: 2847,
-    maxParticipants: 5000,
-    startDate: "2024-01-01",
-    endDate: "2024-01-31",
-    progress: 75,
-    rewards: "Exclusive badge + 500 points",
-    difficulty: "Medium",
-    icon: "🏃",
-    color: "from-green-400 to-blue-500"
-  },
-  {
-    id: 2,
-    name: "Strength Training Pro",
-    description: "Master all major compound lifts",
-    category: "Strength",
-    status: "Active",
-    participants: 156,
-    maxParticipants: 200,
-    startDate: "2024-01-15",
-    endDate: "2024-03-15",
-    progress: 45,
-    rewards: "Strength Master badge + 1000 points",
-    difficulty: "Hard",
-    icon: "💪",
-    color: "from-red-400 to-red-600"
-  },
-  {
-    id: 3,
-    name: "Cardio Master",
-    description: "Complete 100 miles of cardio",
-    category: "Cardio",
-    status: "Upcoming",
-    participants: 89,
-    maxParticipants: 150,
-    startDate: "2024-02-01",
-    endDate: "2024-02-29",
-    progress: 0,
-    rewards: "Cardio King badge + 750 points",
-    difficulty: "Medium",
-    icon: "❤️",
-    color: "from-pink-400 to-red-500"
-  },
-  {
-    id: 4,
-    name: "Yoga Journey",
-    description: "Complete 50 yoga sessions",
-    category: "Wellness",
-    status: "Completed",
-    participants: 234,
-    maxParticipants: 300,
-    startDate: "2023-12-01",
-    endDate: "2023-12-31",
-    progress: 100,
-    rewards: "Yoga Master badge + 600 points",
-    difficulty: "Easy",
-    icon: "🧘",
-    color: "from-purple-400 to-indigo-500"
-  },
-  {
-    id: 5,
-    name: "HIIT Champion",
-    description: "Complete 20 HIIT workouts",
-    category: "Intensity",
-    status: "Active",
-    participants: 445,
-    maxParticipants: 500,
-    startDate: "2024-01-10",
-    endDate: "2024-02-10",
-    progress: 60,
-    rewards: "HIIT Warrior badge + 800 points",
-    difficulty: "Hard",
-    icon: "⚡",
-    color: "from-yellow-400 to-orange-500"
-  }
-]
+const challenges = []
 
-const topParticipants = [
-  {
-    id: 1,
-    name: "Alex Rodriguez",
-    challenge: "30-Day Fitness Challenge",
-    progress: 100,
-    rank: 1,
-    avatar: "AR",
-    points: 2847
-  },
-  {
-    id: 2,
-    name: "Sarah Johnson",
-    challenge: "Strength Training Pro",
-    progress: 95,
-    rank: 2,
-    avatar: "SJ",
-    points: 2634
-  },
-  {
-    id: 3,
-    name: "Mike Chen",
-    challenge: "Cardio Master",
-    progress: 88,
-    rank: 3,
-    avatar: "MC",
-    points: 2498
-  },
-  {
-    id: 4,
-    name: "Emma Wilson",
-    challenge: "Yoga Journey",
-    progress: 100,
-    rank: 4,
-    avatar: "EW",
-    points: 2356
-  },
-  {
-    id: 5,
-    name: "David Park",
-    challenge: "HIIT Champion",
-    progress: 92,
-    rank: 5,
-    avatar: "DP",
-    points: 2234
-  }
-]
+const topParticipants = []
 
 export function ChallengesManagement() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("all")
   const [selectedCategory, setSelectedCategory] = useState("all")
+  const [items, setItems] = useState(challenges)
 
-  const filteredChallenges = challenges.filter(challenge => {
+  useEffect(() => {
+    let alive = true
+    import("../../lib/api.js").then(({ listChallenges }) =>
+      listChallenges({ page: 1, limit: 50 })
+        .then((res) => {
+          if (!alive) return
+          const mapped = (res?.data || []).map((c) => ({
+            id: c.id,
+            name: c.name,
+            description: c.description || '—',
+            category: c.category || 'General',
+            status: 'Active',
+            participants: c._count?.participants || 0,
+            maxParticipants: 0,
+            startDate: c.startDate?.slice(0,10) || '',
+            endDate: c.endDate?.slice(0,10) || '',
+            progress: 0,
+            rewards: '—',
+            difficulty: '—',
+            icon: '🏆',
+            color: 'from-green-400 to-blue-500',
+          }))
+          setItems(mapped)
+        })
+        .catch(() => {})
+    )
+    return () => { alive = false }
+  }, [])
+
+  const filteredChallenges = items.filter(challenge => {
     const matchesSearch = challenge.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          challenge.description.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = selectedStatus === "all" || challenge.status === selectedStatus

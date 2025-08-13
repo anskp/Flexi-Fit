@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
 import { Button } from "../ui/button"
 import { Badge } from "../ui/badge"
@@ -24,73 +24,7 @@ import {
 } from "lucide-react"
 import { Avatar, AvatarFallback } from "../ui/avatar"
 
-const notifications = [
-  {
-    id: 1,
-    title: "New Challenge Available",
-    message: "Join our 30-Day Fitness Challenge and win exclusive rewards!",
-    type: "Challenge",
-    priority: "High",
-    status: "Sent",
-    recipients: 2847,
-    sentAt: "2024-01-25 10:30 AM",
-    scheduledFor: null,
-    icon: Target,
-    color: "from-green-400 to-blue-500"
-  },
-  {
-    id: 2,
-    title: "Badge Achievement Unlocked",
-    message: "Congratulations! You've earned the 'Early Bird' badge for completing 5 morning workouts.",
-    type: "Achievement",
-    priority: "Medium",
-    status: "Scheduled",
-    recipients: 156,
-    sentAt: null,
-    scheduledFor: "2024-01-26 09:00 AM",
-    icon: Award,
-    color: "from-purple-400 to-pink-500"
-  },
-  {
-    id: 3,
-    title: "Gym Maintenance Notice",
-    message: "PowerFit Gym will be closed for maintenance on Saturday, January 27th from 2-6 PM.",
-    type: "Maintenance",
-    priority: "High",
-    status: "Draft",
-    recipients: 450,
-    sentAt: null,
-    scheduledFor: null,
-    icon: Building2,
-    color: "from-yellow-400 to-orange-500"
-  },
-  {
-    id: 4,
-    title: "Monthly Progress Report",
-    message: "Your January fitness progress report is ready! Check out your achievements and set new goals.",
-    type: "Report",
-    priority: "Low",
-    status: "Sent",
-    recipients: 2847,
-    sentAt: "2024-01-24 08:00 AM",
-    scheduledFor: null,
-    icon: Users,
-    color: "from-blue-400 to-purple-500"
-  },
-  {
-    id: 5,
-    title: "New Class Available",
-    message: "Join our new HIIT Cardio class every Tuesday and Thursday at 6 PM!",
-    type: "Class",
-    priority: "Medium",
-    status: "Scheduled",
-    recipients: 1200,
-    sentAt: null,
-    scheduledFor: "2024-01-26 06:00 PM",
-    icon: Target,
-    color: "from-red-400 to-pink-500"
-  }
-]
+const notifications = []
 
 const notificationTemplates = [
   {
@@ -128,8 +62,38 @@ export function MemberNotifications() {
   const [selectedType, setSelectedType] = useState("all")
   const [selectedStatus, setSelectedStatus] = useState("all")
   const [selectedPriority, setSelectedPriority] = useState("all")
+  const [items, setItems] = useState(notifications)
 
-  const filteredNotifications = notifications.filter(notification => {
+  useEffect(() => {
+    let alive = true
+    import("../../lib/api.js").then(({ authHeaders }) =>
+      fetch((import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api') + '/notifications/me', {
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      })
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then((json) => {
+          if (!alive) return
+          const mapped = (json?.data || []).map((n) => ({
+            id: n.id,
+            title: n.title,
+            message: n.message,
+            type: n.type || 'General',
+            priority: 'Low',
+            status: 'Sent',
+            recipients: 0,
+            sentAt: n.createdAt ? new Date(n.createdAt).toLocaleString() : null,
+            scheduledFor: null,
+            icon: Bell,
+            color: 'from-green-400 to-blue-500',
+          }))
+          setItems(mapped)
+        })
+        .catch(() => {})
+    )
+    return () => { alive = false }
+  }, [])
+
+  const filteredNotifications = items.filter(notification => {
     const matchesSearch = notification.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          notification.message.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesType = selectedType === "all" || notification.type === selectedType

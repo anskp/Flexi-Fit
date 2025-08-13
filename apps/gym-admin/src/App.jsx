@@ -17,6 +17,7 @@ import './App.css'
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [token, setToken] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('token') : null))
   const [darkMode, setDarkMode] = useState(() => {
     // Check system preference or stored preference
     if (typeof window !== 'undefined') {
@@ -38,6 +39,33 @@ function App() {
       localStorage.setItem('theme', 'light');
     }
   }, [darkMode]);
+
+  const handleLogin = async (e) => {
+    e.preventDefault()
+    const form = new FormData(e.currentTarget)
+    const email = form.get('email')
+    const password = form.get('password')
+    try {
+      const { token: t } = await import('./lib/api.js').then(({ login }) => login({ email, password }))
+      localStorage.setItem('token', t)
+      setToken(t)
+    } catch (err) {
+      alert('Login failed')
+    }
+  }
+
+  if (!token) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'dark' : ''}`}>
+        <form onSubmit={handleLogin} className="w-full max-w-sm space-y-4 bg-background p-6 rounded-lg border border-border">
+          <h1 className="text-2xl font-semibold text-foreground">Admin Login</h1>
+          <input name="email" type="email" placeholder="Email" className="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground" required />
+          <input name="password" type="password" placeholder="Password" className="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground" required />
+          <button type="submit" className="w-full py-2 rounded-md bg-gradient-to-r from-green-500 to-blue-500 text-white">Login</button>
+        </form>
+      </div>
+    )
+  }
 
   return (
     <Router>

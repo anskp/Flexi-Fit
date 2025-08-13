@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
 import { Button } from "../ui/button"
 import { Badge } from "../ui/badge"
@@ -14,7 +14,7 @@ import {
   ArrowDown
 } from "lucide-react"
 
-const stats = [
+const fallbackStats = [
   {
     title: "Total Members",
     value: "2,847",
@@ -49,50 +49,59 @@ const stats = [
   }
 ]
 
-const recentActivity = [
-  {
-    id: 1,
-    user: "Sarah Johnson",
-    action: "joined Premium plan",
-    time: "2 minutes ago",
-    avatar: "SJ",
-    type: "subscription"
-  },
-  {
-    id: 2,
-    user: "Mike Chen",
-    action: "completed workout challenge",
-    time: "15 minutes ago",
-    avatar: "MC",
-    type: "achievement"
-  },
-  {
-    id: 3,
-    user: "Emma Davis",
-    action: "booked personal training",
-    time: "1 hour ago",
-    avatar: "ED",
-    type: "booking"
-  },
-  {
-    id: 4,
-    user: "Alex Rodriguez",
-    action: "renewed membership",
-    time: "2 hours ago",
-    avatar: "AR",
-    type: "subscription"
-  },
-  {
-    id: 5,
-    user: "Lisa Wang",
-    action: "earned fitness badge",
-    time: "3 hours ago",
-    avatar: "LW",
-    type: "achievement"
-  }
-]
+const recentActivity = []
 
 export function DashboardOverview() {
+  const [stats, setStats] = useState(fallbackStats)
+
+  useEffect(() => {
+    let isMounted = true
+    import("../../lib/api.js").then(({ getAdminDashboard }) =>
+      getAdminDashboard()
+        .then((data) => {
+          if (!isMounted || !data) return
+          const s = [
+            {
+              title: "Total Members",
+              value: String(data.userStats?.total ?? 0),
+              change: "+0%",
+              changeType: "positive",
+              icon: Users,
+              color: "from-blue-500 to-purple-500",
+            },
+            {
+              title: "Active Subscriptions",
+              value: String(data.platformStats?.activeSubscriptions ?? 0),
+              change: "+0%",
+              changeType: "positive",
+              icon: TrendingUp,
+              color: "from-green-500 to-emerald-500",
+            },
+            {
+              title: "Approved Gyms",
+              value: String(data.gymStats?.approved ?? 0),
+              change: "+0%",
+              changeType: "positive",
+              icon: Award,
+              color: "from-orange-500 to-red-500",
+            },
+            {
+              title: "Pending Gyms",
+              value: String(data.gymStats?.pendingApproval ?? 0),
+              change: "+0%",
+              changeType: "negative",
+              icon: Target,
+              color: "from-purple-500 to-pink-500",
+            },
+          ]
+          setStats(s)
+        })
+        .catch(() => {})
+    )
+    return () => {
+      isMounted = false
+    }
+  }, [])
   return (
     <div className="space-y-6">
       {/* Header */}

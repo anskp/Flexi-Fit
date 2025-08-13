@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
@@ -32,128 +32,9 @@ import {
 import { Avatar, AvatarFallback } from "../ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu"
 
-// Mock data for Members
-const membersData = [
-  {
-    id: 1,
-    name: "Sarah Johnson",
-    email: "sarah.j@email.com",
-    phone: "+1 (555) 123-4567",
-    membership: "Premium",
-    status: "Active",
-    joinDate: "2024-01-15",
-    lastVisit: "2024-01-20",
-    avatar: "SJ"
-  },
-  {
-    id: 2,
-    name: "Mike Chen",
-    email: "mike.chen@email.com",
-    phone: "+1 (555) 234-5678",
-    membership: "Basic",
-    status: "Active",
-    joinDate: "2024-01-10",
-    lastVisit: "2024-01-19",
-    avatar: "MC"
-  },
-  {
-    id: 3,
-    name: "Emma Davis",
-    email: "emma.davis@email.com",
-    phone: "+1 (555) 345-6789",
-    membership: "Premium",
-    status: "Inactive",
-    joinDate: "2023-12-01",
-    lastVisit: "2024-01-05",
-    avatar: "ED"
-  },
-  {
-    id: 4,
-    name: "Alex Rodriguez",
-    email: "alex.r@email.com",
-    phone: "+1 (555) 456-7890",
-    membership: "Basic",
-    status: "Active",
-    joinDate: "2024-01-08",
-    lastVisit: "2024-01-18",
-    avatar: "AR"
-  },
-  {
-    id: 5,
-    name: "Lisa Wang",
-    email: "lisa.wang@email.com",
-    phone: "+1 (555) 567-8901",
-    membership: "Premium",
-    status: "Active",
-    joinDate: "2024-01-12",
-    lastVisit: "2024-01-20",
-    avatar: "LW"
-  }
-]
+const fallbackMembers = []
 
-// Mock data for Trainers
-const trainersData = [
-  {
-    id: 1,
-    name: "David Wilson",
-    email: "david.wilson@email.com",
-    phone: "+1 (555) 111-2222",
-    specialty: "Strength Training",
-    rating: 4.8,
-    clients: 24,
-    status: "Active",
-    experience: "5 years",
-    avatar: "DW"
-  },
-  {
-    id: 2,
-    name: "Maria Garcia",
-    email: "maria.garcia@email.com",
-    phone: "+1 (555) 222-3333",
-    specialty: "Yoga & Pilates",
-    rating: 4.9,
-    clients: 18,
-    status: "Active",
-    experience: "7 years",
-    avatar: "MG"
-  },
-  {
-    id: 3,
-    name: "James Thompson",
-    email: "james.t@email.com",
-    phone: "+1 (555) 333-4444",
-    specialty: "CrossFit",
-    rating: 4.7,
-    clients: 32,
-    status: "Active",
-    experience: "3 years",
-    avatar: "JT"
-  },
-  {
-    id: 4,
-    name: "Anna Kim",
-    email: "anna.kim@email.com",
-    phone: "+1 (555) 444-5555",
-    specialty: "Cardio & HIIT",
-    rating: 4.6,
-    clients: 28,
-    status: "Inactive",
-    experience: "4 years",
-    avatar: "AK"
-  },
-  {
-    id: 5,
-    name: "Robert Lee",
-    email: "robert.lee@email.com",
-    phone: "+1 (555) 555-6666",
-    specialty: "Nutrition & Wellness",
-    rating: 4.9,
-    clients: 15,
-    status: "Active",
-    experience: "6 years",
-    avatar: "RL"
-  }
-]
+const fallbackTrainers = []
 
 // Mock data for Gym Approvals
 const gymApprovalsData = [
@@ -223,10 +104,54 @@ export function UserManagement() {
   const [activeTab, setActiveTab] = useState("members")
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
+  const [members, setMembers] = useState(fallbackMembers)
+  const [trainers, setTrainers] = useState(fallbackTrainers)
+
+  useEffect(() => {
+    let isMounted = true
+    import("../../lib/api.js").then(({ listUsers }) =>
+      Promise.all([
+        listUsers({ page: 1, limit: 50, role: 'MEMBER' }),
+        listUsers({ page: 1, limit: 50, role: 'TRAINER' }),
+      ])
+        .then(([m, t]) => {
+          if (!isMounted) return
+          const toMember = (u) => ({
+            id: u.id,
+            name: u.memberProfile?.name || u.email.split('@')[0],
+            email: u.email,
+            phone: u.memberProfile?.phone || '-',
+            membership: u.memberProfile?.tier || 'Basic',
+            status: 'Active',
+            joinDate: new Date(u.createdAt).toISOString().slice(0, 10),
+            lastVisit: new Date(u.createdAt).toISOString().slice(0, 10),
+            avatar: (u.memberProfile?.name || u.email).slice(0, 2).toUpperCase(),
+          })
+          const toTrainer = (u) => ({
+            id: u.id,
+            name: u.trainerProfile?.name || u.email.split('@')[0],
+            email: u.email,
+            phone: u.trainerProfile?.phone || '-',
+            specialty: u.trainerProfile?.bio || 'General Fitness',
+            rating: 5,
+            clients: 0,
+            status: 'Active',
+            experience: u.trainerProfile?.experience ? `${u.trainerProfile.experience} years` : '—',
+            avatar: (u.trainerProfile?.name || u.email).slice(0, 2).toUpperCase(),
+          })
+          setMembers((m?.users || []).map(toMember))
+          setTrainers((t?.users || []).map(toTrainer))
+        })
+        .catch(() => {})
+    )
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const tabs = [
-    { id: "members", label: "Members", icon: UserCheck, count: membersData.length },
-    { id: "trainers", label: "Trainers", icon: Dumbbell, count: trainersData.length },
+    { id: "members", label: "Members", icon: UserCheck, count: members.length },
+    { id: "trainers", label: "Trainers", icon: Dumbbell, count: trainers.length },
     { id: "gym-approvals", label: "Gym Approvals", icon: Building2, count: gymApprovalsData.length }
   ]
 
@@ -254,7 +179,7 @@ export function UserManagement() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Members</p>
-                <p className="text-2xl font-bold text-foreground">{membersData.length}</p>
+                 <p className="text-2xl font-bold text-foreground">{members.length}</p>
               </div>
               <UserCheck className="h-8 w-8 text-blue-500" />
             </div>
@@ -265,7 +190,7 @@ export function UserManagement() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Active Members</p>
-                <p className="text-2xl font-bold text-foreground">{membersData.filter(m => m.status === "Active").length}</p>
+                 <p className="text-2xl font-bold text-foreground">{members.filter(m => m.status === "Active").length}</p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-500" />
             </div>
@@ -276,7 +201,7 @@ export function UserManagement() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Premium Members</p>
-                <p className="text-2xl font-bold text-foreground">{membersData.filter(m => m.membership === "Premium").length}</p>
+                 <p className="text-2xl font-bold text-foreground">{members.filter(m => m.membership === "Premium").length}</p>
               </div>
               <Crown className="h-8 w-8 text-purple-500" />
             </div>
@@ -287,7 +212,7 @@ export function UserManagement() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">New This Month</p>
-                <p className="text-2xl font-bold text-foreground">{membersData.filter(m => new Date(m.joinDate) > new Date('2024-01-01')).length}</p>
+                 <p className="text-2xl font-bold text-foreground">{members.filter(m => new Date(m.joinDate) > new Date('2024-01-01')).length}</p>
               </div>
               <TrendingUp className="h-8 w-8 text-orange-500" />
             </div>
@@ -303,7 +228,7 @@ export function UserManagement() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {membersData.map((member) => (
+            {members.map((member) => (
               <div key={member.id} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border border-border">
                 <div className="flex items-center space-x-4">
                   <Avatar className="h-10 w-10">
@@ -370,7 +295,7 @@ export function UserManagement() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Trainers</p>
-                <p className="text-2xl font-bold text-foreground">{trainersData.length}</p>
+                 <p className="text-2xl font-bold text-foreground">{trainers.length}</p>
               </div>
               <Dumbbell className="h-8 w-8 text-blue-500" />
             </div>
@@ -381,7 +306,7 @@ export function UserManagement() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Active Trainers</p>
-                <p className="text-2xl font-bold text-foreground">{trainersData.filter(t => t.status === "Active").length}</p>
+                 <p className="text-2xl font-bold text-foreground">{trainers.filter(t => t.status === "Active").length}</p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-500" />
             </div>
@@ -403,7 +328,7 @@ export function UserManagement() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Clients</p>
-                <p className="text-2xl font-bold text-foreground">{trainersData.reduce((sum, t) => sum + t.clients, 0)}</p>
+                 <p className="text-2xl font-bold text-foreground">{trainers.reduce((sum, t) => sum + t.clients, 0)}</p>
               </div>
               <Users className="h-8 w-8 text-purple-500" />
             </div>
@@ -419,7 +344,7 @@ export function UserManagement() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {trainersData.map((trainer) => (
+            {trainers.map((trainer) => (
               <div key={trainer.id} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border border-border">
                 <div className="flex items-center space-x-4">
                   <Avatar className="h-10 w-10">

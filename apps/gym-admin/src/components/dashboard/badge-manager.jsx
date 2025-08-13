@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
@@ -7,7 +7,7 @@ import { Search, Plus, MoreHorizontal, Edit, Trash2, Award, Users, Target } from
 import { Avatar, AvatarFallback } from "../ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu"
 
-const badges = [
+const defaultBadges = [
   {
     id: 1,
     name: "Early Bird",
@@ -99,6 +99,51 @@ const recentIssuances = [
 export function BadgeManager() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
+  const [gyms, setGyms] = useState([])
+  const [selectedGymId, setSelectedGymId] = useState("")
+  const [badges, setBadges] = useState(defaultBadges)
+
+  useEffect(() => {
+    let alive = true
+    import("../../lib/api.js").then(({ authHeaders }) =>
+      fetch((import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api') + '/gyms/discover?page=1&limit=50', {
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      })
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then((json) => { if (alive) setGyms((json?.data?.gyms || []).filter((g) => g.status === 'approved')) })
+        .catch(() => {})
+    )
+    return () => { alive = false }
+  }, [])
+
+  useEffect(() => {
+    if (!selectedGymId) return
+    let alive = true
+    import("../../lib/api.js").then(({ authHeaders }) =>
+      fetch((import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api') + `/gyms/profile/${selectedGymId}`, {
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      })
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then((json) => {
+          if (!alive) return
+          const b = Array.isArray(json?.data?.badges) ? json.data.badges : []
+          setBadges(b.map((name, idx) => ({ id: idx + 1, name, description: '-', category: 'General', icon: '🏅', color: 'from-yellow-400 to-orange-500', issuedCount: 0, requirements: '-', createdAt: new Date().toISOString().slice(0,10) })))
+        })
+        .catch(() => {})
+    )
+    return () => { alive = false }
+  }, [selectedGymId])
+
+  const saveBadges = async () => {
+    if (!selectedGymId) return
+    const names = badges.map((b) => b.name)
+    const { authHeaders } = await import("../../lib/api.js")
+    await fetch((import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api') + `/admin/gyms/${selectedGymId}/badges`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({ badges: names }),
+    })
+  }
 
   const filteredBadges = badges.filter(badge => {
     const matchesSearch = badge.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -123,6 +168,16 @@ export function BadgeManager() {
       <div>
         <h1 className="text-3xl font-bold text-white">Badge Manager</h1>
         <p className="text-slate-400 mt-2">Create and manage achievement badges to motivate your fitness community.</p>
+      </div>
+      <div className="flex items-center gap-3">
+        <label className="text-sm text-slate-400">Gym:</label>
+        <select value={selectedGymId} onChange={(e) => setSelectedGymId(e.target.value)} className="px-3 py-2 bg-slate-800 border border-slate-700 text-white rounded-md">
+          <option value="">Select gym…</option>
+          {gyms.map((g) => (
+            <option key={g.id} value={g.id}>{g.name}</option>
+          ))}
+        </select>
+        <Button onClick={saveBadges} className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600">Save</Button>
       </div>
 
       {/* Stats */}

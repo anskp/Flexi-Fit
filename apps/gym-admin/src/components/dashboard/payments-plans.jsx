@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
@@ -29,127 +29,80 @@ import {
 import { Avatar, AvatarFallback } from "../ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu"
 
-// Mock data for Payments
-const paymentsData = [
-  {
-    id: 1,
-    member: "Sarah Johnson",
-    amount: "$89.99",
-    plan: "Premium Monthly",
-    status: "Completed",
-    date: "2024-01-20",
-    method: "Credit Card",
-    avatar: "SJ"
-  },
-  {
-    id: 2,
-    member: "Mike Chen",
-    amount: "$49.99",
-    plan: "Basic Monthly",
-    status: "Pending",
-    date: "2024-01-19",
-    method: "PayPal",
-    avatar: "MC"
-  },
-  {
-    id: 3,
-    member: "Emma Davis",
-    amount: "$299.99",
-    plan: "Premium Yearly",
-    status: "Completed",
-    date: "2024-01-18",
-    method: "Credit Card",
-    avatar: "ED"
-  },
-  {
-    id: 4,
-    member: "Alex Rodriguez",
-    amount: "$49.99",
-    plan: "Basic Monthly",
-    status: "Failed",
-    date: "2024-01-17",
-    method: "Credit Card",
-    avatar: "AR"
-  },
-  {
-    id: 5,
-    member: "Lisa Wang",
-    amount: "$89.99",
-    plan: "Premium Monthly",
-    status: "Completed",
-    date: "2024-01-16",
-    method: "Bank Transfer",
-    avatar: "LW"
-  }
-]
+const paymentsData = []
 
-// Mock data for Plans
-const plansData = [
-  {
-    id: 1,
-    name: "Basic Monthly",
-    price: "$49.99",
-    duration: "1 month",
-    features: ["Access to gym", "Basic equipment", "Locker room"],
-    popularity: "High",
-    activeMembers: 156,
-    color: "blue",
-    status: "Active"
-  },
-  {
-    id: 2,
-    name: "Premium Monthly",
-    price: "$89.99",
-    duration: "1 month",
-    features: ["All Basic features", "Personal trainer", "Spa access", "Group classes"],
-    popularity: "Very High",
-    activeMembers: 89,
-    color: "purple",
-    status: "Active"
-  },
-  {
-    id: 3,
-    name: "Basic Yearly",
-    price: "$499.99",
-    duration: "12 months",
-    features: ["Access to gym", "Basic equipment", "Locker room", "2 months free"],
-    popularity: "Medium",
-    activeMembers: 67,
-    color: "green",
-    status: "Active"
-  },
-  {
-    id: 4,
-    name: "Premium Yearly",
-    price: "$899.99",
-    duration: "12 months",
-    features: ["All Premium features", "Nutrition consultation", "3 months free"],
-    popularity: "High",
-    activeMembers: 45,
-    color: "orange",
-    status: "Active"
-  },
-  {
-    id: 5,
-    name: "Student Plan",
-    price: "$29.99",
-    duration: "1 month",
-    features: ["Access to gym", "Basic equipment", "Valid student ID required"],
-    popularity: "Low",
-    activeMembers: 23,
-    color: "gray",
-    status: "Inactive"
-  }
-]
+const plansData = []
 
 export function PaymentsPlans() {
   const [activeTab, setActiveTab] = useState("payments")
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
+  const [transactions, setTransactions] = useState(paymentsData)
+  const [plans, setPlans] = useState(plansData)
+  const [gyms, setGyms] = useState([])
+  const [selectedGymId, setSelectedGymId] = useState("")
+
+  useEffect(() => {
+    let alive = true
+    // Load user transactions (fallback for admin until a global endpoint exists)
+    import("../../lib/api.js").then(({ getMyTransactions }) =>
+      getMyTransactions({ page: 1, limit: 50 })
+        .then((res) => {
+          if (!alive) return
+          const mapTxn = (t) => ({
+            id: t.id,
+            member: t.user?.email || 'Me',
+            amount: `$${(t.amount || 0).toFixed?.(2) ?? t.amount}`,
+            plan: t.description || t.planName || '-',
+            status: (t.status || 'Completed').replace(/_/g, ' '),
+            date: new Date(t.createdAt || t.date || Date.now()).toISOString().slice(0,10),
+            method: t.method || 'Card',
+            avatar: (t.user?.email || 'TX')[0] + (t.user?.email || 'N')[1],
+          })
+          setTransactions((res?.data || []).map(mapTxn))
+        })
+        .catch(() => {})
+    )
+    // Load gyms to choose from (discover list)
+    import("../../lib/api.js").then(({ authHeaders }) =>
+      fetch((import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api') + '/gyms/discover?page=1&limit=50', {
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      })
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then((json) => { if (alive) setGyms(json?.data?.gyms || []) })
+        .catch(() => {})
+    )
+    return () => { alive = false }
+  }, [])
+
+  useEffect(() => {
+    if (!selectedGymId) return
+    let alive = true
+    import("../../lib/api.js").then(({ getGymPlans }) =>
+      getGymPlans(selectedGymId)
+        .then((data) => {
+          if (!alive) return
+          const mapped = (data || []).map((p) => ({
+            id: p.id,
+            name: p.name,
+            price: `$${p.price}`,
+            duration: p.duration,
+            features: [],
+            popularity: 'High',
+            activeMembers: 0,
+            color: 'blue',
+            status: 'Active',
+          }))
+          setPlans(mapped)
+        })
+        .catch(() => {})
+    )
+    return () => { alive = false }
+  }, [selectedGymId])
 
   const tabs = [
-    { id: "payments", label: "Payments", icon: CreditCard, count: paymentsData.length },
-    { id: "plans", label: "Plans", icon: Crown, count: plansData.length }
+    { id: "payments", label: "Payments", icon: CreditCard, count: transactions.length },
+    { id: "plans", label: "Plans", icon: Crown, count: plans.length }
   ]
 
   const getStatusColor = (status) => {
@@ -219,7 +172,7 @@ export function PaymentsPlans() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Completed</p>
-                <p className="text-2xl font-bold text-foreground">{paymentsData.filter(p => p.status === "Completed").length}</p>
+                 <p className="text-2xl font-bold text-foreground">{transactions.filter(p => p.status.toLowerCase() === "completed").length}</p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-500" />
             </div>
@@ -230,7 +183,7 @@ export function PaymentsPlans() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Pending</p>
-                <p className="text-2xl font-bold text-foreground">{paymentsData.filter(p => p.status === "Pending").length}</p>
+                 <p className="text-2xl font-bold text-foreground">{transactions.filter(p => p.status.toLowerCase() === "pending").length}</p>
               </div>
               <Clock className="h-8 w-8 text-yellow-500" />
             </div>
@@ -241,7 +194,7 @@ export function PaymentsPlans() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Failed</p>
-                <p className="text-2xl font-bold text-foreground">{paymentsData.filter(p => p.status === "Failed").length}</p>
+                 <p className="text-2xl font-bold text-foreground">{transactions.filter(p => p.status.toLowerCase() === "failed").length}</p>
               </div>
               <AlertCircle className="h-8 w-8 text-red-500" />
             </div>
@@ -257,7 +210,7 @@ export function PaymentsPlans() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {paymentsData.map((payment) => (
+            {transactions.map((payment) => (
               <div key={payment.id} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border border-border">
                 <div className="flex items-center space-x-4">
                   <Avatar className="h-10 w-10">
@@ -280,7 +233,7 @@ export function PaymentsPlans() {
                 </div>
                 <div className="flex items-center space-x-4">
                   <div className="text-right">
-                    <p className="text-lg font-bold text-foreground">{payment.amount}</p>
+                   <p className="text-lg font-bold text-foreground">{payment.amount}</p>
                     <p className="text-sm text-muted-foreground">{payment.date}</p>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -330,7 +283,7 @@ export function PaymentsPlans() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Plans</p>
-                <p className="text-2xl font-bold text-foreground">{plansData.length}</p>
+                 <p className="text-2xl font-bold text-foreground">{plans.length}</p>
               </div>
               <Crown className="h-8 w-8 text-purple-500" />
             </div>
@@ -341,7 +294,7 @@ export function PaymentsPlans() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Active Plans</p>
-                <p className="text-2xl font-bold text-foreground">{plansData.filter(p => p.status === "Active").length}</p>
+                 <p className="text-2xl font-bold text-foreground">{plans.filter(p => p.status === "Active").length}</p>
               </div>
               <CheckCircle2 className="h-8 w-8 text-green-500" />
             </div>
@@ -352,7 +305,7 @@ export function PaymentsPlans() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Members</p>
-                <p className="text-2xl font-bold text-foreground">{plansData.reduce((sum, p) => sum + p.activeMembers, 0)}</p>
+                 <p className="text-2xl font-bold text-foreground">{plans.reduce((sum, p) => sum + (p.activeMembers || 0), 0)}</p>
               </div>
               <Users className="h-8 w-8 text-blue-500" />
             </div>
@@ -373,7 +326,7 @@ export function PaymentsPlans() {
 
       {/* Plans Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {plansData.map((plan) => (
+        {plans.map((plan) => (
           <Card key={plan.id} className="bg-card border-border hover:border-primary/50 transition-colors">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -505,6 +458,19 @@ export function PaymentsPlans() {
           ))}
         </div>
       </div>
+
+      {/* Gym selector for Plans */}
+      {activeTab === 'plans' && (
+        <div className="flex items-center gap-3">
+          <label className="text-sm text-muted-foreground">Gym:</label>
+          <select value={selectedGymId} onChange={(e) => setSelectedGymId(e.target.value)} className="px-3 py-2 bg-background border border-border rounded-md text-foreground">
+            <option value="">Select gym…</option>
+            {gyms.map((g) => (
+              <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Tab Content */}
       <div className="mt-6">

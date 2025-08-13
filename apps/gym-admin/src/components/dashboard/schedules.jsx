@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
 import { Button } from "../ui/button"
 import { Badge } from "../ui/badge"
@@ -21,68 +21,7 @@ import {
 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu"
 
-const scheduleData = [
-  {
-    id: 1,
-    className: "Morning Yoga",
-    trainer: "Maria Garcia",
-    time: "06:00 - 07:00",
-    day: "Monday",
-    capacity: 20,
-    enrolled: 18,
-    location: "Studio A",
-    type: "Yoga",
-    status: "Active"
-  },
-  {
-    id: 2,
-    className: "HIIT Training",
-    trainer: "David Wilson",
-    time: "07:30 - 08:30",
-    day: "Monday",
-    capacity: 15,
-    enrolled: 15,
-    location: "Gym Floor",
-    type: "Cardio",
-    status: "Full"
-  },
-  {
-    id: 3,
-    className: "Strength Training",
-    trainer: "James Thompson",
-    time: "17:00 - 18:00",
-    day: "Monday",
-    capacity: 12,
-    enrolled: 8,
-    location: "Weight Room",
-    type: "Strength",
-    status: "Active"
-  },
-  {
-    id: 4,
-    className: "Zumba Dance",
-    trainer: "Anna Kim",
-    time: "19:00 - 20:00",
-    day: "Monday",
-    capacity: 25,
-    enrolled: 22,
-    location: "Studio B",
-    type: "Dance",
-    status: "Active"
-  },
-  {
-    id: 5,
-    className: "CrossFit",
-    trainer: "Robert Lee",
-    time: "06:00 - 07:00",
-    day: "Tuesday",
-    capacity: 18,
-    enrolled: 18,
-    location: "CrossFit Area",
-    type: "CrossFit",
-    status: "Full"
-  }
-]
+const scheduleData = []
 
 const getTypeIcon = (type) => {
   switch (type.toLowerCase()) {
@@ -135,9 +74,20 @@ const getStatusColor = (status) => {
 
 export function Schedules() {
   const [selectedDay, setSelectedDay] = useState("Monday")
+  const [items, setItems] = useState(scheduleData)
+
+  useEffect(() => {
+    let alive = true
+    import("../../lib/api.js").then(({ listSchedules }) =>
+      listSchedules()
+        .then((data) => { if (alive) setItems(data || []) })
+        .catch(() => {})
+    )
+    return () => { alive = false }
+  }, [])
 
   const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-  const filteredSchedule = scheduleData.filter(item => item.day === selectedDay)
+  const filteredSchedule = items.filter(item => item.day === selectedDay)
 
   return (
     <div className="space-y-6">
@@ -159,7 +109,7 @@ export function Schedules() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Classes</p>
-                <p className="text-2xl font-bold text-foreground">{scheduleData.length}</p>
+                 <p className="text-2xl font-bold text-foreground">{items.length}</p>
               </div>
               <Calendar className="h-8 w-8 text-blue-500" />
             </div>
@@ -170,7 +120,7 @@ export function Schedules() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Active Classes</p>
-                <p className="text-2xl font-bold text-foreground">{scheduleData.filter(s => s.status === "Active").length}</p>
+                 <p className="text-2xl font-bold text-foreground">{items.filter(s => s.status === "Active").length}</p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-500" />
             </div>
@@ -181,7 +131,7 @@ export function Schedules() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Full Classes</p>
-                <p className="text-2xl font-bold text-foreground">{scheduleData.filter(s => s.status === "Full").length}</p>
+                 <p className="text-2xl font-bold text-foreground">{items.filter(s => s.status === "Full").length}</p>
               </div>
               <AlertCircle className="h-8 w-8 text-yellow-500" />
             </div>
@@ -192,7 +142,7 @@ export function Schedules() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Enrollments</p>
-                <p className="text-2xl font-bold text-foreground">{scheduleData.reduce((sum, s) => sum + s.enrolled, 0)}</p>
+                 <p className="text-2xl font-bold text-foreground">{items.reduce((sum, s) => sum + (s.enrolled || 0), 0)}</p>
               </div>
               <Users className="h-8 w-8 text-purple-500" />
             </div>
@@ -237,7 +187,7 @@ export function Schedules() {
                         <div className="flex items-center space-x-4 mt-1">
                           <div className="flex items-center space-x-1">
                             <Clock className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">{classItem.time}</span>
+                            <span className="text-sm text-muted-foreground">{classItem.startTime || classItem.time?.split(' - ')[0]} - {classItem.endTime || classItem.time?.split(' - ')[1]}</span>
                           </div>
                           <div className="flex items-center space-x-1">
                             <MapPin className="h-3 w-3 text-muted-foreground" />
