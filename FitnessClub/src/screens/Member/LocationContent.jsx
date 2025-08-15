@@ -1,186 +1,59 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, ScrollView, TouchableOpacity, Image, Dimensions, TextInput, Modal, SafeAreaView, StatusBar, Platform, Alert } from 'react-native';
+import React from 'react';
+import { View, StyleSheet, Text, ScrollView, TouchableOpacity, Image, Dimensions, TextInput, Modal, Platform, Animated } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import { LinearGradient } from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 
-const Location = () => {
-  const [selectedGym, setSelectedGym] = useState(null);
-  const [userLocation, setUserLocation] = useState({
-    latitude: 28.6139,
-    longitude: 77.2090,
-  });
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSearchModal, setShowSearchModal] = useState(false);
-  const [showFilterModal, setShowFilterModal] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState('all');
-  const [selectedSort, setSelectedSort] = useState('distance');
+const { width } = Dimensions.get('window');
 
-
-  // Sample gym data with enhanced information
-  const gyms = [
-    {
-      id: 1,
-      name: "Oxygen Gym Almahboula",
-      location: "Almahboula, State...",
-      distance: "0.5 km",
-      rating: 4.5,
-      isNearest: true,
-      coordinates: {
-        latitude: 28.6139,
-        longitude: 77.2090,
-      },
-      logo: "OXYGEN",
-      type: "Premium",
-      price: "₹2,500/month",
-      features: ["24/7 Access", "Personal Trainer", "Pool", "Spa"],
-      image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
-      openNow: true,
-      crowdLevel: "Low"
-    },
-    {
-      id: 2,
-      name: "Platinum Almahboula",
-      location: "Almahboula, State : Al Ahma...",
-      distance: "1.2 km",
-      rating: 4.2,
-      isNearest: false,
-      coordinates: {
-        latitude: 28.6000,
-        longitude: 77.2300,
-      },
-      logo: "PLATINUM",
-      type: "Standard",
-      price: "₹1,800/month",
-      features: ["Cardio Zone", "Weight Training", "Yoga Classes"],
-      image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
-      openNow: true,
-      crowdLevel: "Medium"
-    },
-    {
-      id: 3,
-      name: "Elite Sports Club",
-      location: "Lajpat Nagar, New Delhi",
-      distance: "2.1 km",
-      rating: 4.7,
-      isNearest: false,
-      coordinates: {
-        latitude: 28.6300,
-        longitude: 77.2400,
-      },
-      logo: "🏃",
-      type: "Premium",
-      price: "₹3,200/month",
-      features: ["Olympic Pool", "Tennis Court", "Spa", "Restaurant"],
-      image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
-      openNow: false,
-      crowdLevel: "High"
-    },
-    {
-      id: 4,
-      name: "FitZone Express",
-      location: "Saket, New Delhi",
-      distance: "3.5 km",
-      rating: 4.0,
-      isNearest: false,
-      coordinates: {
-        latitude: 28.5500,
-        longitude: 77.2000,
-      },
-      logo: "⚡",
-      type: "Express",
-      price: "₹1,500/month",
-      features: ["Quick Workouts", "Express Classes", "No Contracts"],
-      image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
-      openNow: true,
-      crowdLevel: "Low"
-    }
-  ];
-
+const LocationContent = ({
+  gyms,
+  selectedGym,
+  mapSelectedGym,
+  userLocation,
+  pulseAnim,
+  locationPermission,
+  isLoadingLocation,
+  searchQuery,
+  showSearchModal,
+  showFilterModal,
+  selectedFilter,
+  selectedSort,
+  filterOptions,
+  sortOptions,
+  onGymPress,
+  onMapMarkerPress,
+  onMyLocation,
+  onCameraPress,
+  onSearchPress,
+  onFilterPress,
+  onSearchQueryChange,
+  onSearchModalClose,
+  onFilterModalClose,
+  onFilterChange,
+  onSortChange,
+  onRequestLocationPermission
+}) => {
   const initialRegion = {
-    latitude: 28.6139,
-    longitude: 77.2090,
+    latitude: 28.7041,
+    longitude: 77.1025,
     latitudeDelta: 0.05,
     longitudeDelta: 0.05,
   };
 
-  const handleGymPress = (gym) => {
-    setSelectedGym(gym);
-    // You can add navigation to gym details here
-  };
-
-  const handleMyLocation = () => {
-    // Add location permission and get current location
-    console.log('Getting current location...');
-  };
-
-  const handleCameraPress = () => {
-    // Handle camera functionality - can be used for gym check-in, photo sharing, etc.
-    Alert.alert(
-      'Camera Options',
-      'What would you like to do?',
-      [
-        { 
-          text: '📸 Take Photo', 
-          onPress: () => {
-            console.log('Take photo pressed');
-            Alert.alert('Camera', 'Opening camera to take photo...');
-          }
-        },
-        { 
-          text: '📍 Check-in with Photo', 
-          onPress: () => {
-            console.log('Check-in with photo pressed');
-            Alert.alert('Check-in', 'Taking photo for gym check-in...');
-          }
-        },
-        { 
-          text: '🎯 Scan QR Code', 
-          onPress: () => {
-            console.log('Scan QR code pressed');
-            Alert.alert('QR Scanner', 'Opening QR code scanner...');
-          }
-        },
-        { text: 'Cancel', style: 'cancel' }
-      ]
-    );
-  };
-
-  const filterOptions = [
-    { label: 'All Gyms', value: 'all' },
-    { label: 'Premium', value: 'premium' },
-    { label: 'Standard', value: 'standard' },
-    { label: 'Express', value: 'express' },
-    { label: 'Open Now', value: 'open' },
-  ];
-
-  const sortOptions = [
-    { label: 'Distance', value: 'distance' },
-    { label: 'Rating', value: 'rating' },
-    { label: 'Price', value: 'price' },
-    { label: 'Name', value: 'name' },
-  ];
-
-
-
-
-
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#ffffff" barStyle="dark-content" />
-      
+    <>
       {/* Header with Search and Camera */}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.searchButton}
-          onPress={() => setShowSearchModal(true)}
+          onPress={onSearchPress}
         >
           <Icon name="search" size={28} color="#000" />
         </TouchableOpacity>
         
         <TouchableOpacity 
           style={styles.cameraButton}
-          onPress={handleCameraPress}
+          onPress={onCameraPress}
           activeOpacity={0.8}
         >
           <Icon name="camera" size={32} color="#000" />
@@ -189,6 +62,46 @@ const Location = () => {
 
       {/* Main Content */}
       <View style={styles.mainContent}>
+        {/* Location Permission Overlay - Only show if user hasn't granted permission */}
+        {!locationPermission && (
+          <View style={styles.locationPermissionOverlay}>
+            <View style={styles.permissionCard}>
+              <Icon name="location" size={48} color="#e74c3c" />
+              <Text style={styles.permissionTitle}>Find Gyms Near You</Text>
+              <Text style={styles.permissionMessage}>
+                Enable location access to discover nearby gyms and get personalized recommendations based on your location.
+              </Text>
+              <TouchableOpacity 
+                style={styles.permissionButton}
+                onPress={onRequestLocationPermission}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.permissionButtonText}>Enable Location Access</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.skipButton}
+                onPress={() => {
+                  // Hide the overlay without requesting permission
+                  console.log('User chose to skip location permission');
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.skipButtonText}>Skip for now</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Loading Location Overlay */}
+        {isLoadingLocation && (
+          <View style={styles.loadingOverlay}>
+            <View style={styles.loadingCard}>
+              <Icon name="location" size={32} color="#e74c3c" />
+              <Text style={styles.loadingText}>Getting your location...</Text>
+            </View>
+          </View>
+        )}
+
         {/* Map Section */}
         <MapView
           style={styles.map}
@@ -201,13 +114,29 @@ const Location = () => {
           showsTraffic={false}
           showsIndoors={true}
         >
-          {/* User Location Marker */}
+          {/* User Location Marker - Enhanced */}
           <Marker
             coordinate={userLocation}
-            title="You are here"
+            title="📍 You are here"
             description="Your current location"
             pinColor="#e74c3c"
-          />
+          >
+            <View style={styles.userLocationMarker}>
+              <View style={styles.userLocationDot} />
+              <Animated.View 
+                style={[
+                  styles.userLocationPulse,
+                  {
+                    transform: [{ scale: pulseAnim }],
+                    opacity: pulseAnim.interpolate({
+                      inputRange: [1, 1.5],
+                      outputRange: [0.3, 0],
+                    }),
+                  }
+                ]} 
+              />
+            </View>
+          </Marker>
           
           {/* Gym Markers */}
           {gyms.map((gym) => (
@@ -217,21 +146,40 @@ const Location = () => {
               title={gym.name}
               description={`${gym.distance} • ${gym.rating}⭐ • ${gym.price}`}
               pinColor={gym.isNearest ? "#e74c3c" : "#27ae60"}
-            />
+              onPress={() => onMapMarkerPress(gym)}
+              opacity={mapSelectedGym?.id === gym.id ? 1 : 0.8}
+            >
+              {mapSelectedGym?.id === gym.id && (
+                <View style={styles.selectedGymCallout}>
+                  <Text style={styles.calloutTitle}>{gym.name}</Text>
+                  <Text style={styles.calloutSubtitle}>{gym.location}</Text>
+                  <Text style={styles.calloutDetails}>{gym.distance} • ⭐{gym.rating} • {gym.price}</Text>
+                </View>
+              )}
+            </Marker>
           ))}
         </MapView>
+
+        {/* My Location Button */}
+        <View style={styles.myLocationButtonContainer}>
+          <TouchableOpacity 
+            style={styles.myLocationButton}
+            onPress={onMyLocation}
+            activeOpacity={0.8}
+          >
+            <Icon name="locate" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
 
         {/* Filter Button inside Map */}
         <View style={styles.mapFilterContainer}>
           <TouchableOpacity 
             style={styles.filterButton}
-            onPress={() => setShowFilterModal(true)}
+            onPress={onFilterPress}
           >
             <Icon name="filter" size={20} color="#333" />
           </TouchableOpacity>
         </View>
-
-
 
         {/* Enhanced Bottom Sheet */}
         <View style={styles.bottomSheet}>
@@ -262,18 +210,33 @@ const Location = () => {
             {gyms.map((gym) => (
               <TouchableOpacity
                 key={gym.id}
-                style={styles.gymCard}
-                onPress={() => handleGymPress(gym)}
+                style={[
+                  styles.gymCard,
+                  gym.isNearest && styles.nearestGymCard
+                ]}
+                onPress={() => onGymPress(gym)}
               >
-                <View style={styles.gymImageContainer}>
+                <View style={[
+                  styles.gymImageContainer,
+                  gym.isNearest && styles.nearestGymImageContainer
+                ]}>
                   <Image
                     source={{ uri: gym.image }}
-                    style={styles.gymImage}
+                    style={[
+                      styles.gymImage,
+                      gym.isNearest && styles.nearestGymImage
+                    ]}
                     resizeMode="cover"
                   />
                   {gym.isNearest && (
-                    <View style={styles.nearestBadge}>
-                      <Text style={styles.nearestText}>Nearest</Text>
+                    <View style={[
+                      styles.nearestBadge,
+                      styles.nearestGymBadge
+                    ]}>
+                      <Text style={[
+                        styles.nearestText,
+                        styles.nearestGymText
+                      ]}>Nearest</Text>
                     </View>
                   )}
                   <View style={styles.gymLogo}>
@@ -340,13 +303,13 @@ const Location = () => {
         visible={showSearchModal}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setShowSearchModal(false)}
+        onRequestClose={onSearchModalClose}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.searchModal}>
             <View style={styles.searchModalHeader}>
               <Text style={styles.searchModalTitle}>Search Gyms</Text>
-              <TouchableOpacity onPress={() => setShowSearchModal(false)}>
+              <TouchableOpacity onPress={onSearchModalClose}>
                 <Icon name="close" size={24} color="#333" />
               </TouchableOpacity>
             </View>
@@ -357,7 +320,7 @@ const Location = () => {
                 style={styles.searchInput}
                 placeholder="Search by name, location, or features..."
                 value={searchQuery}
-                onChangeText={setSearchQuery}
+                onChangeText={onSearchQueryChange}
                 autoFocus={true}
               />
             </View>
@@ -376,8 +339,8 @@ const Location = () => {
                     key={gym.id}
                     style={styles.searchResultItem}
                     onPress={() => {
-                      setSelectedGym(gym);
-                      setShowSearchModal(false);
+                      onGymPress(gym);
+                      onSearchModalClose();
                     }}
                   >
                     <Text style={styles.searchResultName}>{gym.name}</Text>
@@ -387,95 +350,84 @@ const Location = () => {
             </ScrollView>
           </View>
         </View>
-              </Modal>
+      </Modal>
 
-        {/* Filter Modal */}
-        <Modal
-          visible={showFilterModal}
-          animationType="slide"
-          transparent={true}
-          onRequestClose={() => setShowFilterModal(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.filterModal}>
-              <View style={styles.filterModalHeader}>
-                <Text style={styles.filterModalTitle}>Filter & Sort</Text>
-                <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-                  <Icon name="close" size={24} color="#333" />
-                </TouchableOpacity>
-              </View>
-              
-              <View style={styles.filterSection}>
-                <Text style={styles.filterSectionTitle}>Filter by Type</Text>
-                <View style={styles.filterOptions}>
-                  {filterOptions.map((option) => (
-                    <TouchableOpacity
-                      key={option.value}
-                      style={[
-                        styles.filterOption,
-                        selectedFilter === option.value && styles.filterOptionSelected
-                      ]}
-                      onPress={() => setSelectedFilter(option.value)}
-                    >
-                      <Text style={[
-                        styles.filterOptionText,
-                        selectedFilter === option.value && styles.filterOptionTextSelected
-                      ]}>
-                        {option.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-              
-              <View style={styles.filterSection}>
-                <Text style={styles.filterSectionTitle}>Sort by</Text>
-                <View style={styles.sortOptions}>
-                  {sortOptions.map((option) => (
-                    <TouchableOpacity
-                      key={option.value}
-                      style={[
-                        styles.sortOption,
-                        selectedSort === option.value && styles.sortOptionSelected
-                      ]}
-                      onPress={() => setSelectedSort(option.value)}
-                    >
-                      <Text style={[
-                        styles.sortOptionText,
-                        selectedSort === option.value && styles.sortOptionTextSelected
-                      ]}>
-                        {option.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-              
-              <TouchableOpacity
-                style={styles.applyFilterButton}
-                onPress={() => setShowFilterModal(false)}
-              >
-                <Text style={styles.applyFilterButtonText}>Apply Filters</Text>
+      {/* Filter Modal */}
+      <Modal
+        visible={showFilterModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={onFilterModalClose}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.filterModal}>
+            <View style={styles.filterModalHeader}>
+              <Text style={styles.filterModalTitle}>Filter & Sort</Text>
+              <TouchableOpacity onPress={onFilterModalClose}>
+                <Icon name="close" size={24} color="#333" />
               </TouchableOpacity>
             </View>
+            
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Filter by Type</Text>
+              <View style={styles.filterOptions}>
+                {filterOptions.map((option) => (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[
+                      styles.filterOption,
+                      selectedFilter === option.value && styles.filterOptionSelected
+                    ]}
+                    onPress={() => onFilterChange(option.value)}
+                  >
+                    <Text style={[
+                      styles.filterOptionText,
+                      selectedFilter === option.value && styles.filterOptionTextSelected
+                    ]}>
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+            
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Sort by</Text>
+              <View style={styles.sortOptions}>
+                {sortOptions.map((option) => (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[
+                      styles.sortOption,
+                      selectedSort === option.value && styles.sortOptionSelected
+                    ]}
+                    onPress={() => onSortChange(option.value)}
+                  >
+                    <Text style={[
+                      styles.sortOptionText,
+                      selectedSort === option.value && styles.sortOptionTextSelected
+                    ]}>
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+            
+            <TouchableOpacity
+              style={styles.applyFilterButton}
+              onPress={onFilterModalClose}
+            >
+              <Text style={styles.applyFilterButtonText}>Apply Filters</Text>
+            </TouchableOpacity>
           </View>
-        </Modal>
-
-    </SafeAreaView>
+        </View>
+      </Modal>
+    </>
   );
 };
 
-export default Location;
-
-const { width, height } = Dimensions.get('window');
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  
-  // Header Styles
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -508,7 +460,7 @@ const styles = StyleSheet.create({
     width: 55,
     height: 55,
     borderRadius: 45,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: 'rgba(255, 255, 255, 0.32)',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -519,19 +471,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-
-  // Main Content
   mainContent: {
     flex: 1,
   },
-
   map: {
-    height: '60%',
+    height: '40%',
   },
   mapFilterContainer: {
     position: 'absolute',
     right: 20,
-    top: 400,
+    top: 280,
     zIndex: 1000,
   },
   filterButton: {
@@ -547,7 +496,53 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-
+  userLocationMarker: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  userLocationDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#e74c3c',
+    borderWidth: 3,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  userLocationPulse: {
+    position: 'absolute',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(231, 76, 60, 0.3)',
+    borderWidth: 2,
+    borderColor: 'rgba(231, 76, 60, 0.5)',
+  },
+  myLocationButtonContainer: {
+    position: 'absolute',
+    right: 20,
+    bottom: 320,
+    zIndex: 1000,
+  },
+  myLocationButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#e74c3c',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 8,
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
   bottomSheet: {
     position: 'absolute',
     bottom: 0,
@@ -559,7 +554,7 @@ const styles = StyleSheet.create({
     paddingTop: 15,
     paddingHorizontal: 20,
     paddingBottom: 30,
-    height: '40%',
+    height: '60%',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -569,7 +564,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 10,
   },
-
   bottomSheetHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -642,13 +636,33 @@ const styles = StyleSheet.create({
     elevation: 5,
     overflow: 'hidden',
   },
+  nearestGymCard: {
+    transform: [{ scale: 1.05 }],
+    marginBottom: 20,
+    shadowColor: '#e74c3c',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
+    borderWidth: 2,
+    borderColor: '#e74c3c',
+  },
   gymImageContainer: {
     position: 'relative',
     height: 120,
   },
+  nearestGymImageContainer: {
+    height: 150,
+  },
   gymImage: {
     width: '100%',
     height: '100%',
+  },
+  nearestGymImage: {
+    height: 150,
   },
   nearestBadge: {
     position: 'absolute',
@@ -663,6 +677,15 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 12,
     fontWeight: '600',
+  },
+  nearestGymBadge: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 18,
+  },
+  nearestGymText: {
+    fontSize: 14,
+    fontWeight: '700',
   },
   gymLogo: {
     position: 'absolute',
@@ -723,18 +746,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 12,
   },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#e74c3c',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#666',
-  },
   gymFeatures: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -784,10 +795,6 @@ const styles = StyleSheet.create({
     color: '#ccc',
     fontWeight: 'bold',
   },
-
-
-
-  // Modal Styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -807,7 +814,6 @@ const styles = StyleSheet.create({
     height: '70%',
     padding: 20,
   },
-
   searchModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -820,7 +826,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
-
   searchModalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -831,7 +836,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
-
   searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -935,5 +939,140 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-
+  selectedGymCallout: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 2,
+    borderColor: '#e74c3c',
+    minWidth: 200,
+    maxWidth: 250,
+  },
+  calloutTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  calloutSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 6,
+  },
+  calloutDetails: {
+    fontSize: 12,
+    color: '#888',
+    fontWeight: '500',
+  },
+  bottomSheetHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#ddd',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 15,
+  },
+  locationPermissionOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2000,
+  },
+  permissionCard: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 30,
+    margin: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 15,
+  },
+  permissionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 15,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  permissionMessage: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 25,
+  },
+  permissionButton: {
+    backgroundColor: '#e74c3c',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  permissionButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  skipButton: {
+    marginTop: 15,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  skipButtonText: {
+    color: '#666',
+    fontSize: 14,
+    textDecorationLine: 'underline',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1500,
+  },
+  loadingCard: {
+    backgroundColor: 'white',
+    borderRadius: 15,
+    padding: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#333',
+    marginLeft: 15,
+    fontWeight: '600',
+  },
 });
+
+export default LocationContent; 

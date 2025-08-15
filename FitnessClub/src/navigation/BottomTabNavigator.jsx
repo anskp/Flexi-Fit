@@ -4,7 +4,7 @@ import { Text, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 // Import screens
-import Location from '../screens/Member/Location';
+import LocationMain from '../screens/Member/LocationMain';
 import Activity from '../screens/Member/Activity';
 import Community from '../screens/Member/Community';
 import Store from '../screens/Member/Store';
@@ -59,7 +59,7 @@ const BottomTabNavigator = () => {
     >
       <Tab.Screen 
         name="Location" 
-        component={Location}
+        component={LocationMain}
         options={{
           title: 'Location',
         }}

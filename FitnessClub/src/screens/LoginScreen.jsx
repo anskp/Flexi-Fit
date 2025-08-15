@@ -44,6 +44,7 @@ const LoginScreen = () => {
       setLoading(false);
     }
   };
+};
 
   return (
     <SafeAreaView style={styles.container}>
@@ -245,5 +246,3 @@ const styles = StyleSheet.create({
 });
 
 export default LogIn;
-
-
