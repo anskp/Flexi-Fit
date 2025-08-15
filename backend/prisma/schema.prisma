@@ -99,7 +99,7 @@ model Gym {
   plans             GymPlan[]
   schedules         Schedule[]
   status            String           @default("pending")
-  badges            Json
+  badges            Json?
   dailyPassPrice    Float?
   weeklyPassPrice   Float?
   checkIns          CheckIn[]
