@@ -1,3 +1,4 @@
+// src/screens/LoginScreen.jsx
 import React, { useState } from 'react';
 import {
   View,
@@ -7,31 +8,55 @@ import {
   StyleSheet,
   SafeAreaView,
   StatusBar,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../context/AuthContext';
+import parseApiError from '../utils/parseApiError'; // Assuming you create this util
 
-const LogIn = () => {
-  const [email, setEmail] = useState('abhishekhvk123@gmail.com');
+const LoginScreen = () => {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  
+  const navigation = useNavigation();
+  const { login } = useAuth();
 
-const navigation = useNavigation();
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Login Failed', 'Please enter both email and password.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await login(email, password);
+      // On success, the AuthContext state changes, and the AppNavigator will
+      // automatically switch to the AppStack. No need for manual navigation here.
+      if (!response.success) {
+          // Handle cases where the API returns a 200 but indicates failure
+          Alert.alert('Login Failed', response.message || 'An unknown error occurred.');
+      }
+    } catch (err) { {
+      Alert.alert('Login Failed', parseApiError(err));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#d32f2f" barStyle="light-content" />
       
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerText}>Hello</Text>
         <Text style={styles.headerText}>Sign in!</Text>
       </View>
 
-      {/* Form Container */}
       <View style={styles.formContainer}>
-        {/* Gmail Section */}
         <View style={styles.section}>
-          <Text style={styles.label}>Gmail</Text>
+          <Text style={styles.label}>Email Address</Text>
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
@@ -39,16 +64,14 @@ const navigation = useNavigation();
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
+              placeholder="you@example.com"
+              placeholderTextColor="#999"
             />
-            <View style={styles.checkmark}>
-              <Text style={styles.checkmarkText}>✓</Text>
-            </View>
           </View>
         </View>
 
-        {/* Password Section */}
         <View style={styles.section}>
-          <Text style={styles.passwordLabel}>password</Text>
+          <Text style={styles.passwordLabel}>Password</Text>
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
@@ -67,22 +90,21 @@ const navigation = useNavigation();
           </View>
         </View>
 
-        {/* Forgot Password */}
         <TouchableOpacity style={styles.forgotPassword}>
           <Text style={styles.forgotPasswordText}>forgot password?</Text>
         </TouchableOpacity>
 
-        {/* Sign In Button */}
-        <TouchableOpacity style={styles.signInButton}
-        onPress={() => {navigation.navigate('RoleSelection')}}>
-          <Text style={styles.signInButtonText}>SIGN IN</Text>
+        <TouchableOpacity style={styles.signInButton} onPress={handleLogin} disabled={loading}>
+          {loading ? (
+            <ActivityIndicator color="#ffffff" />
+          ) : (
+            <Text style={styles.signInButtonText}>SIGN IN</Text>
+          )}
         </TouchableOpacity>
 
-        {/* Sign Up Link */}
         <View style={styles.signUpContainer}>
-          <Text style={styles.signUpText}>Don't have account?</Text>
-          <TouchableOpacity
-            onPress={() => {navigation.navigate('SignIn')}}>
+          <Text style={styles.signUpText}>Don't have an account?</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('SignIn')}>
             <Text style={styles.signUpLink}>sign up</Text>
           </TouchableOpacity>
         </View>

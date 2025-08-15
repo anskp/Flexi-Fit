@@ -1,3 +1,4 @@
+// src/screens/SignupScreen.jsx
 import React, { useState } from 'react';
 import {
   View,
@@ -8,73 +9,79 @@ import {
   SafeAreaView,
   StatusBar,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../context/AuthContext';
+import parseApiError from '../utils/parseApiError'; // Assuming you create this util
 
-const SignIn = () => {
-  const [gmail, setGmail] = useState('abhishekhvk123@gmail.com');
-  const [phoneOrEmail, setPhoneOrEmail] = useState('Abhishekhvk123@gmail.com');
+const SignupScreen = () => {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const navigation = useNavigation();
+  const { setAuthData } = useAuth(); // We need this to set the token after signup
 
-  const handleSignIn = () => {
-    if (!password || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
+ const handleSignup = async () => {
+    if (password !== confirmPassword) { /* ... */ }
+    setLoading(true);
+    try {
+      // Step 1: Create the user account
+      const signupResponse = await authService.signup(email, password);
+      
+      if (signupResponse.data.success) {
+        // Step 2: Immediately set the auth token so we can make the next call
+        const token = signupResponse.data.data.token;
+        setAuthData(token);
+        
+        // Step 3: Automatically assign the 'MEMBER' role
+        const roleResponse = await authService.selectRole('MEMBER');
+        
+        if (roleResponse.success) {
+          // Step 4: The backend now tells us to go to the member profile form.
+          // We get the new token that includes the role.
+          setAuthData(roleResponse.data.token);
+          // Navigate to the screen for member profile setup
+          navigation.navigate('MemberProfileSetup'); 
+        } else {
+            throw new Error(roleResponse.message);
+        }
+      } else {
+          throw new Error(signupResponse.data.message);
+      }
+    } catch (err) {
+      Alert.alert('Signup Failed', parseApiError(err));
+    } finally {
+      setLoading(false);
     }
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
-      return;
-    }
-    Alert.alert('Success', 'Account created successfully!');
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#C53030" />
 
-      {/* Header with gradient background */}
-      <LinearGradient
-        colors={['#E53E3E', '#C53030']}
-        style={styles.header}
-      >
+      <LinearGradient colors={['#E53E3E', '#C53030']} style={styles.header}>
         <Text style={styles.headerTitle}>Create your{'\n'}Account</Text>
       </LinearGradient>
 
-      {/* Form Container */}
       <View style={styles.formContainer}>
-        {/* Gmail Field */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Gmail</Text>
+          <Text style={styles.label}>Email</Text>
           <TextInput
             style={styles.input}
-            value={gmail}
-            onChangeText={setGmail}
-            placeholder="Enter your Gmail"
+            value={email}
+            onChangeText={setEmail}
+            placeholder="Enter your email"
             keyboardType="email-address"
             autoCapitalize="none"
           />
         </View>
 
-        {/* Phone or Email Field */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Phone or email</Text>
-          <TextInput
-            style={styles.input}
-            value={phoneOrEmail}
-            onChangeText={setPhoneOrEmail}
-            placeholder="Enter phone or email"
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-        </View>
-
-        {/* Password Field */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Password</Text>
           <View style={styles.passwordContainer}>
@@ -85,16 +92,12 @@ const SignIn = () => {
               placeholder="Enter password"
               secureTextEntry={!showPassword}
             />
-            <TouchableOpacity
-              style={styles.eyeIcon}
-              onPress={() => setShowPassword(!showPassword)}
-            >
+            <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowPassword(!showPassword)}>
               <Text style={styles.eyeIconText}>👁</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Confirm Password Field */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Confirm password</Text>
           <View style={styles.passwordContainer}>
@@ -105,38 +108,25 @@ const SignIn = () => {
               placeholder="Confirm password"
               secureTextEntry={!showConfirmPassword}
             />
-            <TouchableOpacity
-              style={styles.eyeIcon}
-              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-            >
+            <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
               <Text style={styles.eyeIconText}>👁</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Sign In Button */}
-        <TouchableOpacity
-          style={styles.signInButton}
-          onPress={() => {
-            navigation.navigate('RoleSelection');
-          }}
-        >
-          <LinearGradient
-            colors={['#E53E3E', '#C53030']}
-            style={styles.signInGradient}
-          >
-            <Text style={styles.signInButtonText}>SIGN IN</Text>
+        <TouchableOpacity style={styles.signInButton} onPress={handleSignup} disabled={loading}>
+          <LinearGradient colors={['#E53E3E', '#C53030']} style={styles.signInGradient}>
+            {loading ? (
+                <ActivityIndicator color="#ffffff" />
+            ) : (
+                <Text style={styles.signInButtonText}>SIGN UP</Text>
+            )}
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* Already have Account */}
         <View style={styles.footerContainer}>
-          <Text style={styles.footerText}>Already have Account? </Text>
-          <TouchableOpacity
-            onPress={() => {
-              navigation.navigate('LogIn');
-            }}
-          >
+          <Text style={styles.footerText}>Already have an account? </Text>
+          <TouchableOpacity onPress={() => navigation.navigate('LogIn')}>
             <Text style={styles.signInLinkText}>sign in</Text>
           </TouchableOpacity>
         </View>
@@ -144,7 +134,6 @@ const SignIn = () => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

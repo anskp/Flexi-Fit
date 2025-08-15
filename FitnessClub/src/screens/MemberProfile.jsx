@@ -1,193 +1,221 @@
-import React from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+// src/screens/Member/MemberProfile.jsx
+import React, { useState } from 'react';
+import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../../context/AuthContext';
+import * as authService from '../../api/authService';
+import parseApiError from '../../utils/parseApiError';
 
 const MemberProfile = () => {
-  const navigation = useNavigation();
+  const { reloadUser } = useAuth(); // We'll use this to trigger the switch to the main app
+  const [loading, setLoading] = useState(false);
+  
+  const [formData, setFormData] = useState({
+    name: '',
+    age: '',
+    gender: '', // Default to empty
+    weight: '',
+    height: '',
+    healthConditions: '',
+    fitnessGoal: '',
+  });
+
+  const handleSubmit = async () => {
+    // Basic validation
+    if (!formData.name || !formData.age || !formData.gender || !formData.weight || !formData.height || !formData.fitnessGoal) {
+        Alert.alert('Incomplete Form', 'Please fill out all fields to continue.');
+        return;
+    }
+
+    setLoading(true);
+    try {
+      const payload = {
+        name: formData.name,
+        age: parseInt(formData.age, 10),
+        gender: formData.gender,
+        weight: parseFloat(formData.weight),
+        height: parseFloat(formData.height),
+        healthConditions: formData.healthConditions,
+        fitnessGoal: formData.fitnessGoal,
+      };
+
+      const response = await authService.createMemberProfile(payload);
+      
+      if (response.success) {
+        Alert.alert('Profile Complete!', 'Welcome to FitFlex. Let\'s get started.');
+        // This will refresh the user data in the context. The AppNavigator will see
+        // that the user is now fully onboarded and automatically switch to the AppStack.
+        await reloadUser();
+      }
+    } catch (err) {
+      Alert.alert('Profile Setup Failed', parseApiError(err));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Beautiful Back Button */}
-
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
       <Text style={styles.title}>Profile Setup</Text>
       
-      {/* Name */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Name</Text>
         <TextInput 
           style={styles.input} 
           placeholder="Enter your name" 
-          placeholderTextColor="#999" 
+          placeholderTextColor="#999"
+          value={formData.name}
+          onChangeText={(text) => setFormData({...formData, name: text})}
         />
       </View>
       
-      {/* Age */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Age</Text>
         <TextInput 
           style={styles.input} 
           placeholder="Enter your age" 
           placeholderTextColor="#999" 
-          keyboardType="numeric" 
+          keyboardType="number-pad" 
+          value={formData.age}
+          onChangeText={(text) => setFormData({...formData, age: text})}
         />
       </View>
       
-      {/* Gender */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Gender</Text>
-        <Picker style={styles.picker}>
-          <Picker.Item label="Select gender" value="" />
-          <Picker.Item label="Male" value="male" />
-          <Picker.Item label="Female" value="female" />
-          <Picker.Item label="Other" value="other" />
-        </Picker>
+        <View style={styles.pickerContainer}>
+            <Picker 
+                selectedValue={formData.gender}
+                onValueChange={(itemValue) => setFormData({...formData, gender: itemValue})}
+                style={styles.picker}
+            >
+                <Picker.Item label="Select gender..." value="" />
+                <Picker.Item label="Male" value="Male" />
+                <Picker.Item label="Female" value="Female" />
+                <Picker.Item label="Other" value="Other" />
+            </Picker>
+        </View>
       </View>
       
-      {/* Weight */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Weight (kg)</Text>
         <TextInput 
           style={styles.input} 
-          placeholder="Enter your weight" 
+          placeholder="e.g., 75" 
           placeholderTextColor="#999" 
           keyboardType="numeric" 
+          value={formData.weight}
+          onChangeText={(text) => setFormData({...formData, weight: text})}
         />
       </View>
       
-      {/* Height */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Height (cm)</Text>
         <TextInput 
           style={styles.input} 
-          placeholder="Enter your height" 
+          placeholder="e.g., 180" 
           placeholderTextColor="#999" 
           keyboardType="numeric" 
+          value={formData.height}
+          onChangeText={(text) => setFormData({...formData, height: text})}
         />
       </View>
       
-      {/* Health Conditions */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Health Conditions</Text>
+        <Text style={styles.label}>Health Conditions (Optional)</Text>
         <TextInput
           style={[styles.input, styles.multilineInput]}
-          placeholder="Enter any health conditions"
+          placeholder="e.g., Asthma, previous injuries"
           placeholderTextColor="#999"
           multiline
-          numberOfLines={3}
+          value={formData.healthConditions}
+          onChangeText={(text) => setFormData({...formData, healthConditions: text})}
         />
       </View>
       
-      {/* Fitness Goal */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Fitness Goal</Text>
         <TextInput 
           style={styles.input} 
-          placeholder="Enter your fitness goal" 
+          placeholder="e.g., Lose 10kg, build muscle" 
           placeholderTextColor="#999" 
+          value={formData.fitnessGoal}
+          onChangeText={(text) => setFormData({...formData, fitnessGoal: text})}
         />
       </View>
       
-      {/* Submit Button */}
-      <TouchableOpacity style={styles.smallButton} 
-        onPress={() => {
-            navigation.navigate('MainApp');
-          }}
-      >
-        <Text style={styles.buttonText}>Submit</Text>
+      <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={loading}>
+        {loading ? (
+            <ActivityIndicator color="#fff" />
+        ) : (
+            <Text style={styles.buttonText}>Submit & Start</Text>
+        )}
       </TouchableOpacity>
     </ScrollView>
   );
 };
 
+// --- Your Original Styles, with a few additions ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
     padding: 20,
   },
-  backButton: {
-    position: 'absolute',
-    top: 20,
-    left: 10,
-    zIndex: 10,
-    backgroundColor: '#fff',
-    borderRadius: 25,
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: '#eee',
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: '#555555',
-    fontWeight: 'bold',
-    fontFamily: 'System',
-  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#555555',
-    marginBottom: 20,
+    color: '#333',
+    marginBottom: 30,
     marginTop: 40,
     textAlign: 'center',
-    letterSpacing: 1,
-    fontFamily: 'System',
   },
   inputGroup: {
-    marginBottom: 15,
+    marginBottom: 20,
   },
   label: {
     fontSize: 16,
-    marginBottom: 5,
-    color: '#555555',
-    fontFamily: 'System',
+    marginBottom: 8,
+    color: '#555',
     fontWeight: '600',
-    letterSpacing: 0.3,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#555555',
-    borderRadius: 30,
-    padding: 10,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 15,
     fontSize: 16,
-    color: '#555555',
-    fontFamily: 'System',
-    fontWeight: '400',
+    color: '#333',
   },
   multilineInput: {
-    height: 80,
+    height: 100,
     textAlignVertical: 'top',
   },
-  picker: {
-    borderWidth: 1,
-    borderColor: '#555555',
-    borderRadius: 8,
-    color: '#555555',
-    fontFamily: 'System',
-    fontWeight: '400',
+  pickerContainer: {
+      borderWidth: 1,
+      borderColor: '#ccc',
+      borderRadius: 8,
   },
-  smallButton: {
-    alignSelf: 'center',
+  picker: {
+    height: 50,
+    width: '100%',
+    color: '#333',
+  },
+  submitButton: {
     backgroundColor: '#255f99',
-    paddingVertical: 10,
+    paddingVertical: 15,
     paddingHorizontal: 30,
-    borderRadius: 50,
-    marginTop: 10,
+    borderRadius: 30,
+    marginTop: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 50,
   },
   buttonText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
-    letterSpacing: 1,
-    fontFamily: 'System',
   },
 });
 
