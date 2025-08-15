@@ -1,8 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, ScrollView, TouchableOpacity, Image, Dimensions, Animated, Alert } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  Dimensions,
+  Modal,
+  TextInput,
+  ImageBackground,
+  Alert,
+  Animated,
+} from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
 import { useNavigation } from '@react-navigation/native';
+import { launchImageLibrary } from 'react-native-image-picker';
 
 
 const Activity = () => {
@@ -14,8 +27,364 @@ const Activity = () => {
   const [customStartDate, setCustomStartDate] = useState(new Date());
   const [customEndDate, setCustomEndDate] = useState(new Date());
   
+  // Diet Modal States
+  const [showDietModal, setShowDietModal] = useState(false);
+  const [dietForm, setDietForm] = useState({
+    mealName: '',
+    calories: '',
+    protein: '',
+    carbs: '',
+    fats: '',
+    fiber: '',
+    sugar: '',
+    mealType: 'breakfast',
+    photo: null,
+    notes: ''
+  });
+  const [selectedMealType, setSelectedMealType] = useState('breakfast');
+  const [modalScale] = useState(new Animated.Value(0));
+  const [modalOpacity] = useState(new Animated.Value(0));
 
+  // Diet Modal Functions
+  const openDietModal = () => {
+    setShowDietModal(true);
+    Animated.parallel([
+      Animated.spring(modalScale, {
+        toValue: 1,
+        tension: 100,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+      Animated.timing(modalOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
 
+  const closeDietModal = () => {
+    Animated.parallel([
+      Animated.spring(modalScale, {
+        toValue: 0,
+        tension: 100,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+      Animated.timing(modalOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowDietModal(false);
+      resetDietForm();
+    });
+  };
+
+  const resetDietForm = () => {
+    setDietForm({
+      mealName: '',
+      calories: '',
+      protein: '',
+      carbs: '',
+      fats: '',
+      fiber: '',
+      sugar: '',
+      mealType: 'breakfast',
+      photo: null,
+      notes: ''
+    });
+    setSelectedMealType('breakfast');
+  };
+
+  const handleDietInput = (key, value) => {
+    setDietForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  const selectMealPhoto = () => {
+    const options = {
+      mediaType: 'photo',
+      quality: 0.8,
+      maxWidth: 800,
+      maxHeight: 800,
+    };
+
+    launchImageLibrary(options, (response) => {
+      if (response.didCancel) {
+        return;
+      }
+      if (response.errorCode) {
+        Alert.alert('Error', 'Failed to select image');
+        return;
+      }
+      if (response.assets && response.assets[0]) {
+        setDietForm(prev => ({ ...prev, photo: response.assets[0] }));
+      }
+    });
+  };
+
+  const saveDietEntry = () => {
+    if (!dietForm.mealName.trim()) {
+      Alert.alert('Error', 'Please enter a meal name');
+      return;
+    }
+    if (!dietForm.calories.trim()) {
+      Alert.alert('Error', 'Please enter calories');
+      return;
+    }
+
+    // Here you would typically save to your database
+    Alert.alert('Success', 'Meal logged successfully!', [
+      { text: 'OK', onPress: closeDietModal }
+    ]);
+  };
+
+  // Workout Modal States
+  const [showWorkoutModal, setShowWorkoutModal] = useState(false);
+  const [workoutForm, setWorkoutForm] = useState({
+    workoutType: '',
+    workoutName: '',
+    date: new Date().toISOString().split('T')[0],
+    duration: '',
+    exercises: [{ name: '', sets: '', reps: '', weight: '', notes: '' }],
+    notes: '',
+    intensity: 'medium',
+    muscleGroups: [],
+    equipment: []
+  });
+  const [workoutModalScale] = useState(new Animated.Value(0));
+  const [workoutModalOpacity] = useState(new Animated.Value(0));
+  const [selectedWorkoutCategory, setSelectedWorkoutCategory] = useState('strength');
+  const [selectedPredefinedWorkout, setSelectedPredefinedWorkout] = useState(null);
+
+  // Predefined workout data
+  const workoutCategories = {
+    strength: {
+      name: 'Strength Training',
+      icon: '💪',
+      color: '#e74c3c',
+      workouts: [
+        { name: 'Upper Body Push', exercises: ['Bench Press', 'Overhead Press', 'Dips', 'Push-ups'] },
+        { name: 'Upper Body Pull', exercises: ['Pull-ups', 'Rows', 'Lat Pulldowns', 'Bicep Curls'] },
+        { name: 'Lower Body', exercises: ['Squats', 'Deadlifts', 'Lunges', 'Leg Press'] },
+        { name: 'Full Body', exercises: ['Deadlifts', 'Squats', 'Push-ups', 'Rows'] }
+      ]
+    },
+    cardio: {
+      name: 'Cardio',
+      icon: '🏃',
+      color: '#3498db',
+      workouts: [
+        { name: 'HIIT Session', exercises: ['Burpees', 'Mountain Climbers', 'Jump Squats', 'High Knees'] },
+        { name: 'Steady State', exercises: ['Running', 'Cycling', 'Rowing', 'Elliptical'] },
+        { name: 'Circuit Training', exercises: ['Jump Rope', 'Box Jumps', 'Burpees', 'Mountain Climbers'] }
+      ]
+    },
+    flexibility: {
+      name: 'Flexibility & Mobility',
+      icon: '🧘',
+      color: '#9b59b6',
+      workouts: [
+        { name: 'Yoga Flow', exercises: ['Sun Salutation', 'Warrior Poses', 'Tree Pose', 'Child\'s Pose'] },
+        { name: 'Stretching', exercises: ['Hamstring Stretch', 'Hip Flexor Stretch', 'Shoulder Stretch', 'Chest Stretch'] },
+        { name: 'Mobility Work', exercises: ['Hip Circles', 'Shoulder Dislocates', 'Ankle Mobility', 'Thoracic Rotation'] }
+      ]
+    },
+    functional: {
+      name: 'Functional Training',
+      icon: '⚡',
+      color: '#f39c12',
+      workouts: [
+        { name: 'Core Focus', exercises: ['Planks', 'Russian Twists', 'Leg Raises', 'Crunches'] },
+        { name: 'Balance & Stability', exercises: ['Single Leg Deadlifts', 'Bosu Ball Squats', 'Pistol Squats', 'Standing Y-Balance'] },
+        { name: 'Power Training', exercises: ['Box Jumps', 'Medicine Ball Throws', 'Plyometric Push-ups', 'Explosive Squats'] }
+      ]
+    }
+  };
+
+  const muscleGroups = [
+    'Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps', 'Forearms',
+    'Quadriceps', 'Hamstrings', 'Glutes', 'Calves', 'Core', 'Full Body'
+  ];
+
+  const equipment = [
+    'Barbell', 'Dumbbells', 'Kettlebell', 'Resistance Bands', 'Bodyweight',
+    'Machine', 'Cable', 'Smith Machine', 'TRX', 'Medicine Ball'
+  ];
+
+  // Workout Modal Functions
+  const openWorkoutModal = () => {
+    setShowWorkoutModal(true);
+    Animated.parallel([
+      Animated.spring(workoutModalScale, {
+        toValue: 1,
+        tension: 100,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+      Animated.timing(workoutModalOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const closeWorkoutModal = () => {
+    Animated.parallel([
+      Animated.spring(workoutModalScale, {
+        toValue: 0,
+        tension: 100,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+      Animated.timing(workoutModalOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowWorkoutModal(false);
+      resetWorkoutForm();
+    });
+  };
+
+  const resetWorkoutForm = () => {
+    setWorkoutForm({
+      workoutType: '',
+      workoutName: '',
+      date: new Date().toISOString().split('T')[0],
+      duration: '',
+      exercises: [{ name: '', sets: '', reps: '', weight: '', notes: '' }],
+      notes: '',
+      intensity: 'medium',
+      muscleGroups: [],
+      equipment: []
+    });
+    setSelectedWorkoutCategory('strength');
+  };
+
+  const handleWorkoutInput = (key, value) => {
+    setWorkoutForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  const addExercise = () => {
+    setWorkoutForm(prev => ({
+      ...prev,
+      exercises: [...prev.exercises, { name: '', sets: '', reps: '', weight: '', notes: '' }]
+    }));
+  };
+
+  const removeExercise = (index) => {
+    if (workoutForm.exercises.length > 1) {
+      setWorkoutForm(prev => ({
+        ...prev,
+        exercises: prev.exercises.filter((_, i) => i !== index)
+      }));
+    }
+  };
+
+  const handleExerciseInput = (index, key, value) => {
+    setWorkoutForm(prev => ({
+      ...prev,
+      exercises: prev.exercises.map((exercise, i) =>
+        i === index ? { ...exercise, [key]: value } : exercise
+      )
+    }));
+  };
+
+  const selectWorkoutCategory = (category) => {
+    setSelectedWorkoutCategory(category);
+    setWorkoutForm(prev => ({ ...prev, workoutType: workoutCategories[category].name }));
+  };
+
+  const selectPredefinedWorkout = (workout) => {
+    setSelectedPredefinedWorkout(workout);
+    setWorkoutForm(prev => ({ 
+      ...prev, 
+      workoutName: workout.name,
+      exercises: workout.exercises.map(exercise => ({ 
+        name: exercise, 
+        sets: '', 
+        reps: '', 
+        weight: '', 
+        notes: '' 
+      }))
+    }));
+  };
+
+  const toggleMuscleGroup = (muscleGroup) => {
+    setWorkoutForm(prev => ({
+      ...prev,
+      muscleGroups: prev.muscleGroups.includes(muscleGroup)
+        ? prev.muscleGroups.filter(mg => mg !== muscleGroup)
+        : [...prev.muscleGroups, muscleGroup]
+    }));
+  };
+
+  const toggleEquipment = (equipmentItem) => {
+    setWorkoutForm(prev => ({
+      ...prev,
+      equipment: prev.equipment.includes(equipmentItem)
+        ? prev.equipment.filter(eq => eq !== equipmentItem)
+        : [...prev.equipment, equipmentItem]
+    }));
+  };
+
+  const saveWorkoutEntry = () => {
+    // Validate required fields
+    if (!workoutForm.workoutName.trim()) {
+      Alert.alert('Missing Information', 'Please enter a workout name');
+      return;
+    }
+    if (!workoutForm.date.trim()) {
+      Alert.alert('Missing Information', 'Please enter a date');
+      return;
+    }
+    if (!workoutForm.duration.trim()) {
+      Alert.alert('Missing Information', 'Please enter workout duration');
+      return;
+    }
+    if (!workoutForm.exercises[0].name.trim()) {
+      Alert.alert('Missing Information', 'Please add at least one exercise');
+      return;
+    }
+
+    // Validate exercise data
+    const hasValidExercises = workoutForm.exercises.every(exercise => 
+      exercise.name.trim() && exercise.sets.trim() && exercise.reps.trim()
+    );
+    
+    if (!hasValidExercises) {
+      Alert.alert('Missing Information', 'Please fill in exercise name, sets, and reps for all exercises');
+      return;
+    }
+
+    // Success message with workout summary
+    const workoutSummary = {
+      name: workoutForm.workoutName,
+      type: workoutForm.workoutType,
+      date: workoutForm.date,
+      duration: workoutForm.duration,
+      intensity: workoutForm.intensity,
+      exercises: workoutForm.exercises.length,
+      muscleGroups: workoutForm.muscleGroups.length,
+      equipment: workoutForm.equipment.length
+    };
+
+    Alert.alert(
+      'Workout Saved! 💪', 
+      `Successfully logged ${workoutSummary.name}\n\n` +
+      `Type: ${workoutSummary.type}\n` +
+      `Duration: ${workoutSummary.duration} minutes\n` +
+      `Intensity: ${workoutSummary.intensity}\n` +
+      `Exercises: ${workoutSummary.exercises}\n` +
+      `Muscle Groups: ${workoutSummary.muscleGroups}\n` +
+      `Equipment: ${workoutSummary.equipment}`,
+      [{ text: 'Great!', onPress: closeWorkoutModal }]
+    );
+  };
 
   const tabs = [
     { id: 'activity', title: 'Activity', icon: '📊' },
@@ -258,6 +627,21 @@ const Activity = () => {
 
   const renderDietTab = () => (
     <Animated.View style={[styles.tabContent, { opacity: fadeAnim }]}>
+      {/* Diet Action Button */}
+      <TouchableOpacity style={styles.dietActionButton} onPress={openDietModal}>
+        <LinearGradient
+          colors={['#FF6B6B', '#FF8E8E', '#FFB3B3']}
+          style={styles.dietActionGradient}
+        >
+          <Text style={styles.dietActionIcon}>📸</Text>
+          <View style={styles.dietActionTextContainer}>
+            <Text style={styles.dietActionTitle}>Log Your Meal</Text>
+            <Text style={styles.dietActionSubtitle}>Upload photos & track nutrition</Text>
+          </View>
+          <Text style={styles.dietActionArrow}>→</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+
       {/* Daily Nutrition */}
       <View style={styles.nutritionCard}>
         <Text style={styles.cardTitle}>Today's Nutrition</Text>
@@ -372,6 +756,21 @@ const Activity = () => {
 
   const renderTrainingTab = () => (
     <Animated.View style={[styles.tabContent, { opacity: fadeAnim }]}>
+      {/* Workout Logging Button */}
+      <TouchableOpacity style={styles.workoutLoggingButton} onPress={openWorkoutModal}>
+        <LinearGradient
+          colors={['#e74c3c', '#c0392b']}
+          style={styles.workoutLoggingGradient}
+        >
+          <Text style={styles.workoutLoggingIcon}>💪</Text>
+          <View style={styles.workoutLoggingTextContainer}>
+            <Text style={styles.workoutLoggingTitle}>Log Workout</Text>
+            <Text style={styles.workoutLoggingSubtitle}>Manually log your workouts</Text>
+          </View>
+          <Text style={styles.workoutLoggingArrow}>→</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+
       {/* Current Plan */}
       <View style={styles.planCard}>
         <Text style={styles.cardTitle}>Current Training Plan</Text>
@@ -481,6 +880,7 @@ const Activity = () => {
           </View>
         </View>
       </View>
+
     </Animated.View>
   );
 
@@ -578,12 +978,391 @@ const Activity = () => {
         </View>
       )}
 
+      {/* Diet Modal */}
+      <Modal
+        visible={showDietModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={closeDietModal}
+      >
+        <Animated.View style={[styles.modalOverlay, { opacity: modalOpacity }]}>
+          <Animated.View style={[styles.dietModalContent, { transform: [{ scale: modalScale }] }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Log Your Meal</Text>
+              <TouchableOpacity onPress={closeDietModal}>
+                <Text style={styles.closeButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.dietForm}>
+              <TextInput
+                style={styles.input}
+                placeholder="Meal Name (e.g., Chicken Salad)"
+                value={dietForm.mealName}
+                onChangeText={handleDietInput.bind(null, 'mealName')}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Calories (e.g., 500)"
+                keyboardType="numeric"
+                value={dietForm.calories}
+                onChangeText={handleDietInput.bind(null, 'calories')}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Protein (g)"
+                keyboardType="numeric"
+                value={dietForm.protein}
+                onChangeText={handleDietInput.bind(null, 'protein')}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Carbs (g)"
+                keyboardType="numeric"
+                value={dietForm.carbs}
+                onChangeText={handleDietInput.bind(null, 'carbs')}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Fats (g)"
+                keyboardType="numeric"
+                value={dietForm.fats}
+                onChangeText={handleDietInput.bind(null, 'fats')}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Fiber (g)"
+                keyboardType="numeric"
+                value={dietForm.fiber}
+                onChangeText={handleDietInput.bind(null, 'fiber')}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Sugar (g)"
+                keyboardType="numeric"
+                value={dietForm.sugar}
+                onChangeText={handleDietInput.bind(null, 'sugar')}
+              />
+              <TouchableOpacity style={styles.photoButton} onPress={selectMealPhoto}>
+                <ImageBackground
+                  source={{ uri: dietForm.photo ? dietForm.photo.uri : null }}
+                  style={styles.photoPreview}
+                >
+                  {dietForm.photo ? (
+                    <TouchableOpacity style={styles.removePhotoButton}>
+                      <Text style={styles.removePhotoText}>✕</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={styles.photoPlaceholder}>
+                      <Text style={styles.photoPlaceholderText}>+</Text>
+                    </View>
+                  )}
+                </ImageBackground>
+              </TouchableOpacity>
+              <TextInput
+                style={styles.input}
+                placeholder="Notes (optional)"
+                multiline
+                numberOfLines={3}
+                value={dietForm.notes}
+                onChangeText={handleDietInput.bind(null, 'notes')}
+              />
+            </View>
+
+            <TouchableOpacity style={styles.saveButton} onPress={saveDietEntry}>
+              <Text style={styles.saveButtonText}>Save Meal</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </Animated.View>
+      </Modal>
+
+      {/* Workout Logging Modal */}
+      <Modal
+        visible={showWorkoutModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={closeWorkoutModal}
+      >
+        <Animated.View style={[styles.modalOverlay, { opacity: workoutModalOpacity }]}>
+          <Animated.View style={[styles.workoutModalContent, { transform: [{ scale: workoutModalScale }] }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Advanced Workout Logger</Text>
+              <TouchableOpacity onPress={closeWorkoutModal}>
+                <Text style={styles.closeButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.workoutForm} showsVerticalScrollIndicator={false}>
+              {/* Workout Category Selection */}
+              <View style={styles.sectionContainer}>
+                <Text style={styles.sectionTitle}>🏷️ Select Workout Category</Text>
+                <View style={styles.categoryGrid}>
+                  {Object.entries(workoutCategories).map(([key, category]) => (
+                    <TouchableOpacity
+                      key={key}
+                      style={[
+                        styles.categoryCard,
+                        selectedWorkoutCategory === key && styles.selectedCategoryCard,
+                        { borderColor: category.color }
+                      ]}
+                      onPress={() => selectWorkoutCategory(key)}
+                    >
+                      <Text style={styles.categoryIcon}>{category.icon}</Text>
+                      <Text style={[
+                        styles.categoryName,
+                        selectedWorkoutCategory === key && styles.selectedCategoryName
+                      ]}>
+                        {category.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Predefined Workout Selection */}
+              <View style={styles.sectionContainer}>
+                <Text style={styles.sectionTitle}>📋 Choose Predefined Workout</Text>
+                <View style={styles.workoutGrid}>
+                  {workoutCategories[selectedWorkoutCategory].workouts.map((workout, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.workoutCard,
+                        selectedPredefinedWorkout === workout && styles.selectedWorkoutCard
+                      ]}
+                      onPress={() => selectPredefinedWorkout(workout)}
+                    >
+                      <Text style={[
+                        styles.workoutCardName,
+                        selectedPredefinedWorkout === workout && styles.selectedWorkoutCardName
+                      ]}>
+                        {workout.name}
+                      </Text>
+                      <Text style={[
+                        styles.workoutCardExercises,
+                        selectedPredefinedWorkout === workout && styles.selectedWorkoutCardExercises
+                      ]}>
+                        {workout.exercises.length} exercises
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Permanent Fields Section */}
+              <View style={styles.sectionContainer}>
+                <Text style={styles.sectionTitle}>⭐ Required Information</Text>
+                
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Workout Name</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter workout name"
+                    value={workoutForm.workoutName}
+                    onChangeText={handleWorkoutInput.bind(null, 'workoutName')}
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Date</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="YYYY-MM-DD"
+                    value={workoutForm.date}
+                    onChangeText={handleWorkoutInput.bind(null, 'date')}
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Duration (minutes)</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="45"
+                    keyboardType="numeric"
+                    value={workoutForm.duration}
+                    onChangeText={handleWorkoutInput.bind(null, 'duration')}
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Intensity Level</Text>
+                  <View style={styles.intensitySelector}>
+                    {['low', 'medium', 'high'].map((level) => (
+                      <TouchableOpacity
+                        key={level}
+                        style={[
+                          styles.intensityButton,
+                          workoutForm.intensity === level && styles.selectedIntensityButton
+                        ]}
+                        onPress={() => handleWorkoutInput('intensity', level)}
+                      >
+                        <Text style={[
+                          styles.intensityText,
+                          workoutForm.intensity === level && styles.selectedIntensityText
+                        ]}>
+                          {level.charAt(0).toUpperCase() + level.slice(1)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </View>
+
+              {/* Optional Fields Section */}
+              <View style={styles.sectionContainer}>
+                <Text style={styles.sectionTitle}>🔧 Optional Details</Text>
+                
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Target Muscle Groups</Text>
+                  <View style={styles.tagGrid}>
+                    {muscleGroups.map((muscle) => (
+                      <TouchableOpacity
+                        key={muscle}
+                        style={[
+                          styles.tag,
+                          workoutForm.muscleGroups.includes(muscle) && styles.selectedTag
+                        ]}
+                        onPress={() => toggleMuscleGroup(muscle)}
+                      >
+                        <Text style={[
+                          styles.tagText,
+                          workoutForm.muscleGroups.includes(muscle) && styles.selectedTagText
+                        ]}>
+                          {muscle}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Equipment Used</Text>
+                  <View style={styles.tagGrid}>
+                    {equipment.map((item) => (
+                      <TouchableOpacity
+                        key={item}
+                        style={[
+                          styles.tag,
+                          workoutForm.equipment.includes(item) && styles.selectedTag
+                        ]}
+                        onPress={() => toggleEquipment(item)}
+                      >
+                        <Text style={[
+                          styles.tagText,
+                          workoutForm.equipment.includes(item) && styles.selectedTagText
+                        ]}>
+                          {item}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </View>
+
+              {/* Exercises Section */}
+              <View style={styles.sectionContainer}>
+                <Text style={styles.sectionTitle}>💪 Exercises</Text>
+                {workoutForm.exercises.map((exercise, index) => (
+                  <View key={index} style={styles.exerciseItem}>
+                    <View style={styles.exerciseHeader}>
+                      <Text style={styles.exerciseNumber}>Exercise {index + 1}</Text>
+                      {workoutForm.exercises.length > 1 && (
+                        <TouchableOpacity 
+                          style={styles.removeExerciseButton}
+                          onPress={() => removeExercise(index)}
+                        >
+                          <Text style={styles.removeExerciseText}>🗑️</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Exercise Name</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="e.g., Bench Press"
+                        value={exercise.name}
+                        onChangeText={(text) => handleExerciseInput(index, 'name', text)}
+                      />
+                    </View>
+
+                    <View style={styles.exerciseMetrics}>
+                      <View style={styles.metricInput}>
+                        <Text style={styles.inputLabel}>Sets</Text>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="3"
+                          keyboardType="numeric"
+                          value={exercise.sets}
+                          onChangeText={(text) => handleExerciseInput(index, 'sets', text)}
+                        />
+                      </View>
+                      <View style={styles.metricInput}>
+                        <Text style={styles.inputLabel}>Reps</Text>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="10"
+                          keyboardType="numeric"
+                          value={exercise.reps}
+                          onChangeText={(text) => handleExerciseInput(index, 'reps', text)}
+                        />
+                      </View>
+                      <View style={styles.metricInput}>
+                        <Text style={styles.inputLabel}>Weight (kg)</Text>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="60"
+                          keyboardType="numeric"
+                          value={exercise.weight}
+                          onChangeText={(text) => handleExerciseInput(index, 'weight', text)}
+                        />
+                      </View>
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Notes (optional)</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Form cues, RPE, etc."
+                        multiline
+                        numberOfLines={2}
+                        value={exercise.notes}
+                        onChangeText={(text) => handleExerciseInput(index, 'notes', text)}
+                      />
+                    </View>
+                  </View>
+                ))}
+                
+                <TouchableOpacity onPress={addExercise} style={styles.addExerciseButton}>
+                  <Text style={styles.addExerciseButtonText}>➕ Add Exercise</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* General Notes */}
+              <View style={styles.sectionContainer}>
+                <Text style={styles.sectionTitle}>📝 General Notes</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Overall workout notes, how you felt, etc."
+                  multiline
+                  numberOfLines={3}
+                  value={workoutForm.notes}
+                  onChangeText={handleWorkoutInput.bind(null, 'notes')}
+                />
+              </View>
+            </ScrollView>
+
+            <TouchableOpacity style={styles.saveButton} onPress={saveWorkoutEntry}>
+              <Text style={styles.saveButtonText}>💾 Save Workout</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </Animated.View>
+      </Modal>
+
 
     </View>
   );
 };
-
-export default Activity;
 
 const styles = StyleSheet.create({
   container: {
@@ -1394,5 +2173,463 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   
+  // Diet Modal Styles
+  dietModalContent: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 20,
+    width: '90%',
+    maxWidth: 400,
+    alignItems: 'center',
+  },
+  dietForm: {
+    width: '100%',
+    marginBottom: 20,
+  },
+  input: {
+    backgroundColor: '#f5f5f5',
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    marginBottom: 15,
+    fontSize: 16,
+    color: '#333',
+  },
+  photoButton: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#f0f0f5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 15,
+    overflow: 'hidden',
+  },
+  photoPreview: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 50,
+  },
+  photoPlaceholder: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#e0e0e0',
+    borderRadius: 50,
+  },
+  photoPlaceholderText: {
+    fontSize: 30,
+    color: '#999',
+  },
+  removePhotoButton: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: 'red',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  removePhotoText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  saveButton: {
+    backgroundColor: '#e74c3c',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 20,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  saveButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  dietActionButton: {
+    width: '100%',
+    marginBottom: 20,
+    borderRadius: 15,
+    overflow: 'hidden',
+  },
+  dietActionGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  dietActionIcon: {
+    fontSize: 24,
+    marginRight: 15,
+  },
+  dietActionTextContainer: {
+    flex: 1,
+  },
+  dietActionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 2,
+  },
+  dietActionSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  dietActionArrow: {
+    fontSize: 20,
+    color: 'white',
+    marginLeft: 10,
+  },
 
-}); 
+  // Workout Logging Button Styles
+  workoutLoggingButton: {
+    marginBottom: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  workoutLoggingGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    paddingHorizontal: 25,
+  },
+  workoutLoggingIcon: {
+    fontSize: 32,
+    marginRight: 15,
+  },
+  workoutLoggingTextContainer: {
+    flex: 1,
+  },
+  workoutLoggingTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 4,
+  },
+  workoutLoggingSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  workoutLoggingArrow: {
+    fontSize: 24,
+    color: 'white',
+    fontWeight: 'bold',
+  },
+
+  // Workout Logging Modal Styles
+  workoutModalContent: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 20,
+    width: '90%',
+    maxWidth: 400,
+    maxHeight: '85%',
+    alignItems: 'center',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+  },
+  workoutForm: {
+    width: '100%',
+    marginBottom: 20,
+  },
+  sectionContainer: {
+    marginBottom: 25,
+    paddingVertical: 15,
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
+    gap: 12,
+  },
+  categoryCard: {
+    width: '45%',
+    aspectRatio: 1.2,
+    borderRadius: 15,
+    backgroundColor: '#f8f9fa',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  selectedCategoryCard: {
+    borderColor: '#e74c3c',
+    backgroundColor: '#fff5f5',
+    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+  },
+  categoryIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  categoryName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#333',
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  selectedCategoryName: {
+    color: '#e74c3c',
+    fontWeight: 'bold',
+  },
+  workoutGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
+    gap: 12,
+  },
+  workoutCard: {
+    width: '45%',
+    aspectRatio: 1.2,
+    borderRadius: 15,
+    backgroundColor: '#f8f9fa',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  selectedWorkoutCard: {
+    borderColor: '#e74c3c',
+    backgroundColor: '#fff5f5',
+    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+  },
+  workoutCardName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 5,
+    lineHeight: 16,
+  },
+  selectedWorkoutCardName: {
+    color: '#e74c3c',
+    fontWeight: 'bold',
+  },
+  workoutCardExercises: {
+    fontSize: 11,
+    color: '#666',
+    textAlign: 'center',
+  },
+  selectedWorkoutCardExercises: {
+    color: '#e74c3c',
+    fontWeight: 'bold',
+  },
+  inputGroup: {
+    marginBottom: 18,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  intensitySelector: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: '#f0f0f0',
+    borderRadius: 10,
+    padding: 6,
+  },
+  intensityButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    backgroundColor: 'white',
+  },
+  selectedIntensityButton: {
+    backgroundColor: '#e74c3c',
+    borderColor: '#e74c3c',
+  },
+  intensityText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  selectedIntensityText: {
+    color: 'white',
+  },
+  tagGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tag: {
+    backgroundColor: '#f0f0f0',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  selectedTag: {
+    backgroundColor: '#e74c3c',
+    borderColor: '#e74c3c',
+  },
+  tagText: {
+    fontSize: 12,
+    color: '#333',
+    fontWeight: '500',
+  },
+  selectedTagText: {
+    color: 'white',
+    fontWeight: '600',
+  },
+  exerciseItem: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 15,
+    padding: 18,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  exerciseHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  exerciseNumber: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  removeExerciseButton: {
+    padding: 8,
+    backgroundColor: '#ffe6e6',
+    borderRadius: 20,
+  },
+  removeExerciseText: {
+    fontSize: 16,
+    color: '#e74c3c',
+  },
+  exerciseMetrics: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+    gap: 8,
+  },
+  metricInput: {
+    flex: 1,
+  },
+  addExerciseButton: {
+    backgroundColor: '#e8f5e8',
+    paddingVertical: 15,
+    paddingHorizontal: 25,
+    borderRadius: 15,
+    alignItems: 'center',
+    marginTop: 15,
+    borderWidth: 2,
+    borderColor: '#4CAF50',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+  },
+  addExerciseButtonText: {
+    color: '#2E7D32',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
+  // Input styles
+  input: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    fontSize: 16,
+    backgroundColor: 'white',
+    color: '#333',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+
+  // Save button styles
+  saveButton: {
+    backgroundColor: '#e74c3c',
+    paddingVertical: 18,
+    paddingHorizontal: 35,
+    borderRadius: 15,
+    alignItems: 'center',
+    marginTop: 20,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    borderWidth: 2,
+    borderColor: '#c0392b',
+  },
+  saveButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+
+});
+
+export default Activity;

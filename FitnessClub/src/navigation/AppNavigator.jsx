@@ -12,7 +12,7 @@ import RoleSelection from '../screens/RoleSelection';
 
 
 
-import Location from '../screens/Member/Location';
+import LocationMain from '../screens/Member/LocationMain';
 import DietLog from '../screens/Member/DietLog';
 import FlexiFitAI from '../screens/Member/FlexiFitAI';
 import BottomTabNavigator from './BottomTabNavigator';
@@ -46,7 +46,7 @@ const AppNavigator = () => {
 
 
 
-             <Stack.Screen name="Location" component={Location}  
+             <Stack.Screen name="Location" component={LocationMain}  
          options={{ headerShown: false }} />
 
          
