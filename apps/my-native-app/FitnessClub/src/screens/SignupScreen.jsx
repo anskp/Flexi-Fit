@@ -13,8 +13,10 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-import { useAuth } from '../context/AuthContext';
-import parseApiError from '../utils/parseApiError'; // Assuming you create this util
+import { useAuth } from '../context/authContext';
+import parseApiError from '../utils/parseApiError';
+import * as authService from '../api/authService';
+ // Assuming you create this util
 
 const SignupScreen = () => {
   const [email, setEmail] = useState('');
@@ -25,48 +27,58 @@ const SignupScreen = () => {
   const [loading, setLoading] = useState(false);
 
   const navigation = useNavigation();
-  const { setAuthData } = useAuth(); // We need this to set the token after signup
+  const { signup, selectRole } = useAuth(); // We'll use the signup and selectRole functions from context
 
- const handleSignup = async () => {
-    if (password !== confirmPassword) { /* ... */ }
-    setLoading(true);
-    try {
-      // Step 1: Create the user account
-      const signupResponse = await authService.signup(email, password);
-      
-      if (signupResponse.data.success) {
-        // Step 2: Immediately set the auth token so we can make the next call
-        const token = signupResponse.data.data.token;
-        setAuthData(token);
-        
-        // Step 3: Automatically assign the 'MEMBER' role
-        const roleResponse = await authService.selectRole('MEMBER');
-        
-        if (roleResponse.success) {
-          // Step 4: The backend now tells us to go to the member profile form.
-          // We get the new token that includes the role.
-          setAuthData(roleResponse.data.token);
-          // Navigate to the screen for member profile setup
-          navigation.navigate('MemberProfileSetup'); 
-        } else {
-            throw new Error(roleResponse.message);
-        }
-      } else {
-          throw new Error(signupResponse.data.message);
-      }
-    } catch (err) {
-      Alert.alert('Signup Failed', parseApiError(err));
-    } finally {
-      setLoading(false);
-    }
-  };
+   const handleSignup = async () => {
+     if (password !== confirmPassword) {
+       Alert.alert('Password Mismatch', 'Passwords do not match. Please try again.');
+       return;
+     }
+     
+     if (!email || !password) {
+       Alert.alert('Incomplete Form', 'Please fill in all fields.');
+       return;
+     }
+     
+     setLoading(true);
+     try {
+       // Step 1: Create the user account using the context signup function
+       const signupResponse = await signup(email, password);
+       
+       if (signupResponse.success) {
+         // Step 2: Automatically assign the 'MEMBER' role
+         const roleResponse = await selectRole('MEMBER');
+         
+         if (roleResponse.success) {
+           // Step 3: Navigate to the member profile setup
+           navigation.navigate('MemberProfile'); 
+         } else {
+             throw new Error(roleResponse.message || 'Failed to assign role');
+         }
+       } else {
+           throw new Error(signupResponse.message || 'Signup failed');
+       }
+     } catch (err) {
+       Alert.alert('Signup Failed', parseApiError(err));
+     } finally {
+       setLoading(false);
+     }
+   };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#C53030" />
 
       <LinearGradient colors={['#E53E3E', '#C53030']} style={styles.header}>
-        <Text style={styles.headerTitle}>Create your{'\n'}Account</Text>
+        <View style={styles.headerContent}>
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.backButtonText}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Create your{'\n'}Account</Text>
+        </View>
       </LinearGradient>
 
       <View style={styles.formContainer}>
@@ -126,7 +138,7 @@ const SignupScreen = () => {
 
         <View style={styles.footerContainer}>
           <Text style={styles.footerText}>Already have an account? </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('LogIn')}>
+          <TouchableOpacity onPress={() => navigation.navigate('LoginScreen')}>
             <Text style={styles.signInLinkText}>sign in</Text>
           </TouchableOpacity>
         </View>
@@ -143,6 +155,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 40,
   },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButton: {
+    marginRight: 20,
+    padding: 10,
+  },
+  backButtonText: {
+    fontSize: 24,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
   headerTitle: {
     fontSize: 32,
     fontWeight: 'bold',
@@ -150,6 +175,7 @@ const styles = StyleSheet.create({
     lineHeight: 40,
     fontFamily: 'System',
     letterSpacing: 0.5,
+    flex: 1,
   },
   formContainer: {
     borderTopLeftRadius: 32,      // Rounded top left
@@ -247,4 +273,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SignIn;
+export default SignupScreen;

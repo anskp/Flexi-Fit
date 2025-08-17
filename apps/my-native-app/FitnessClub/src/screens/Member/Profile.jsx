@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Text, ScrollView, TouchableOpacity, Image, Switch } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../../context/authContext';
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const navigation = useNavigation();
+  const { logout } = useAuth();
 
   const tabs = [
     { id: 'profile', title: 'Profile', icon: '👤' },
@@ -170,6 +174,18 @@ const Profile = () => {
         <TouchableOpacity style={styles.actionButton}>
           <Text style={styles.actionIcon}>📱</Text>
           <Text style={styles.actionText}>About App</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.actionButton, styles.signupButton]} 
+          onPress={() => {
+            // Logout functionality
+            logout();
+            // Navigate to login screen
+            navigation.navigate('LoginScreen');
+          }}
+        >
+          <Text style={styles.actionIcon}>🚪</Text>
+          <Text style={styles.actionText}>Log Out</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -713,5 +729,12 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: '#e74c3c',
     alignSelf: 'center',
+  },
+  signupButton: {
+    backgroundColor: '#e74c3c',
+    borderRadius: 10,
+    marginTop: 10,
+    paddingVertical: 15,
+    paddingHorizontal: 15,
   },
 }); 

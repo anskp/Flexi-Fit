@@ -1,9 +1,8 @@
-// src/navigation/AppNavigator.jsx
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { useAuth } from '../context/AuthContext';
-import AuthStack from './AuthStack';
-import AppStack from './AppStack';
+import { useAuth } from '../context/authContext';
+import AuthStack from '../navigation/AuthStack';
+import AppStack from '../navigation/AppStack';
 import { View, ActivityIndicator } from 'react-native';
 
 const AppNavigator = () => {
