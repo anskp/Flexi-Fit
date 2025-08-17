@@ -1,18 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SafeAreaView, StatusBar, Platform, Alert, Animated, PermissionsAndroid } from 'react-native';
-import Geolocation from '@react-native-community/geolocation';
+import Geolocation from 'react-native-geolocation-service';
+import { useNavigation } from '@react-navigation/native';
 import LocationContent from './LocationContent';
+import * as gymService from '../../api/gymService';
+import parseApiError from '../../utils/parseApiError';
 
 const LocationMain = () => {
+  const navigation = useNavigation();
+
+  // API Data State
+  const [gyms, setGyms] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // UI & Location State
   const [selectedGym, setSelectedGym] = useState(null);
   const [mapSelectedGym, setMapSelectedGym] = useState(null);
-  const [userLocation, setUserLocation] = useState({
-    latitude: 28.7041,
-    longitude: 77.1025,
-  });
+  const [userLocation, setUserLocation] = useState(null);
   const [locationPermission, setLocationPermission] = useState(false);
-  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
-  const [locationAccuracy, setLocationAccuracy] = useState(null);
   const [locationAddress, setLocationAddress] = useState('');
   const [watchId, setWatchId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -21,328 +27,123 @@ const LocationMain = () => {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [selectedSort, setSelectedSort] = useState('distance');
 
-  // Animation for user location pulse
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  // Request location permission
-  const requestLocationPermission = async () => {
+  const fetchGyms = async (location = null) => {
+    setLoading(true);
+    setError('');
     try {
-      if (Platform.OS === 'android') {
-        // Always show permission dialog, even if previously granted
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-          {
-            title: 'Location Permission Required',
-            message: 'This app needs access to your current location to show nearby gyms and provide accurate recommendations.',
-            buttonNeutral: 'Ask Me Later',
-            buttonNegative: 'Cancel',
-            buttonPositive: 'Allow',
-          }
-        );
-        
-        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-          setLocationPermission(true);
-          getCurrentLocation();
-        } else if (granted === PermissionsAndroid.RESULTS.DENIED) {
-          Alert.alert(
-            'Location Permission Denied',
-            'Location access is required to find gyms near you. Please grant permission to continue.',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Try Again', onPress: requestLocationPermission }
-            ]
-          );
-        } else {
-          // User selected "Ask Me Later"
-          Alert.alert(
-            'Location Access Needed',
-            'To provide you with the best gym recommendations, we need your current location.',
-            [
-              { text: 'Not Now', style: 'cancel' },
-              { text: 'Grant Permission', onPress: requestLocationPermission }
-            ]
-          );
-        }
-      } else {
-        // For iOS, always try to get location (will trigger permission if needed)
-        getCurrentLocation();
+      const params = {
+        page: 1,
+        limit: 50,
+        sort: selectedSort,
+        filter: selectedFilter,
+        search: searchQuery,
+      };
+
+      if (location) {
+        params.lat = location.latitude;
+        params.lon = location.longitude;
+      }
+      
+      console.log("[LocationMain] Fetching gyms with params:", params);
+      const response = await gymService.discoverGyms(params);
+
+      if (response.success) {
+        const fetchedGyms = Array.isArray(response.data) ? response.data : response.data.gyms;
+        const formattedGyms = fetchedGyms.map(gym => ({
+            ...gym,
+            coordinates: { latitude: gym.latitude, longitude: gym.longitude }
+        }));
+        setGyms(formattedGyms);
       }
     } catch (err) {
-      console.warn('Location permission error:', err);
-      Alert.alert(
-        'Permission Error',
-        'There was an issue requesting location permission. Please try again.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Retry', onPress: requestLocationPermission }
-        ]
-      );
+      setError(parseApiError(err));
+    } finally {
+      setLoading(false);
     }
   };
-
-  // Get current location with enhanced detection
+  
   const getCurrentLocation = () => {
-    setIsLoadingLocation(true);
-    
+    setLoading(true);
     Geolocation.getCurrentPosition(
       (position) => {
-        const { latitude, longitude, accuracy, altitude, heading, speed } = position.coords;
-        const timestamp = position.timestamp;
-        
-        setUserLocation({ latitude, longitude });
-        setLocationAccuracy(accuracy);
+        const { latitude, longitude } = position.coords;
+        const newLocation = { latitude, longitude };
+        setUserLocation(newLocation);
         setLocationPermission(true);
-        setIsLoadingLocation(false);
-        
-        console.log('📍 Current location detected:', {
-          latitude,
-          longitude,
-          accuracy: `${accuracy}m`,
-          altitude: altitude ? `${altitude}m` : 'N/A',
-          heading: heading ? `${heading}°` : 'N/A',
-          speed: speed ? `${speed}m/s` : 'N/A',
-          timestamp: new Date(timestamp).toLocaleString()
-        });
-        
-        // Get address from coordinates
-        getAddressFromCoordinates(latitude, longitude);
-        
-        // Start watching location for updates
-        startLocationWatching();
-        
-        Alert.alert(
-          '📍 Location Detected!',
-          `Your current location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}\nAccuracy: ${accuracy.toFixed(1)}m`,
-          [{ text: 'OK' }]
-        );
+        fetchGyms(newLocation);
       },
       (error) => {
-        console.log('❌ Location error:', error);
-        setIsLoadingLocation(false);
-        
-        if (error.code === 1) {
-          // Permission denied
-          Alert.alert(
-            'Location Permission Required',
-            'To find gyms near you, we need access to your current location. Please grant permission.',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Grant Permission', onPress: requestLocationPermission }
-            ]
-          );
-        } else if (error.code === 2) {
-          // Location unavailable
-          Alert.alert(
-            'Location Unavailable',
-            'Unable to determine your location. Please check your GPS settings and try again.',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Try Again', onPress: getCurrentLocation }
-            ]
-          );
-        } else if (error.code === 3) {
-          // Timeout
-          Alert.alert(
-            'Location Timeout',
-            'Getting your location took too long. Please check your GPS signal and try again.',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Try Again', onPress: getCurrentLocation }
-            ]
-          );
-        } else {
-          Alert.alert(
-            'Location Error',
-            'There was an issue getting your location. Please try again.',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Retry', onPress: getCurrentLocation }
-            ]
-          );
-        }
+        console.log('Location error:', error);
+        Alert.alert('Location Error', 'Could not get your location. Showing a general list of gyms.');
+        fetchGyms();
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 20000, // Increased timeout for better accuracy
-        maximumAge: 0, // Always get fresh location
-        distanceFilter: 10, // Update every 10 meters
-      }
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 10000, distanceFilter: 10 }
     );
   };
-
-  // Get address from coordinates using reverse geocoding
-  const getAddressFromCoordinates = (latitude, longitude) => {
-    // For now, we'll use a simple approach
-    // In a real app, you'd use Google Geocoding API or similar
-    setLocationAddress('Getting address...');
-    
-    // Simulate getting address (replace with actual geocoding API)
-    setTimeout(() => {
-      setLocationAddress(`Location: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
-    }, 1000);
-  };
-
-  // Start watching location for real-time updates
-  const startLocationWatching = () => {
-    if (watchId) {
-      Geolocation.clearWatch(watchId);
+  
+  const requestLocationPermission = async () => {
+    let permissionGranted = false;
+    if (Platform.OS === 'android') {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        {
+          title: 'Location Permission',
+          message: 'This app needs access to your location to show nearby gyms.',
+          buttonPositive: 'Allow',
+          buttonNegative: 'Deny'
+        }
+      );
+      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+        permissionGranted = true;
+      }
+    } else if (Platform.OS === 'ios') {
+      const result = await Geolocation.requestAuthorization('whenInUse');
+      if (result === 'granted') {
+        permissionGranted = true;
+      }
     }
-    
-    const newWatchId = Geolocation.watchPosition(
-      (position) => {
-        const { latitude, longitude, accuracy } = position.coords;
-        
-        // Only update if accuracy is better or location changed significantly
-        if (accuracy < (locationAccuracy || 100) || 
-            Math.abs(latitude - userLocation.latitude) > 0.0001 ||
-            Math.abs(longitude - userLocation.longitude) > 0.0001) {
-          
-          setUserLocation({ latitude, longitude });
-          setLocationAccuracy(accuracy);
-          
-          console.log('🔄 Location updated:', {
-            latitude: latitude.toFixed(6),
-            longitude: longitude.toFixed(6),
-            accuracy: `${accuracy.toFixed(1)}m`
-          });
-        }
-      },
-      (error) => {
-        console.log('Location watching error:', error);
-      },
-      {
-        enableHighAccuracy: true,
-        distanceFilter: 10, // Update every 10 meters
-        interval: 5000, // Check every 5 seconds
-      }
-    );
-    
-    setWatchId(newWatchId);
-  };
 
-  // Stop watching location
-  const stopLocationWatching = () => {
-    if (watchId) {
-      Geolocation.clearWatch(watchId);
-      setWatchId(null);
-      console.log('📍 Location watching stopped');
+    if (permissionGranted) {
+      getCurrentLocation();
+    } else {
+      Alert.alert('Permission Denied', 'Location access is needed to find gyms near you. Showing a general list.');
+      fetchGyms(); // Fetch gyms without location if permission is denied
     }
   };
 
-  // Start pulse animation
+  useEffect(() => {
+    requestLocationPermission();
+  }, []);
+
+  useEffect(() => {
+    // This effect re-fetches data when a filter or sort option is changed.
+    // It's "debounced" by being outside the initial load effect.
+    if (!loading) { // Avoid re-fetching while an initial fetch is in progress
+        fetchGyms(userLocation);
+    }
+  }, [selectedFilter, selectedSort, searchQuery]);
+
   useEffect(() => {
     const pulseAnimation = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.5,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
+        Animated.timing(pulseAnim, { toValue: 1.5, duration: 1500, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1500, useNativeDriver: true }),
       ])
     );
-    
     pulseAnimation.start();
-    
     return () => pulseAnimation.stop();
   }, [pulseAnim]);
 
-  // Cleanup location watching on component unmount
   useEffect(() => {
-    return () => {
-      stopLocationWatching();
-    };
-  }, []);
-
-  // No automatic permission request - only manual
-
-  // Sample gym data with enhanced information
-  const gyms = [
-    {
-      id: 1,
-      name: "Oxygen Gym Connaught Place",
-      location: "Connaught Place, New Delhi",
-      distance: "0.5 km",
-      rating: 4.5,
-      isNearest: true,
-      coordinates: {
-        latitude: 28.7041,
-        longitude: 77.1025,
-      },
-      logo: "OXYGEN",
-      type: "Premium",
-      price: "₹2,500/month",
-      features: ["24/7 Access", "Personal Trainer", "Pool", "Spa"],
-      image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
-      openNow: true,
-      crowdLevel: "Low"
-    },
-    {
-      id: 2,
-      name: "Platinum Gym Khan Market",
-      location: "Khan Market, New Delhi",
-      distance: "1.2 km",
-      rating: 4.2,
-      isNearest: false,
-      coordinates: {
-        latitude: 28.7200,
-        longitude: 77.1200,
-      },
-      logo: "PLATINUM",
-      type: "Standard",
-      price: "₹1,800/month",
-      features: ["Cardio Zone", "Weight Training", "Yoga Classes"],
-      image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
-      openNow: true,
-      crowdLevel: "Medium"
-    },
-    {
-      id: 3,
-      name: "Elite Sports Club",
-      location: "Hauz Khas, New Delhi",
-      distance: "2.1 km",
-      rating: 4.7,
-      isNearest: false,
-      coordinates: {
-        latitude: 28.6900,
-        longitude: 77.0900,
-      },
-      logo: "🏃",
-      type: "Premium",
-      price: "₹3,200/month",
-      features: ["Olympic Pool", "Tennis Court", "Spa", "Restaurant"],
-      image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
-      openNow: false,
-      crowdLevel: "High"
-    },
-    {
-      id: 4,
-      name: "FitZone Express",
-      location: "Saket, New Delhi",
-      distance: "3.5 km",
-      rating: 4.0,
-      isNearest: false,
-      coordinates: {
-        latitude: 28.5500,
-        longitude: 77.2000,
-      },
-      logo: "⚡",
-      type: "Express",
-      price: "₹1,500/month",
-      features: ["Quick Workouts", "Express Classes", "No Contracts"],
-      image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
-      openNow: true,
-      crowdLevel: "Low"
-    }
-  ];
+    return () => { if (watchId) Geolocation.clearWatch(watchId); };
+  }, [watchId]);
 
   const handleGymPress = (gym) => {
-    setSelectedGym(gym);
-    setMapSelectedGym(gym);
+    if (gym && gym.id) {
+      navigation.navigate('GymDetails', { gymId: gym.id });
+    }
   };
 
   const handleMapMarkerPress = (gym) => {
@@ -354,69 +155,12 @@ const LocationMain = () => {
     if (locationPermission) {
       getCurrentLocation();
     } else {
-      Alert.alert(
-        'Enable Location Access',
-        'Would you like to enable location access to find gyms near you?',
-        [
-          { text: 'Not Now', style: 'cancel' },
-          { text: 'Enable Location', onPress: requestLocationPermission }
-        ]
-      );
-    }
-  };
-
-  // Show current location details
-  const showLocationDetails = () => {
-    if (locationPermission && locationAccuracy) {
-      Alert.alert(
-        '📍 Current Location Details',
-        `Latitude: ${userLocation.latitude.toFixed(6)}\nLongitude: ${userLocation.longitude.toFixed(6)}\nAccuracy: ${locationAccuracy.toFixed(1)}m\nAddress: ${locationAddress || 'Getting address...'}`,
-        [
-          { text: 'OK' },
-          { text: 'Refresh Location', onPress: getCurrentLocation }
-        ]
-      );
-    } else {
-      Alert.alert(
-        'Location Not Available',
-        'Please enable location access first to view your current location details.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Enable Location', onPress: requestLocationPermission }
-        ]
-      );
+      requestLocationPermission();
     }
   };
 
   const handleCameraPress = () => {
-    Alert.alert(
-      'Camera Options',
-      'What would you like to do?',
-      [
-        { 
-          text: '📸 Take Photo', 
-          onPress: () => {
-            console.log('Take photo pressed');
-            Alert.alert('Camera', 'Opening camera to take photo...');
-          }
-        },
-        { 
-          text: '📍 Check-in with Photo', 
-          onPress: () => {
-            console.log('Check-in with photo pressed');
-            Alert.alert('Check-in', 'Taking photo for gym check-in...');
-          }
-        },
-        { 
-          text: '🎯 Scan QR Code', 
-          onPress: () => {
-            console.log('Scan QR code pressed');
-            Alert.alert('QR Scanner', 'Opening QR code scanner...');
-          }
-        },
-        { text: 'Cancel', style: 'cancel' }
-      ]
-    );
+    Alert.alert('Camera', 'Camera functionality will be implemented here.');
   };
 
   const filterOptions = [
@@ -440,13 +184,14 @@ const LocationMain = () => {
       
       <LocationContent
         gyms={gyms}
+        loading={loading}
+        error={error}
         selectedGym={selectedGym}
         mapSelectedGym={mapSelectedGym}
         userLocation={userLocation}
         pulseAnim={pulseAnim}
         locationPermission={locationPermission}
-        isLoadingLocation={isLoadingLocation}
-        locationAccuracy={locationAccuracy}
+        isLoadingLocation={loading && !userLocation}
         locationAddress={locationAddress}
         searchQuery={searchQuery}
         showSearchModal={showSearchModal}
@@ -458,7 +203,6 @@ const LocationMain = () => {
         onGymPress={handleGymPress}
         onMapMarkerPress={handleMapMarkerPress}
         onMyLocation={handleMyLocation}
-        onShowLocationDetails={showLocationDetails}
         onCameraPress={handleCameraPress}
         onSearchPress={() => setShowSearchModal(true)}
         onFilterPress={() => setShowFilterModal(true)}
@@ -473,4 +217,4 @@ const LocationMain = () => {
   );
 };
 
-export default LocationMain; 
+export default LocationMain;
