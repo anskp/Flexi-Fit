@@ -44,19 +44,12 @@ const MemberProfile = () => {
       const response = await authService.createMemberProfile(payload);
       
              if (response.success) {
-         console.log('Profile creation successful, navigating to MainTabs...');
          Alert.alert('Profile Complete!', 'Welcome to FitFlex. Let\'s get started.');
          // This will refresh the user data in the context. The AppNavigator will see
          // that the user is now fully onboarded and automatically switch to the AppStack.
          await reloadUser();
          // Navigate to the main app (BottomTabNavigator)
-         console.log('Attempting navigation to MainTabs...');
-         // Try to reset the navigation stack to MainTabs
-         navigation.reset({
-           index: 0,
-           routes: [{ name: 'MainTabs' }],
-         });
-         console.log('Navigation reset command sent');
+         navigation.navigate('MainTabs');
        }
     } catch (err) {
       Alert.alert('Profile Setup Failed', parseApiError(err));
