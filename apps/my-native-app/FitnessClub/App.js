@@ -1,8 +1,8 @@
 // App.js
-import 'react-native-gesture-handler';
 import React from 'react';
-import { AuthProvider } from './src/context/AuthContext';
-import AppNavigator from './src/navigation/AppNavigator';
+import 'react-native-gesture-handler';
+import { AuthProvider } from '../FitnessClub/src/context/authContext';
+import AppNavigator from '../FitnessClub/src/navigation/AppNavigator';
 
 const App = () => {
   return (

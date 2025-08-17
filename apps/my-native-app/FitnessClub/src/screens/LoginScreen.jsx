@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/authContext';
 import parseApiError from '../utils/parseApiError'; // Assuming you create this util
 
 const LoginScreen = () => {
@@ -20,7 +20,7 @@ const LoginScreen = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  
+
   const navigation = useNavigation();
   const { login } = useAuth();
 
@@ -32,24 +32,24 @@ const LoginScreen = () => {
     setLoading(true);
     try {
       const response = await login(email, password);
-      // On success, the AuthContext state changes, and the AppNavigator will
-      // automatically switch to the AppStack. No need for manual navigation here.
       if (!response.success) {
-          // Handle cases where the API returns a 200 but indicates failure
-          Alert.alert('Login Failed', response.message || 'An unknown error occurred.');
+        Alert.alert(
+          'Login Failed',
+          response.message || 'An unknown error occurred.'
+        );
       }
-    } catch (err) { {
+    } catch (err) {
       Alert.alert('Login Failed', parseApiError(err));
     } finally {
       setLoading(false);
     }
   };
-};
 
+  // ✅ return is INSIDE the component now
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#d32f2f" barStyle="light-content" />
-      
+
       <View style={styles.header}>
         <Text style={styles.headerText}>Hello</Text>
         <Text style={styles.headerText}>Sign in!</Text>
@@ -82,7 +82,7 @@ const LoginScreen = () => {
               placeholder="••••••••"
               placeholderTextColor="#999"
             />
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.eyeIcon}
               onPress={() => setShowPassword(!showPassword)}
             >
@@ -95,7 +95,11 @@ const LoginScreen = () => {
           <Text style={styles.forgotPasswordText}>forgot password?</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.signInButton} onPress={handleLogin} disabled={loading}>
+        <TouchableOpacity
+          style={styles.signInButton}
+          onPress={handleLogin}
+          disabled={loading}
+        >
           {loading ? (
             <ActivityIndicator color="#ffffff" />
           ) : (
@@ -105,7 +109,7 @@ const LoginScreen = () => {
 
         <View style={styles.signUpContainer}>
           <Text style={styles.signUpText}>Don't have an account?</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('SignIn')}>
+          <TouchableOpacity onPress={() => navigation.navigate('SignupScreen')}>
             <Text style={styles.signUpLink}>sign up</Text>
           </TouchableOpacity>
         </View>
@@ -245,4 +249,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LogIn;
+export default LoginScreen;

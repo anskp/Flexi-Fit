@@ -2,13 +2,15 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { useAuth } from '../../context/AuthContext';
-import * as authService from '../../api/authService';
-import parseApiError from '../../utils/parseApiError';
+import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../context/authContext';
+import * as authService from '../api/authService';
+import parseApiError from '../utils/parseApiError';
 
 const MemberProfile = () => {
   const { reloadUser } = useAuth(); // We'll use this to trigger the switch to the main app
   const [loading, setLoading] = useState(false);
+  const navigation = useNavigation();
   
   const [formData, setFormData] = useState({
     name: '',
@@ -41,12 +43,14 @@ const MemberProfile = () => {
 
       const response = await authService.createMemberProfile(payload);
       
-      if (response.success) {
-        Alert.alert('Profile Complete!', 'Welcome to FitFlex. Let\'s get started.');
-        // This will refresh the user data in the context. The AppNavigator will see
-        // that the user is now fully onboarded and automatically switch to the AppStack.
-        await reloadUser();
-      }
+             if (response.success) {
+         Alert.alert('Profile Complete!', 'Welcome to FitFlex. Let\'s get started.');
+         // This will refresh the user data in the context. The AppNavigator will see
+         // that the user is now fully onboarded and automatically switch to the AppStack.
+         await reloadUser();
+         // Navigate to the main app (BottomTabNavigator)
+         navigation.navigate('MainTabs');
+       }
     } catch (err) {
       Alert.alert('Profile Setup Failed', parseApiError(err));
     } finally {
