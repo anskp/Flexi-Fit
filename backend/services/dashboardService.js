@@ -5,6 +5,8 @@ const prisma = new PrismaClient();
 // --- Private Helper Functions for each Tab ---
 
 const _buildActivityData = async (userId) => {
+  console.log("[_buildActivityData] START for user:", userId);
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -17,51 +19,60 @@ const _buildActivityData = async (userId) => {
   const todayStepsRecord = await prisma.stepCount.findFirst({
     where: { userId, date: today },
   });
+  console.log("[_buildActivityData] todayStepsRecord:", todayStepsRecord);
+
   const todaySteps = todayStepsRecord?.value || 0;
 
-  // 2. Get Weekly Steps for Chart
+  // 2. Weekly Steps
   const weeklyStepsRecords = await prisma.stepCount.findMany({
     where: { userId, date: { gte: startOfWeek } },
     orderBy: { date: 'asc' },
   });
+  console.log("[_buildActivityData] weeklyStepsRecords:", weeklyStepsRecords);
+
   const weeklySteps = Array(7).fill(0);
   weeklyStepsRecords.forEach(record => {
-    const dayIndex = record.date.getDay() === 0 ? 6 : record.date.getDay() - 1; // Monday=0, Sunday=6
+    const dayIndex = record.date.getDay() === 0 ? 6 : record.date.getDay() - 1;
     weeklySteps[dayIndex] = record.value;
   });
 
-  // 3. Get Workout Counts (CORRECTED QUERY: using WorkoutSession)
+  // 3. Workout Counts
   const workoutsThisWeek = await prisma.workoutSession.count({
     where: { userId, date: { gte: startOfWeek } },
   });
   const yearToDate = await prisma.workoutSession.count({
     where: { userId, date: { gte: startOfYear } },
   });
+  console.log("[_buildActivityData] workoutsThisWeek:", workoutsThisWeek, "yearToDate:", yearToDate);
 
-  // 4. Get Recent Activities (Real Data)
+  // 4. Recent Activities
   const recentSessions = await prisma.workoutSession.findMany({
       where: { userId },
       orderBy: { date: 'desc' },
       take: 3,
   });
+  console.log("[_buildActivityData] recentSessions:", recentSessions);
+
   const recentActivities = recentSessions.map(session => ({
       type: session.workoutType === 'Cardio' ? '🏃‍♂️' : '🏋️‍♂️',
       name: session.workoutName || 'Workout Session',
       time: session.date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
       duration: `${session.duration || 0} min`,
-      calories: Math.round((session.duration || 0) * 8.5), // Estimate
+      calories: Math.round((session.duration || 0) * 8.5),
   }));
 
-  // 5. Calculate Active Minutes and Calories
+  // 5. Active Minutes + Calories
   const sessionsThisWeek = await prisma.workoutSession.findMany({
       where: { userId, date: { gte: startOfWeek } },
       select: { duration: true }
   });
+  console.log("[_buildActivityData] sessionsThisWeek:", sessionsThisWeek);
+
   const activeMinutes = sessionsThisWeek.reduce((sum, s) => sum + (s.duration || 0), 0);
   const caloriesBurned = Math.round((todaySteps * 0.04) + (activeMinutes * 8.5));
 
+  console.log("[_buildActivityData] END ->", { todaySteps, weeklySteps, workoutsThisWeek, yearToDate, activeMinutes, caloriesBurned });
 
-  // --- Final Assembled Object ---
   return {
     todaySteps,
     weeklySteps,
@@ -70,23 +81,23 @@ const _buildActivityData = async (userId) => {
     recentActivities,
     activeMinutes,
     caloriesBurned,
-    // --- Placeholders for features to be built later ---
-    weeklyGoal: 10000, // This could be a field on MemberProfile
-    streak: 7, // This requires complex logic to check daily activity
-    monthlyProgress: 78, // Requires a goal system
-    totalCalories: 12450, // Requires summing historical data
+    weeklyGoal: 10000,
+    streak: 7,
+    monthlyProgress: 78,
+    totalCalories: 12450,
   };
 };
 
 const _buildDietData = async (userId) => {
-  // This function can be expanded just like the activity one
-  // For now, it mirrors the logic from our previous step
+  console.log("[_buildDietData] START for user:", userId);
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   const mealsToday = await prisma.dietLog.findMany({
     where: { userId, createdAt: { gte: today } },
   });
+  console.log("[_buildDietData] mealsToday:", mealsToday);
 
   let todayCalories = 0, protein = 0, carbs = 0, fats = 0;
   mealsToday.forEach(meal => {
@@ -96,26 +107,33 @@ const _buildDietData = async (userId) => {
     fats += meal.fats || 0;
   });
 
+  console.log("[_buildDietData] END ->", { todayCalories, protein, carbs, fats });
+
   return {
     todayCalories, protein, carbs, fats,
     meals: mealsToday.map(m => ({...m, completed: true, time: m.createdAt.toLocaleTimeString()})),
-    // Placeholders:
     dailyGoal: 2200,
     weeklyCalories: [2100, 1950, 2300, todayCalories, 2000, 2150, 1850],
-    nutritionGoals: { /* ... */ }
+    nutritionGoals: {}
   };
 };
 
 const _buildTrainingData = async (userId) => {
-  // This function can be expanded just like the activity one
+  console.log("[_buildTrainingData] START for user:", userId);
+
   const totalWorkouts = await prisma.workoutSession.count({ where: { userId } });
-  
+  console.log("[_buildTrainingData] totalWorkouts:", totalWorkouts);
+
   const workoutTypesData = await prisma.workoutSession.groupBy({
-      by: ['workoutType'], _count: { _all: true }, where: { userId, workoutType: { not: null } }
+      by: ['workoutType'],
+      _count: { _all: true },
+      where: { userId, workoutType: { not: null } }
   });
-  
+  console.log("[_buildTrainingData] workoutTypesData:", workoutTypesData);
+
   const workoutTypes = workoutTypesData.map(item => ({
-      name: item.workoutType, count: item._count._all,
+      name: item.workoutType,
+      count: item._count._all,
       color: item.workoutType === 'Strength' ? '#e74c3c' : '#3498db',
   }));
 
@@ -123,12 +141,14 @@ const _buildTrainingData = async (userId) => {
       where: { memberId: userId, endDate: { gte: new Date() } },
       take: 3
   });
+  console.log("[_buildTrainingData] upcomingWorkouts:", upcomingWorkouts);
+
+  console.log("[_buildTrainingData] END");
 
   return {
     totalWorkouts,
     workoutTypes,
     upcomingWorkouts,
-    // Placeholders
     currentPlan: "Strength Training",
     weeklyProgress: 75,
     thisMonth: 4,
@@ -136,19 +156,20 @@ const _buildTrainingData = async (userId) => {
   };
 };
 
-
-/**
- * @desc    Builds the complete dashboard object for a member.
- * @param   {string} userId - The ID of the user.
- * @returns {Promise<object>} A nested object containing data for all three tabs.
- */
 export const buildMemberDashboard = async (userId) => {
-  // Run all three data-building functions in parallel for max efficiency
+  console.log("[buildMemberDashboard] CALLED with userId:", userId);
+
   const [activityData, dietData, trainingData] = await Promise.all([
     _buildActivityData(userId),
     _buildDietData(userId),
     _buildTrainingData(userId),
   ]);
+
+  console.log("[buildMemberDashboard] FINAL RESULT ->", {
+    activity: activityData,
+    diet: dietData,
+    training: trainingData,
+  });
 
   return {
     activity: activityData,

@@ -15,6 +15,8 @@ import {
   Animated,
   Easing,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
+import { saveWorkoutEntry } from '../../api/trainingService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -72,263 +74,44 @@ const FloatingParticle = ({ delay = 0, style }) => {
   );
 };
 
-const AnimatedModal = ({ visible, onClose, children, title }) => {
-  const slideAnim = useRef(new Animated.Value(height)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+const QuickWorkoutCard = ({ workout, onPress, style }) => {
+  const scale = useRef(new Animated.Value(0)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (visible) {
-      Animated.parallel([
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          tension: 100,
-          friction: 8,
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: height,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  }, [visible]);
-
-  if (!visible) return null;
-
-  return (
-    <Modal visible={visible} transparent animationType="none">
-      <View style={styles.modalOverlay}>
-        <TouchableOpacity 
-          style={styles.modalBackdrop} 
-          activeOpacity={1} 
-          onPress={onClose}
-        />
-        <Animated.View
-          style={[
-            styles.modalContainer,
-            {
-              transform: [{ translateY: slideAnim }],
-              opacity: fadeAnim,
-            },
-          ]}
-        >
-          {/* Modal Header with Gradient */}
-          <View style={styles.modalHeaderGradient}>
-            <View style={styles.modalHeader}>
-              <View style={styles.modalHeaderLeft}>
-                <View style={styles.modalIconContainer}>
-                  <Text style={styles.modalIcon}>💪</Text>
-                </View>
-                <Text style={styles.modalTitle}>{title}</Text>
-              </View>
-              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Text style={styles.closeButtonText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Modal Content */}
-          <View style={styles.modalContent}>
-            {children}
-          </View>
-        </Animated.View>
-      </View>
-    </Modal>
-  );
-};
-
-const SuccessModal = ({ visible, onClose, message }) => {
-  const scaleAnim = useRef(new Animated.Value(0)).current;
-  const tickScaleAnim = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (visible) {
-      Animated.sequence([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          tension: 100,
-          friction: 8,
-          useNativeDriver: true,
-        }),
-        Animated.spring(tickScaleAnim, {
-          toValue: 1,
-          tension: 200,
-          friction: 5,
-          useNativeDriver: true,
-        }),
-      ]).start();
-
-      // Auto close after 2 seconds
-      setTimeout(() => {
-        onClose();
-      }, 2000);
-    } else {
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  }, [visible]);
-
-  return (
-    <Modal visible={visible} transparent animationType="none">
-      <Animated.View style={[styles.successModalOverlay, { opacity: fadeAnim }]}>
-        <Animated.View
-          style={[
-            styles.successModalContainer,
-            {
-              transform: [{ scale: scaleAnim }],
-            },
-          ]}
-        >
-          <Animated.View
-            style={[
-              styles.successTickContainer,
-              {
-                transform: [{ scale: tickScaleAnim }],
-              },
-            ]}
-          >
-            <Text style={styles.successTick}>✓</Text>
-          </Animated.View>
-          <Text style={styles.successMessage}>{message}</Text>
-        </Animated.View>
-      </Animated.View>
-    </Modal>
-  );
-};
-
-const DeleteConfirmationModal = ({ visible, onClose, onConfirm, workoutName }) => {
-  const slideAnim = useRef(new Animated.Value(height)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const shakeAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (visible) {
-      Animated.parallel([
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          tension: 100,
-          friction: 8,
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: height,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  }, [visible]);
-
-  const handleConfirm = () => {
-    // Shake animation before confirming
-    Animated.sequence([
-      Animated.timing(shakeAnim, {
-        toValue: 10,
-        duration: 100,
+    Animated.parallel([
+      Animated.spring(scale, {
+        toValue: 1,
+        tension: 100,
+        friction: 8,
         useNativeDriver: true,
       }),
-      Animated.timing(shakeAnim, {
-        toValue: -10,
-        duration: 100,
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 500,
         useNativeDriver: true,
       }),
-      Animated.timing(shakeAnim, {
-        toValue: 0,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      onConfirm();
-      onClose();
-    });
-  };
+    ]).start();
+  }, []);
 
   return (
-    <Modal visible={visible} transparent animationType="none">
-      <Animated.View style={[styles.modalOverlay, { opacity: fadeAnim }]}>
-        <TouchableOpacity 
-          style={styles.modalBackdrop} 
-          activeOpacity={1} 
-          onPress={onClose}
-        />
-        <Animated.View
-          style={[
-            styles.deleteModalContainer,
-            {
-              transform: [
-                { translateY: slideAnim },
-                { translateX: shakeAnim }
-              ],
-            },
-          ]}
-        >
-          <View style={styles.deleteModalHeader}>
-            <View style={styles.deleteIconContainer}>
-              <Text style={styles.deleteIcon}>🗑️</Text>
-            </View>
-            <Text style={styles.deleteModalTitle}>Delete Workout</Text>
-            <Text style={styles.deleteModalSubtitle}>
-              Are you sure you want to delete "{workoutName}"?
-            </Text>
-            <Text style={styles.deleteModalWarning}>
-              This action cannot be undone.
-            </Text>
-          </View>
-
-          <View style={styles.deleteModalActions}>
-            <TouchableOpacity style={styles.cancelDeleteButton} onPress={onClose}>
-              <Text style={styles.cancelDeleteButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.confirmDeleteButton} onPress={handleConfirm}>
-              <Text style={styles.confirmDeleteButtonText}>Delete</Text>
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-      </Animated.View>
-    </Modal>
+    <Animated.View
+      style={[
+        styles.quickWorkoutCard,
+        style,
+        {
+          transform: [{ scale }],
+          opacity,
+        },
+      ]}
+    >
+      <TouchableOpacity onPress={onPress} style={styles.quickWorkoutButton}>
+        <Text style={styles.quickWorkoutIcon}>{workout.icon}</Text>
+        <Text style={styles.quickWorkoutName}>{workout.name}</Text>
+        <Text style={styles.quickWorkoutDuration}>{workout.duration} min</Text>
+        <Text style={styles.quickWorkoutExercises}>{workout.exercises.length} exercises</Text>
+      </TouchableOpacity>
+    </Animated.View>
   );
 };
 
@@ -388,10 +171,7 @@ const WorkoutCard = ({ workout, onDelete }) => {
     >
       <View style={styles.workoutHeader}>
         <View style={styles.workoutTitleContainer}>
-          <Image 
-            source={require('../../assets/men.jpg')} 
-            style={styles.workoutImage}
-          />
+          <Text style={styles.workoutIcon}>{workout.icon}</Text>
           <View style={styles.workoutTitleText}>
             <Text style={styles.workoutName}>{workout.name}</Text>
             <Text style={styles.workoutDate}>{workout.date}</Text>
@@ -406,38 +186,18 @@ const WorkoutCard = ({ workout, onDelete }) => {
       </View>
       <View style={styles.workoutStats}>
         <View style={styles.statItem}>
-          <Image source={require('../../assets/boy.jpg')} style={styles.statIcon} />
+          <Icon name="fitness" size={16} color="#4ecdc4" />
           <Text style={styles.statText}>{workout.exercises.length} exercises</Text>
         </View>
         <View style={styles.statItem}>
-          <Image source={require('../../assets/women.jpg')} style={styles.statIcon} />
-          <Text style={styles.statText}>{workout.totalSets} sets</Text>
+          <Icon name="time" size={16} color="#4ecdc4" />
+          <Text style={styles.statText}>{workout.duration} min</Text>
         </View>
         <View style={styles.statItem}>
-          <Image source={require('../../assets/men.jpg')} style={styles.statIcon} />
-          <Text style={styles.statText}>{workout.totalReps} reps</Text>
+          <Icon name="flame" size={16} color="#4ecdc4" />
+          <Text style={styles.statText}>{workout.intensity}</Text>
         </View>
       </View>
-      <ScrollView style={styles.exercisesList}>
-        {workout.exercises.map(exercise => (
-          <View key={exercise.id} style={styles.exerciseItem}>
-            <View style={styles.exerciseHeader}>
-              <Image source={require('../../assets/boy.jpg')} style={styles.exerciseIcon} />
-              <Text style={styles.exerciseName}>{exercise.name}</Text>
-            </View>
-            <View style={styles.setsContainer}>
-              {exercise.sets.map((set, index) => (
-                <View key={set.id} style={styles.setItem}>
-                  <Image source={require('../../assets/women.jpg')} style={styles.setIcon} />
-                  <Text style={styles.setText}>
-                    Set {index + 1}: {set.reps} reps {set.weight > 0 ? `@ ${set.weight}kg` : ''}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        ))}
-      </ScrollView>
     </Animated.View>
   );
 };
@@ -492,142 +252,201 @@ const PulsingButton = ({ onPress, children, style }) => {
 const WorkoutLog = () => {
   const [workouts, setWorkouts] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [currentWorkout, setCurrentWorkout] = useState({
-    name: '',
-    exercises: [],
-    date: new Date().toLocaleDateString(),
-  });
-  const [exerciseModalVisible, setExerciseModalVisible] = useState(false);
-  const [currentExercise, setCurrentExercise] = useState({
-    name: '',
-    sets: [],
-  });
-  const [setModalVisibleSet, setSetModalVisible] = useState(false);
-  const [currentSet, setCurrentSet] = useState({ reps: '', weight: '' });
   const [successModalVisible, setSuccessModalVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [workoutToDelete, setWorkoutToDelete] = useState(null);
 
-  const workoutTypes = [
-    'Strength Training',
-    'Cardio',
-    'Yoga',
-    'Pilates',
-    'CrossFit',
-    'Bodyweight',
-    'Olympic Lifting',
-    'Powerlifting',
-  ];
-
-  const commonExercises = [
-    'Bench Press', 'Squat', 'Deadlift', 'Pull-ups', 'Push-ups',
-    'Overhead Press', 'Barbell Row', 'Dips', 'Lunges', 'Plank'
-  ];
-
-  const addSet = () => {
-    if (!currentSet.reps) {
-      Alert.alert('Error', 'Please enter reps');
-      return;
-    }
-
-    const newSet = {
-      reps: parseInt(currentSet.reps),
-      weight: currentSet.weight ? parseFloat(currentSet.weight) : 0,
-      id: Date.now(),
-    };
-
-    setCurrentExercise(prev => ({
-      ...prev,
-      sets: [...prev.sets, newSet],
-    }));
-
-    setCurrentSet({ reps: '', weight: '' });
-    setSetModalVisible(false);
-  };
-
-  const removeSet = (setId) => {
-    setCurrentExercise(prev => ({
-      ...prev,
-      sets: prev.sets.filter(set => set.id !== setId),
-    }));
-  };
-
-  const addExercise = () => {
-    if (!currentExercise.name) {
-      Alert.alert('Error', 'Please enter exercise name');
-      return;
-    }
-
-    if (currentExercise.sets.length === 0) {
-      Alert.alert('Error', 'Please add at least one set');
-      return;
-    }
-
-    const newExercise = {
-      ...currentExercise,
-      id: Date.now(),
-    };
-
-    setCurrentWorkout(prev => ({
-      ...prev,
-      exercises: [...prev.exercises, newExercise],
-    }));
-
-    setCurrentExercise({ name: '', sets: [] });
-    setExerciseModalVisible(false);
-  };
-
-  const removeExercise = (exerciseId) => {
-    setCurrentWorkout(prev => ({
-      ...prev,
-      exercises: prev.exercises.filter(ex => ex.id !== exerciseId),
-    }));
-  };
-
-  const saveWorkout = () => {
-    if (!currentWorkout.name) {
-      Alert.alert('Error', 'Please enter workout name');
-      return;
-    }
-
-    if (currentWorkout.exercises.length === 0) {
-      Alert.alert('Error', 'Please add at least one exercise');
-      return;
-    }
-
-    const newWorkout = {
-      ...currentWorkout,
-      id: Date.now(),
-      totalSets: currentWorkout.exercises.reduce((total, ex) => total + ex.sets.length, 0),
-      totalReps: currentWorkout.exercises.reduce((total, ex) => 
-        total + ex.sets.reduce((reps, set) => reps + set.reps, 0), 0),
-    };
-
-    setWorkouts(prev => [newWorkout, ...prev]);
-    setCurrentWorkout({ name: '', exercises: [], date: new Date().toLocaleDateString() });
-    setModalVisible(false);
+  // Enhanced workout templates with better categorization
+  const workoutTemplates = [
+    // Strength Training
+    {
+      name: 'Full Body Strength',
+      icon: '💪',
+      duration: 45,
+      intensity: 'medium',
+      category: 'strength',
+      exercises: [
+        { name: 'Squats', sets: 3, reps: 12, weight: 'Bodyweight' },
+        { name: 'Push-ups', sets: 3, reps: 10, weight: 'Bodyweight' },
+        { name: 'Dumbbell Rows', sets: 3, reps: 12, weight: 'Medium' },
+        { name: 'Plank', sets: 3, reps: '30s', weight: 'Bodyweight' },
+      ]
+    },
+    {
+      name: 'Upper Body Focus',
+      icon: '🏋️',
+      duration: 40,
+      intensity: 'hard',
+      category: 'strength',
+      exercises: [
+        { name: 'Bench Press', sets: 4, reps: 8, weight: 'Heavy' },
+        { name: 'Pull-ups', sets: 3, reps: 8, weight: 'Bodyweight' },
+        { name: 'Shoulder Press', sets: 3, reps: 10, weight: 'Medium' },
+        { name: 'Bicep Curls', sets: 3, reps: 12, weight: 'Light' },
+      ]
+    },
+    {
+      name: 'Lower Body Power',
+      icon: '🦵',
+      duration: 50,
+      intensity: 'hard',
+      category: 'strength',
+      exercises: [
+        { name: 'Deadlifts', sets: 4, reps: 6, weight: 'Heavy' },
+        { name: 'Lunges', sets: 3, reps: 12, weight: 'Medium' },
+        { name: 'Calf Raises', sets: 4, reps: 15, weight: 'Light' },
+        { name: 'Glute Bridges', sets: 3, reps: 15, weight: 'Bodyweight' },
+      ]
+    },
     
-    // Show success modal
-    setSuccessMessage('Workout saved successfully!');
-    setSuccessModalVisible(true);
+    // Cardio
+    {
+      name: 'HIIT Cardio',
+      icon: '🔥',
+      duration: 30,
+      intensity: 'hard',
+      category: 'cardio',
+      exercises: [
+        { name: 'Burpees', sets: 5, reps: '30s', weight: 'Bodyweight' },
+        { name: 'Mountain Climbers', sets: 5, reps: '30s', weight: 'Bodyweight' },
+        { name: 'Jump Squats', sets: 5, reps: '30s', weight: 'Bodyweight' },
+        { name: 'High Knees', sets: 5, reps: '30s', weight: 'Bodyweight' },
+      ]
+    },
+    {
+      name: 'Steady State Cardio',
+      icon: '🏃‍♂️',
+      duration: 45,
+      intensity: 'medium',
+      category: 'cardio',
+      exercises: [
+        { name: 'Running', sets: 1, reps: '45min', weight: 'Bodyweight' },
+        { name: 'Cycling', sets: 1, reps: '45min', weight: 'Bodyweight' },
+        { name: 'Rowing', sets: 1, reps: '45min', weight: 'Bodyweight' },
+      ]
+    },
+    
+    // Flexibility & Recovery
+    {
+      name: 'Yoga Flow',
+      icon: '🧘‍♀️',
+      duration: 60,
+      intensity: 'light',
+      category: 'flexibility',
+      exercises: [
+        { name: 'Sun Salutation', sets: 3, reps: '5 rounds', weight: 'Bodyweight' },
+        { name: 'Warrior Poses', sets: 2, reps: '30s each', weight: 'Bodyweight' },
+        { name: 'Tree Pose', sets: 2, reps: '1min each', weight: 'Bodyweight' },
+        { name: 'Savasana', sets: 1, reps: '5min', weight: 'Bodyweight' },
+      ]
+    },
+    {
+      name: 'Stretching Routine',
+      icon: '🤸‍♀️',
+      duration: 20,
+      intensity: 'light',
+      category: 'flexibility',
+      exercises: [
+        { name: 'Hamstring Stretch', sets: 2, reps: '30s each', weight: 'Bodyweight' },
+        { name: 'Hip Flexor Stretch', sets: 2, reps: '30s each', weight: 'Bodyweight' },
+        { name: 'Shoulder Stretch', sets: 2, reps: '30s each', weight: 'Bodyweight' },
+        { name: 'Chest Stretch', sets: 2, reps: '30s each', weight: 'Bodyweight' },
+      ]
+    },
+  ];
+
+  const workoutCategories = [
+    { id: 'all', name: 'All', icon: '🏋️‍♂️' },
+    { id: 'strength', name: 'Strength', icon: '💪' },
+    { id: 'cardio', name: 'Cardio', icon: '🔥' },
+    { id: 'flexibility', name: 'Flexibility', icon: '🧘‍♀️' },
+  ];
+
+  const [selectedCategory, setSelectedCategory] = useState('all');
+
+  const filteredWorkouts = selectedCategory === 'all' 
+    ? workoutTemplates 
+    : workoutTemplates.filter(workout => workout.category === selectedCategory);
+
+  const handleQuickWorkout = async (template) => {
+    try {
+      const workoutData = {
+        workoutName: template.name,
+        workoutType: template.category.charAt(0).toUpperCase() + template.category.slice(1),
+        date: new Date().toISOString().split('T')[0],
+        duration: template.duration.toString(),
+        exercises: template.exercises,
+        notes: `Quick ${template.category} workout`,
+        intensity: template.intensity,
+      };
+
+      const response = await saveWorkoutEntry(workoutData);
+
+      if (response.success) {
+        // Add to local state
+        const newLog = {
+          ...template,
+          id: Date.now().toString(),
+          timestamp: new Date().toLocaleTimeString(),
+          date: new Date().toLocaleDateString(),
+        };
+        setWorkouts([newLog, ...workouts]);
+        
+        // Show success animation
+        Animated.sequence([
+          Animated.timing(headerScale, {
+            toValue: 1.1,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+          Animated.timing(headerScale, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+        ]).start();
+        
+        Alert.alert('Success', `${template.name} logged successfully! 🎉`);
+      } else {
+        Alert.alert('Error', response.message || 'Failed to log workout');
+      }
+    } catch (error) {
+      console.error('Quick workout error:', error);
+      Alert.alert('Error', 'Failed to log workout. Please try again.');
+    }
+  };
+
+  const handleCustomWorkout = async () => {
+    if (!workoutForm.workoutName.trim() || !workoutForm.date.trim() || !workoutForm.duration.trim()) {
+      Alert.alert('Missing Information', 'Please fill in all required fields.');
+      return;
+    }
+    
+    try {
+      const response = await saveWorkoutEntry(workoutForm);
+
+      if (response.success) {
+        const newLog = {
+          ...workoutForm,
+          id: Date.now().toString(),
+          timestamp: new Date().toLocaleTimeString(),
+          date: new Date().toLocaleDateString(),
+        };
+        setWorkouts([newLog, ...workouts]);
+        closeModal();
+        Alert.alert('Success', 'Custom workout logged successfully! 🎉');
+      } else {
+        Alert.alert('Error', response.message || 'Failed to save workout');
+      }
+    } catch (error) {
+      console.error('Save workout error:', error);
+      Alert.alert('Error', 'Failed to save workout. Please try again.');
+    }
   };
 
   const deleteWorkout = (workoutId) => {
-    const workout = workouts.find(w => w.id === workoutId);
-    setWorkoutToDelete(workout);
-    setDeleteModalVisible(true);
-  };
-
-  const confirmDelete = () => {
-    if (workoutToDelete) {
-      setWorkouts(prev => prev.filter(w => w.id !== workoutToDelete.id));
-      setWorkoutToDelete(null);
-      
-      // Show success modal
-      setSuccessMessage('Workout deleted successfully!');
-      setSuccessModalVisible(true);
-    }
+    setWorkouts(prev => prev.filter(w => w.id !== workoutId));
+    setSuccessMessage('Workout deleted successfully!');
+    setSuccessModalVisible(true);
   };
 
   const renderParticles = () => {
@@ -655,240 +474,92 @@ const WorkoutLog = () => {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <Image source={require('../../assets/men.jpg')} style={styles.headerIcon} />
-          <Text style={styles.headerTitle}>💪 Workout Log</Text>
+          <Text style={styles.headerIcon}>💪</Text>
+          <Text style={styles.headerTitle}>Workout Log</Text>
         </View>
         <PulsingButton style={styles.addButton} onPress={() => setModalVisible(true)}>
-          <Text style={styles.addButtonText}>+</Text>
+          <Icon name="add" size={24} color="#fff" />
         </PulsingButton>
       </View>
 
-      {/* Workout List */}
-      <ScrollView style={styles.workoutsList}>
-        {workouts.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>💪 No workouts logged yet</Text>
-            <Text style={styles.emptyStateSubtext}>Start your fitness journey today!</Text>
+      {/* Quick Workouts Section */}
+      <View style={styles.quickWorkoutsSection}>
+        <Text style={styles.sectionTitle}>Quick Add Workouts</Text>
+        
+        {/* Category Filter */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryFilter}>
+          {workoutCategories.map((category) => (
             <TouchableOpacity
-              style={styles.emptyStateButton}
-              onPress={() => setModalVisible(true)}
+              key={category.id}
+              style={[
+                styles.categoryButton,
+                selectedCategory === category.id && styles.selectedCategoryButton
+              ]}
+              onPress={() => setSelectedCategory(category.id)}
             >
-              <Text style={styles.emptyStateButtonText}>Start Your First Workout</Text>
+              <Text style={styles.categoryIcon}>{category.icon}</Text>
+              <Text style={[
+                styles.categoryText,
+                selectedCategory === category.id && styles.selectedCategoryText
+              ]}>
+                {category.name}
+              </Text>
             </TouchableOpacity>
-          </View>
-        ) : (
-          workouts.map(workout => (
-            <WorkoutCard key={workout.id} workout={workout} onDelete={deleteWorkout} />
-          ))
-        )}
-      </ScrollView>
-
-      {/* Enhanced New Workout Modal */}
-      <AnimatedModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-        title="Create New Workout"
-      >
-        <ScrollView 
-          style={styles.modalContent} 
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.modalScrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Workout Name Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Workout Name</Text>
-            <TextInput
-              style={styles.enhancedInput}
-              placeholder="e.g., Push Day, Leg Day, Full Body"
-              value={currentWorkout.name}
-              onChangeText={(text) => setCurrentWorkout(prev => ({ ...prev, name: text }))}
-              placeholderTextColor="#999"
+          ))}
+        </ScrollView>
+        
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickWorkoutsScroll}>
+          {filteredWorkouts.map((workout, index) => (
+            <QuickWorkoutCard
+              key={workout.name}
+              workout={workout}
+              onPress={() => handleQuickWorkout(workout)}
+              style={{ marginLeft: index === 0 ? 16 : 12 }}
             />
-          </View>
+          ))}
+        </ScrollView>
+      </View>
 
-          {/* Workout Type Selection */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Workout Type</Text>
-            <View style={styles.typeContainer}>
-              {workoutTypes.map((type, index) => (
-                <TouchableOpacity
-                  key={type}
-                  style={styles.typeButton}
-                  onPress={() => setCurrentWorkout(prev => ({ ...prev, type }))}
-                >
-                  <Text style={styles.typeButtonText}>{type}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Exercises Section */}
-          <View style={styles.inputGroup}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Exercises</Text>
+      {/* Workout List */}
+      <View style={styles.workoutListSection}>
+        <Text style={styles.sectionTitle}>Today's Workouts</Text>
+        <ScrollView style={styles.workoutsList}>
+          {workouts.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>💪 No workouts logged yet</Text>
+              <Text style={styles.emptyStateSubtext}>Start your fitness journey today!</Text>
               <TouchableOpacity
-                style={styles.addExerciseButton}
-                onPress={() => setExerciseModalVisible(true)}
+                style={styles.emptyStateButton}
+                onPress={() => setModalVisible(true)}
               >
-                <Text style={styles.addExerciseButtonText}>+ Add Exercise</Text>
+                <Text style={styles.emptyStateButtonText}>Start Your First Workout</Text>
               </TouchableOpacity>
             </View>
-            
-            {currentWorkout.exercises.map(exercise => (
-              <View key={exercise.id} style={styles.exerciseCard}>
-                <View style={styles.exerciseHeader}>
-                  <Text style={styles.exerciseCardName}>{exercise.name}</Text>
-                  <TouchableOpacity onPress={() => removeExercise(exercise.id)}>
-                    <Text style={styles.removeText}>Remove</Text>
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.setsPreview}>
-                  {exercise.sets.map((set, index) => (
-                    <Text key={set.id} style={styles.setPreviewText}>
-                      Set {index + 1}: {set.reps} reps {set.weight > 0 ? `@ ${set.weight}kg` : ''}
-                    </Text>
-                  ))}
-                </View>
-              </View>
-            ))}
-          </View>
-
-          {/* Save Button */}
-          <TouchableOpacity style={styles.saveWorkoutButton} onPress={saveWorkout}>
-            <Text style={styles.saveWorkoutButtonText}>💾 Save Workout</Text>
-          </TouchableOpacity>
+          ) : (
+            workouts.map(workout => (
+              <WorkoutCard key={workout.id} workout={workout} onDelete={deleteWorkout} />
+            ))
+          )}
         </ScrollView>
-      </AnimatedModal>
-
-      {/* Enhanced Exercise Modal */}
-      <AnimatedModal
-        visible={exerciseModalVisible}
-        onClose={() => setExerciseModalVisible(false)}
-        title="Add Exercise"
-      >
-        <ScrollView 
-          style={styles.modalContent} 
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.modalScrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Exercise Name Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Exercise Name</Text>
-            <TextInput
-              style={styles.enhancedInput}
-              placeholder="Enter exercise name"
-              value={currentExercise.name}
-              onChangeText={(text) => setCurrentExercise(prev => ({ ...prev, name: text }))}
-              placeholderTextColor="#999"
-            />
-          </View>
-
-          {/* Quick Select Exercises */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Quick Select</Text>
-            <View style={styles.quickSelectContainer}>
-              {commonExercises.map(exercise => (
-                <TouchableOpacity
-                  key={exercise}
-                  style={styles.quickSelectButton}
-                  onPress={() => setCurrentExercise(prev => ({ ...prev, name: exercise }))}
-                >
-                  <Text style={styles.quickSelectText}>{exercise}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Sets Section */}
-          <View style={styles.inputGroup}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Sets</Text>
-              <TouchableOpacity
-                style={styles.addSetButton}
-                onPress={() => setSetModalVisible(true)}
-              >
-                <Text style={styles.addSetButtonText}>+ Add Set</Text>
-              </TouchableOpacity>
-            </View>
-            
-            {currentExercise.sets.map((set, index) => (
-              <View key={set.id} style={styles.setCard}>
-                <Text style={styles.setCardText}>
-                  Set {index + 1}: {set.reps} reps {set.weight > 0 ? `@ ${set.weight}kg` : ''}
-                </Text>
-                <TouchableOpacity onPress={() => removeSet(set.id)}>
-                  <Text style={styles.removeText}>Remove</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
-
-          {/* Add Exercise Button */}
-          <TouchableOpacity style={styles.addExerciseFinalButton} onPress={addExercise}>
-            <Text style={styles.addExerciseFinalButtonText}>➕ Add Exercise</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </AnimatedModal>
-
-      {/* Enhanced Set Modal */}
-      <AnimatedModal
-        visible={setModalVisibleSet}
-        onClose={() => setSetModalVisible(false)}
-        title="Add Set"
-      >
-        <View style={styles.modalContent}>
-          {/* Reps Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Reps</Text>
-            <TextInput
-              style={styles.enhancedInput}
-              placeholder="Enter number of reps"
-              value={currentSet.reps}
-              onChangeText={(text) => setCurrentSet(prev => ({ ...prev, reps: text }))}
-              keyboardType="numeric"
-              placeholderTextColor="#999"
-            />
-          </View>
-
-          {/* Weight Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Weight (kg) - Optional</Text>
-            <TextInput
-              style={styles.enhancedInput}
-              placeholder="Enter weight in kg"
-              value={currentSet.weight}
-              onChangeText={(text) => setCurrentSet(prev => ({ ...prev, weight: text }))}
-              keyboardType="numeric"
-              placeholderTextColor="#999"
-            />
-          </View>
-
-          {/* Add Set Button */}
-          <TouchableOpacity style={styles.addSetFinalButton} onPress={addSet}>
-            <Text style={styles.addSetFinalButtonText}>➕ Add Set</Text>
-          </TouchableOpacity>
-        </View>
-      </AnimatedModal>
+      </View>
 
       {/* Success Modal */}
-      <SuccessModal
-        visible={successModalVisible}
-        onClose={() => setSuccessModalVisible(false)}
-        message={successMessage}
-      />
-
-      {/* Delete Confirmation Modal */}
-      <DeleteConfirmationModal
-        visible={deleteModalVisible}
-        onClose={() => {
-          setDeleteModalVisible(false);
-          setWorkoutToDelete(null);
-        }}
-        onConfirm={confirmDelete}
-        workoutName={workoutToDelete?.name || ''}
-      />
+      <Modal visible={successModalVisible} transparent animationType="fade">
+        <View style={styles.successModalOverlay}>
+          <View style={styles.successModalContainer}>
+            <View style={styles.successTickContainer}>
+              <Text style={styles.successTick}>✓</Text>
+            </View>
+            <Text style={styles.successMessage}>{successMessage}</Text>
+            <TouchableOpacity 
+              style={styles.successButton}
+              onPress={() => setSuccessModalVisible(false)}
+            >
+              <Text style={styles.successButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -965,9 +636,67 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontFamily: 'System',
   },
+  quickWorkoutsSection: {
+    paddingHorizontal: 16,
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 12,
+    fontFamily: 'System',
+    letterSpacing: 0.3,
+  },
+  quickWorkoutsScroll: {
+    paddingVertical: 8,
+  },
+  quickWorkoutCard: {
+    backgroundColor: '#282850',
+    borderRadius: 15,
+    width: width * 0.7,
+    marginRight: 10,
+    shadowColor: '#222',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  quickWorkoutButton: {
+    padding: 15,
+    alignItems: 'center',
+  },
+  quickWorkoutIcon: {
+    fontSize: 30,
+    marginBottom: 8,
+  },
+  quickWorkoutName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 4,
+    fontFamily: 'System',
+    letterSpacing: 0.2,
+  },
+  quickWorkoutDuration: {
+    fontSize: 12,
+    color: '#bbb',
+    marginBottom: 4,
+    fontFamily: 'System',
+    fontWeight: '400',
+  },
+  quickWorkoutExercises: {
+    fontSize: 12,
+    color: '#bbb',
+    fontFamily: 'System',
+    fontWeight: '400',
+  },
+  workoutListSection: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
   workoutsList: {
     flex: 1,
-    padding: 16,
   },
   emptyState: {
     flex: 1,
@@ -1034,10 +763,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  workoutImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+  workoutIcon: {
+    fontSize: 40,
     marginRight: 12,
   },
   workoutTitleText: {
@@ -1252,12 +979,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  categoryFilter: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    paddingHorizontal: 10,
+  },
+  categoryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#282850',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  selectedCategoryButton: {
+    backgroundColor: '#4ecdc4',
+    borderColor: '#4ecdc4',
+  },
+  categoryIcon: {
+    fontSize: 20,
+    marginRight: 8,
+  },
+  categoryText: {
+    fontSize: 14,
     color: '#fff',
     fontFamily: 'System',
-    letterSpacing: 0.3,
+    fontWeight: '400',
+  },
+  selectedCategoryText: {
+    color: '#fff',
+    fontWeight: '600',
   },
   typeContainer: {
     flexDirection: 'row',
@@ -1477,6 +1231,25 @@ const styles = StyleSheet.create({
     fontFamily: 'System',
     fontWeight: '600',
     letterSpacing: 0.3,
+  },
+  successButton: {
+    backgroundColor: '#4ecdc4',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 25,
+    marginTop: 20,
+    shadowColor: '#4ecdc4',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  successButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    fontFamily: 'System',
+    letterSpacing: 0.5,
   },
   // Delete Confirmation Modal Styles
   deleteModalContainer: {

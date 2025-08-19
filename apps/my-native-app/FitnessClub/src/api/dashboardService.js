@@ -9,13 +9,15 @@ import parseApiError from '../utils/parseApiError';
 export const getDashboardData = async () => {
   try {
     console.log('[DashboardService] Fetching member dashboard data...');
-    const response = await apiClient.get('/dashboard/member');
+    const response = await apiClient.get('/dashboard');
     
-    // The backend now returns the full, nested object.
+    console.log('[DashboardService] Raw response:', response.data);
+    
+    // The backend returns { success: true, data: { activity, diet, training } }
     return {
       success: true,
       message: 'Dashboard data fetched successfully.',
-      data: response.data,
+      data: response.data.data || response.data,
     };
   } catch (error) {
     console.error('[DashboardService] Fetch dashboard error:', error.response?.data || error.message);

@@ -63,23 +63,65 @@ const Activity = () => {
   // --- UPDATED DATA FETCHING AND SUBMISSION LOGIC ---
   
   const fetchDashboard = async () => {
-    const response = await getDashboardData();
-    if (response.success && response.data) {
-        setActivityData(response.data.activity);
-        setDietData(response.data.diet);
-        setTrainingData(response.data.training);
-        setError(null);
-    } else {
-        setError(response.message);
-        Alert.alert('Loading Error', response.message);
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await getDashboardData();
+      console.log('Dashboard response:', response);
+      
+      if (response.success && response.data) {
+        // Map backend data to frontend expectations
+        const mappedActivityData = {
+          totalWorkouts: response.data.activity?.yearToDate || 0,
+          totalCalories: response.data.activity?.caloriesBurned || 0,
+          workoutStreak: response.data.activity?.streak || 0,
+          weeklyWorkouts: response.data.activity?.workoutsThisWeek || 0,
+          weeklyDuration: Math.round((response.data.activity?.activeMinutes || 0) / 60 * 10) / 10,
+          weeklyCalories: response.data.activity?.caloriesBurned || 0,
+          recentActivities: response.data.activity?.recentActivities || [],
+          todaySteps: response.data.activity?.todaySteps || 0,
+          weeklySteps: response.data.activity?.weeklySteps || Array(7).fill(0),
+        };
+
+        const mappedDietData = {
+          totalCalories: response.data.diet?.todayCalories || 0,
+          totalProtein: response.data.diet?.protein || 0,
+          totalCarbs: response.data.diet?.carbs || 0,
+          totalFats: response.data.diet?.fats || 0,
+          totalMeals: response.data.diet?.meals?.length || 0,
+          recentMeals: response.data.diet?.meals || [],
+          dailyGoal: response.data.diet?.dailyGoal || 2000,
+          weeklyCalories: response.data.diet?.weeklyCalories || Array(7).fill(0),
+        };
+
+        const mappedTrainingData = {
+          totalWorkouts: response.data.training?.totalWorkouts || 0,
+          totalDuration: Math.round((response.data.training?.totalWorkouts || 0) * 45 / 60 * 10) / 10, // Estimate
+          totalExercises: response.data.training?.totalWorkouts || 0,
+          recentWorkouts: response.data.training?.upcomingWorkouts || [],
+          workoutTypes: response.data.training?.workoutTypes || [],
+          currentPlan: response.data.training?.currentPlan || "No Plan",
+          weeklyProgress: response.data.training?.weeklyProgress || 0,
+        };
+
+        setActivityData(mappedActivityData);
+        setDietData(mappedDietData);
+        setTrainingData(mappedTrainingData);
+      } else {
+        setError(response.message || 'Failed to load dashboard data');
+      }
+    } catch (error) {
+      console.error('Dashboard fetch error:', error);
+      setError('Failed to load dashboard data. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     const initialFetch = async () => {
-        setLoading(true);
-        await fetchDashboard();
-        setLoading(false);
+      await fetchDashboard();
     }
     initialFetch();
   
@@ -96,49 +138,170 @@ const Activity = () => {
       return;
     }
     
-    const response = await saveDietEntry(dietForm); 
+    try {
+      const response = await saveDietEntry(dietForm); 
 
-    if (response.success) {
-      Alert.alert('Success', response.message || 'Meal logged successfully!');
-      closeDietModal();
-      // Refetch all dashboard data to ensure all stats are updated
-      await fetchDashboard();
-    } else {
-      Alert.alert('API Error', response.message);
+      if (response.success) {
+        Alert.alert('Success', response.message || 'Meal logged successfully!');
+        closeDietModal();
+        // Refetch all dashboard data to ensure all stats are updated
+        await fetchDashboard();
+      } else {
+        Alert.alert('Error', response.message || 'Failed to save meal');
+      }
+    } catch (error) {
+      console.error('Save diet error:', error);
+      Alert.alert('Error', 'Failed to save meal. Please try again.');
     }
   };
   
   const handleSaveWorkout = async () => {
-    if (!workoutForm.workoutName.trim() || !workoutForm.date.trim() || !workoutForm.duration.trim() || !workoutForm.exercises[0].name.trim()) {
+    if (!workoutForm.workoutName.trim() || !workoutForm.date.trim() || !workoutForm.duration.trim()) {
       Alert.alert('Missing Information', 'Please fill in all required fields.');
       return;
     }
     
-    const response = await saveWorkoutEntry(workoutForm);
+    try {
+      const response = await saveWorkoutEntry(workoutForm);
 
-    if (response.success) {
+      if (response.success) {
         Alert.alert('Success', response.message || 'Workout saved successfully!');
         closeWorkoutModal();
         // Refetch all dashboard data to ensure all stats are updated
         await fetchDashboard();
-    } else {
-        Alert.alert('API Error', response.message);
+      } else {
+        Alert.alert('Error', response.message || 'Failed to save workout');
+      }
+    } catch (error) {
+      console.error('Save workout error:', error);
+      Alert.alert('Error', 'Failed to save workout. Please try again.');
     }
   };
 
-  // --- MODAL AND HELPER FUNCTIONS (No changes needed) ---
-  const openDietModal = () => { setShowDietModal(true); /*...animations...*/ };
-  const closeDietModal = () => { /*...animations...*/ setShowDietModal(false); resetDietForm(); };
-  const resetDietForm = () => { setDietForm({ mealName: '', calories: '', protein: '', carbs: '', fats: '', fiber: '', sugar: '', mealType: 'breakfast', photo: null, notes: '' }); };
+  // --- ENHANCED MODAL AND HELPER FUNCTIONS ---
+  const openDietModal = () => { 
+    setShowDietModal(true); 
+    Animated.parallel([
+      Animated.spring(modalScale, {
+        toValue: 1,
+        tension: 100,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+      Animated.timing(modalOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+  
+  const closeDietModal = () => { 
+    Animated.parallel([
+      Animated.spring(modalScale, {
+        toValue: 0,
+        tension: 100,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+      Animated.timing(modalOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowDietModal(false);
+      resetDietForm();
+    });
+  };
+  
+  const resetDietForm = () => { 
+    setDietForm({ 
+      mealName: '', 
+      calories: '', 
+      protein: '', 
+      carbs: '', 
+      fats: '', 
+      fiber: '', 
+      sugar: '', 
+      mealType: 'breakfast', 
+      photo: null, 
+      notes: '' 
+    }); 
+  };
+  
   const handleDietInput = (key, value) => setDietForm(prev => ({ ...prev, [key]: value }));
-  const selectMealPhoto = () => { /* ...image picker logic... */ };
-  const openWorkoutModal = () => { setShowWorkoutModal(true); /*...animations...*/ };
-  const closeWorkoutModal = () => { /*...animations...*/ setShowWorkoutModal(false); resetWorkoutForm(); };
-  const resetWorkoutForm = () => { setWorkoutForm({ workoutType: '', workoutName: '', date: new Date().toISOString().split('T')[0], duration: '', exercises: [{ name: '', sets: '', reps: '', weight: '', notes: '' }], notes: '', intensity: 'medium', muscleGroups: [], equipment: [] }); };
+  
+  const openWorkoutModal = () => { 
+    setShowWorkoutModal(true); 
+    Animated.parallel([
+      Animated.spring(workoutModalScale, {
+        toValue: 1,
+        tension: 100,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+      Animated.timing(workoutModalOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+  
+  const closeWorkoutModal = () => { 
+    Animated.parallel([
+      Animated.spring(workoutModalScale, {
+        toValue: 0,
+        tension: 100,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+      Animated.timing(workoutModalOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowWorkoutModal(false);
+      resetWorkoutForm();
+    });
+  };
+  
+  const resetWorkoutForm = () => { 
+    setWorkoutForm({ 
+      workoutType: '', 
+      workoutName: '', 
+      date: new Date().toISOString().split('T')[0], 
+      duration: '', 
+      exercises: [{ name: '', sets: '', reps: '', weight: '', notes: '' }], 
+      notes: '', 
+      intensity: 'medium', 
+      muscleGroups: [], 
+      equipment: [] 
+    }); 
+  };
+  
   const handleWorkoutInput = (key, value) => setWorkoutForm(prev => ({ ...prev, [key]: value }));
-  const addExercise = () => setWorkoutForm(prev => ({ ...prev, exercises: [...prev.exercises, { name: '', sets: '', reps: '', weight: '', notes: '' }] }));
-  const removeExercise = (index) => { if (workoutForm.exercises.length > 1) { setWorkoutForm(prev => ({ ...prev, exercises: prev.exercises.filter((_, i) => i !== index) })); } };
-  const handleExerciseInput = (index, key, value) => setWorkoutForm(prev => ({ ...prev, exercises: prev.exercises.map((exercise, i) => i === index ? { ...exercise, [key]: value } : exercise) }));
+  
+  const addExercise = () => setWorkoutForm(prev => ({ 
+    ...prev, 
+    exercises: [...prev.exercises, { name: '', sets: '', reps: '', weight: '', notes: '' }] 
+  }));
+  
+  const removeExercise = (index) => { 
+    if (workoutForm.exercises.length > 1) { 
+      setWorkoutForm(prev => ({ 
+        ...prev, 
+        exercises: prev.exercises.filter((_, i) => i !== index) 
+      })); 
+    } 
+  };
+  
+  const handleExerciseInput = (index, key, value) => setWorkoutForm(prev => ({ 
+    ...prev, 
+    exercises: prev.exercises.map((exercise, i) => i === index ? { ...exercise, [key]: value } : exercise) 
+  }));
   const selectWorkoutCategory = (category) => { setSelectedWorkoutCategory(category); /*...*/ };
   const selectPredefinedWorkout = (workout) => { setSelectedPredefinedWorkout(workout); /*...*/ };
   const toggleMuscleGroup = (muscleGroup) => { setWorkoutForm(prev => ({...prev, muscleGroups: prev.muscleGroups.includes(muscleGroup) ? prev.muscleGroups.filter(mg => mg !== muscleGroup) : [...prev.muscleGroups, muscleGroup]})); };
@@ -165,11 +328,11 @@ const Activity = () => {
     );
   }
 
-  if (error || !activityData || !dietData || !trainingData) {
+  if (error) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
         <Text style={{ color: '#c0392b', marginBottom: 20, fontSize: 16, textAlign: 'center' }}>
-          {error || 'An unexpected error occurred while loading your data.'}
+          {error}
         </Text>
         <TouchableOpacity onPress={fetchDashboard} style={styles.applyDateButton}>
           <Text style={styles.applyDateButtonText}>Try Again</Text>
@@ -178,33 +341,423 @@ const Activity = () => {
     );
   }
 
+  // Initialize data with defaults if null/undefined
+  const safeActivityData = activityData || {};
+  const safeDietData = dietData || {};
+  const safeTrainingData = trainingData || {};
+
   // --- RENDER FUNCTIONS ---
   const renderActivityTab = () => (
     <Animated.View style={[styles.tabContent, { opacity: fadeAnim }]}>
-      {/* (Your original JSX for the Activity Tab goes here) */}
+      {/* Summary Card */}
+      <View style={styles.summaryCard}>
+        <Text style={styles.summaryTitle}>📊 Activity Summary</Text>
+        <View style={styles.summaryGrid}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>
+              {safeActivityData.totalWorkouts || 0}
+            </Text>
+            <Text style={styles.summaryLabel}>Workouts</Text>
+            <View style={styles.progressBar}>
+              <View 
+                style={[
+                  styles.progressFill, 
+                  { width: `${Math.min((safeActivityData.totalWorkouts || 0) / 10 * 100, 100)}%` }
+                ]} 
+              />
+            </View>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>
+              {safeActivityData.totalCalories || 0}
+            </Text>
+            <Text style={styles.summaryLabel}>Calories Burned</Text>
+            <View style={styles.progressBar}>
+              <View 
+                style={[
+                  styles.progressFill, 
+                  { width: `${Math.min((safeActivityData.totalCalories || 0) / 2000 * 100, 100)}%` }
+                ]} 
+              />
+            </View>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>
+              {safeActivityData.workoutStreak || 0}
+            </Text>
+            <Text style={styles.summaryLabel}>Day Streak</Text>
+            <View style={styles.progressBar}>
+              <View 
+                style={[
+                  styles.progressFill, 
+                  { width: `${Math.min((safeActivityData.workoutStreak || 0) / 7 * 100, 100)}%` }
+                ]} 
+              />
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* Stats Card */}
+      <View style={styles.statsCard}>
+        <Text style={styles.cardTitle}>📈 Weekly Stats</Text>
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statIcon}>💪</Text>
+            <Text style={styles.statValue}>{safeActivityData.weeklyWorkouts || 0}</Text>
+            <Text style={styles.statLabel}>Workouts</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statIcon}>⏱️</Text>
+            <Text style={styles.statValue}>{safeActivityData.weeklyDuration || 0}h</Text>
+            <Text style={styles.statLabel}>Duration</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statIcon}>🔥</Text>
+            <Text style={styles.statValue}>{safeActivityData.weeklyCalories || 0}</Text>
+            <Text style={styles.statLabel}>Calories</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Recent Activities */}
+      <View style={styles.activitiesCard}>
+        <Text style={styles.cardTitle}>🎯 Recent Activities</Text>
+        {safeActivityData.recentActivities && safeActivityData.recentActivities.length > 0 ? (
+          safeActivityData.recentActivities.map((activity, index) => (
+            <View key={index} style={styles.activityItem}>
+              <Text style={styles.activityIcon}>🏃‍♂️</Text>
+              <View style={styles.activityInfo}>
+                <Text style={styles.activityName}>{activity.name || 'Workout'}</Text>
+                <Text style={styles.activityTime}>{activity.time || '2 hours ago'}</Text>
+              </View>
+              <Text style={styles.activityCalories}>{activity.calories || 0} cal</Text>
+            </View>
+          ))
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>No recent activities</Text>
+            <Text style={styles.emptySubtext}>Start your fitness journey today!</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Quick Actions */}
+      <View style={styles.quickActionsCard}>
+        <Text style={styles.cardTitle}>⚡ Quick Actions</Text>
+        <View style={styles.quickActionsGrid}>
+          <TouchableOpacity style={styles.quickActionButton} onPress={openWorkoutModal}>
+            <Text style={styles.quickActionIcon}>💪</Text>
+            <Text style={styles.quickActionText}>Log Workout</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickActionButton} onPress={openDietModal}>
+            <Text style={styles.quickActionIcon}>🍎</Text>
+            <Text style={styles.quickActionText}>Log Meal</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </Animated.View>
   );
 
   const renderDietTab = () => (
     <Animated.View style={[styles.tabContent, { opacity: fadeAnim }]}>
-      {/* (Your original JSX for the Diet Tab goes here) */}
+      {/* Diet Summary */}
+      <View style={styles.summaryCard}>
+        <Text style={styles.summaryTitle}>🍎 Nutrition Summary</Text>
+        <View style={styles.summaryGrid}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>
+              {safeDietData.totalCalories || 0}
+            </Text>
+            <Text style={styles.summaryLabel}>Calories</Text>
+            <View style={styles.progressBar}>
+              <View 
+                style={[
+                  styles.progressFill, 
+                  { width: `${Math.min((safeDietData.totalCalories || 0) / 2000 * 100, 100)}%` }
+                ]} 
+              />
+            </View>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>
+              {safeDietData.totalProtein || 0}g
+            </Text>
+            <Text style={styles.summaryLabel}>Protein</Text>
+            <View style={styles.progressBar}>
+              <View 
+                style={[
+                  styles.progressFill, 
+                  { width: `${Math.min((safeDietData.totalProtein || 0) / 150 * 100, 100)}%` }
+                ]} 
+              />
+            </View>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>
+              {safeDietData.totalMeals || 0}
+            </Text>
+            <Text style={styles.summaryLabel}>Meals</Text>
+            <View style={styles.progressBar}>
+              <View 
+                style={[
+                  styles.progressFill, 
+                  { width: `${Math.min((safeDietData.totalMeals || 0) / 5 * 100, 100)}%` }
+                ]} 
+              />
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* Macros Card */}
+      <View style={styles.macrosCard}>
+        <Text style={styles.cardTitle}>🥗 Macronutrients</Text>
+        <View style={styles.macrosGrid}>
+          <View style={styles.macroItem}>
+            <Text style={styles.macroValue}>{safeDietData.totalProtein || 0}g</Text>
+            <Text style={styles.macroLabel}>Protein</Text>
+            <View style={styles.macroBar}>
+              <View 
+                style={[
+                  styles.macroBarFill, 
+                  { 
+                    width: `${Math.min((safeDietData.totalProtein || 0) / 150 * 100, 100)}%`,
+                    backgroundColor: '#4ecdc4'
+                  }
+                ]} 
+              />
+            </View>
+          </View>
+          <View style={styles.macroItem}>
+            <Text style={styles.macroValue}>{safeDietData.totalCarbs || 0}g</Text>
+            <Text style={styles.macroLabel}>Carbohydrates</Text>
+            <View style={styles.macroBar}>
+              <View 
+                style={[
+                  styles.macroBarFill, 
+                  { 
+                    width: `${Math.min((safeDietData.totalCarbs || 0) / 250 * 100, 100)}%`,
+                    backgroundColor: '#ff6b6b'
+                  }
+                ]} 
+              />
+            </View>
+          </View>
+          <View style={styles.macroItem}>
+            <Text style={styles.macroValue}>{safeDietData.totalFats || 0}g</Text>
+            <Text style={styles.macroLabel}>Fats</Text>
+            <View style={styles.macroBar}>
+              <View 
+                style={[
+                  styles.macroBarFill, 
+                  { 
+                    width: `${Math.min((safeDietData.totalFats || 0) / 65 * 100, 100)}%`,
+                    backgroundColor: '#fdcb6e'
+                  }
+                ]} 
+              />
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* Recent Meals */}
+      <View style={styles.mealTrackerCard}>
+        <Text style={styles.cardTitle}>🍽️ Recent Meals</Text>
+        {safeDietData.recentMeals && safeDietData.recentMeals.length > 0 ? (
+          safeDietData.recentMeals.map((meal, index) => (
+            <View key={index} style={styles.mealItem}>
+              <View style={styles.mealInfo}>
+                <Text style={styles.mealName}>{meal.name || 'Meal'}</Text>
+                <Text style={styles.mealTime}>{meal.time || '2 hours ago'}</Text>
+              </View>
+              <Text style={styles.mealCalories}>{meal.calories || 0} cal</Text>
+            </View>
+          ))
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>No meals logged yet</Text>
+            <Text style={styles.emptySubtext}>Start tracking your nutrition!</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Quick Actions */}
+      <View style={styles.quickActionsCard}>
+        <Text style={styles.cardTitle}>⚡ Quick Actions</Text>
+        <View style={styles.quickActionsGrid}>
+          <TouchableOpacity style={styles.quickActionButton} onPress={openDietModal}>
+            <Text style={styles.quickActionIcon}>🍎</Text>
+            <Text style={styles.quickActionText}>Log Meal</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickActionButton}>
+            <Text style={styles.quickActionIcon}>💧</Text>
+            <Text style={styles.quickActionText}>Log Water</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </Animated.View>
   );
 
   const renderTrainingTab = () => (
     <Animated.View style={[styles.tabContent, { opacity: fadeAnim }]}>
-      {/* (Your original JSX for the Training Tab goes here) */}
+      {/* Training Summary */}
+      <View style={styles.summaryCard}>
+        <Text style={styles.summaryTitle}>💪 Training Summary</Text>
+        <View style={styles.summaryGrid}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>
+              {safeTrainingData.totalWorkouts || 0}
+            </Text>
+            <Text style={styles.summaryLabel}>Workouts</Text>
+            <View style={styles.progressBar}>
+              <View 
+                style={[
+                  styles.progressFill, 
+                  { width: `${Math.min((safeTrainingData.totalWorkouts || 0) / 10 * 100, 100)}%` }
+                ]} 
+              />
+            </View>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>
+              {safeTrainingData.totalDuration || 0}h
+            </Text>
+            <Text style={styles.summaryLabel}>Duration</Text>
+            <View style={styles.progressBar}>
+              <View 
+                style={[
+                  styles.progressFill, 
+                  { width: `${Math.min((safeTrainingData.totalDuration || 0) / 20 * 100, 100)}%` }
+                ]} 
+              />
+            </View>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>
+              {safeTrainingData.totalExercises || 0}
+            </Text>
+            <Text style={styles.summaryLabel}>Exercises</Text>
+            <View style={styles.progressBar}>
+              <View 
+                style={[
+                  styles.progressFill, 
+                  { width: `${Math.min((safeTrainingData.totalExercises || 0) / 50 * 100, 100)}%` }
+                ]} 
+              />
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* Recent Workouts */}
+      <View style={styles.activitiesCard}>
+        <Text style={styles.cardTitle}>🏋️ Recent Workouts</Text>
+        {safeTrainingData.recentWorkouts && safeTrainingData.recentWorkouts.length > 0 ? (
+          safeTrainingData.recentWorkouts.map((workout, index) => (
+            <View key={index} style={styles.activityItem}>
+              <Text style={styles.activityIcon}>💪</Text>
+              <View style={styles.activityInfo}>
+                <Text style={styles.activityName}>{workout.name || 'Workout'}</Text>
+                <Text style={styles.activityTime}>{workout.time || '2 hours ago'}</Text>
+              </View>
+              <Text style={styles.activityCalories}>{workout.duration || 0} min</Text>
+            </View>
+          ))
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>No workouts logged yet</Text>
+            <Text style={styles.emptySubtext}>Start your training journey!</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Quick Actions */}
+      <View style={styles.quickActionsCard}>
+        <Text style={styles.cardTitle}>⚡ Quick Actions</Text>
+        <View style={styles.quickActionsGrid}>
+          <TouchableOpacity style={styles.quickActionButton} onPress={openWorkoutModal}>
+            <Text style={styles.quickActionIcon}>💪</Text>
+            <Text style={styles.quickActionText}>Log Workout</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickActionButton}>
+            <Text style={styles.quickActionIcon}>📊</Text>
+            <Text style={styles.quickActionText}>View Progress</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </Animated.View>
   );
 
   return (
     <View style={styles.container}>
-      {/* Header and Tab Navigation (No changes needed) */}
+      {/* Header */}
       <LinearGradient colors={['#e74c3c', '#c0392b']} style={styles.header}>
-        {/* ... */}
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>Activity Dashboard</Text>
+          <Text style={styles.headerSubtitle}>Track your fitness journey</Text>
+          
+          {/* Period Selector */}
+          <View style={styles.periodSelector}>
+            <TouchableOpacity
+              style={[
+                styles.periodButton,
+                selectedPeriod === 'week' && styles.activePeriodButton
+              ]}
+              onPress={() => setSelectedPeriod('week')}
+            >
+              <Text style={[
+                styles.periodText,
+                selectedPeriod === 'week' && styles.activePeriodText
+              ]}>Week</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.periodButton,
+                selectedPeriod === 'month' && styles.activePeriodButton
+              ]}
+              onPress={() => setSelectedPeriod('month')}
+            >
+              <Text style={[
+                styles.periodText,
+                selectedPeriod === 'month' && styles.activePeriodText
+              ]}>Month</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.periodButton,
+                selectedPeriod === 'year' && styles.activePeriodButton
+              ]}
+              onPress={() => setSelectedPeriod('year')}
+            >
+              <Text style={[
+                styles.periodText,
+                selectedPeriod === 'year' && styles.activePeriodText
+              ]}>Year</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </LinearGradient>
+
+      {/* Tab Navigation */}
       <View style={styles.tabContainer}>
-        {/* ... */}
+        {tabs.map((tab) => (
+          <TouchableOpacity
+            key={tab.id}
+            style={[
+              styles.tab,
+              activeTab === tab.id && styles.activeTab
+            ]}
+            onPress={() => setActiveTab(tab.id)}
+          >
+            <Text style={styles.tabIcon}>{tab.icon}</Text>
+            <Text style={[
+              styles.tabText,
+              activeTab === tab.id && styles.activeTabText
+            ]}>{tab.title}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* Tab Content */}
@@ -214,34 +767,151 @@ const Activity = () => {
         {activeTab === 'training' && renderTrainingTab()}
       </ScrollView>
 
-      {/* Buttons and Modals */}
+      {/* Floating Action Button */}
       <TouchableOpacity 
         style={styles.flexiFitButton}
         onPress={() => navigation.navigate('FlexiFitAI')}
       >
-        {/* ... */}
+        <Text style={styles.flexiFitButtonText}>🤖</Text>
       </TouchableOpacity>
-      
-      {/* ... other modals like Custom Date Picker ... */}
 
-      {/* Diet Modal - with updated onPress */}
+      {/* Diet Modal */}
       <Modal visible={showDietModal} transparent={true} animationType="fade" onRequestClose={closeDietModal}>
-          {/* ... modal content ... */}
-          <TouchableOpacity style={styles.saveButton} onPress={handleSaveDiet}>
-              <Text style={styles.saveButtonText}>Save Meal</Text>
-          </TouchableOpacity>
-          {/* ... */}
+        <View style={styles.modalOverlay}>
+          <Animated.View style={[styles.modalContent, { transform: [{ scale: modalScale }], opacity: modalOpacity }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Log Meal</Text>
+              <TouchableOpacity onPress={closeDietModal} style={styles.closeButton}>
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <TextInput
+              style={styles.input}
+              placeholder="Meal Name"
+              placeholderTextColor="#999"
+              value={dietForm.mealName}
+              onChangeText={(text) => handleDietInput('mealName', text)}
+            />
+            
+            <View style={styles.inputRow}>
+              <TextInput
+                style={styles.inputHalf}
+                placeholder="Calories"
+                placeholderTextColor="#999"
+                keyboardType="numeric"
+                value={dietForm.calories}
+                onChangeText={(text) => handleDietInput('calories', text)}
+              />
+              <TextInput
+                style={styles.inputHalf}
+                placeholder="Protein (g)"
+                placeholderTextColor="#999"
+                keyboardType="numeric"
+                value={dietForm.protein}
+                onChangeText={(text) => handleDietInput('protein', text)}
+              />
+            </View>
+            
+            <View style={styles.inputRow}>
+              <TextInput
+                style={styles.inputHalf}
+                placeholder="Carbs (g)"
+                placeholderTextColor="#999"
+                keyboardType="numeric"
+                value={dietForm.carbs}
+                onChangeText={(text) => handleDietInput('carbs', text)}
+              />
+              <TextInput
+                style={styles.inputHalf}
+                placeholder="Fats (g)"
+                placeholderTextColor="#999"
+                keyboardType="numeric"
+                value={dietForm.fats}
+                onChangeText={(text) => handleDietInput('fats', text)}
+              />
+            </View>
+            
+            <TextInput
+              style={styles.input}
+              placeholder="Notes (optional)"
+              placeholderTextColor="#999"
+              multiline
+              numberOfLines={3}
+              value={dietForm.notes}
+              onChangeText={(text) => handleDietInput('notes', text)}
+            />
+            
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.cancelButton} onPress={closeDietModal}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveButton} onPress={handleSaveDiet}>
+                <Text style={styles.saveButtonText}>Save Meal</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </View>
       </Modal>
 
-      {/* Workout Logging Modal - with updated onPress */}
+      {/* Workout Modal */}
       <Modal visible={showWorkoutModal} transparent={true} animationType="fade" onRequestClose={closeWorkoutModal}>
-          {/* ... modal content ... */}
-          <TouchableOpacity style={styles.saveButton} onPress={handleSaveWorkout}>
-              <Text style={styles.saveButtonText}>💾 Save Workout</Text>
-          </TouchableOpacity>
-          {/* ... */}
+        <View style={styles.modalOverlay}>
+          <Animated.View style={[styles.modalContent, { transform: [{ scale: workoutModalScale }], opacity: workoutModalOpacity }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Log Workout</Text>
+              <TouchableOpacity onPress={closeWorkoutModal} style={styles.closeButton}>
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <TextInput
+              style={styles.input}
+              placeholder="Workout Name"
+              placeholderTextColor="#999"
+              value={workoutForm.workoutName}
+              onChangeText={(text) => handleWorkoutInput('workoutName', text)}
+            />
+            
+            <View style={styles.inputRow}>
+              <TextInput
+                style={styles.inputHalf}
+                placeholder="Duration (minutes)"
+                placeholderTextColor="#999"
+                keyboardType="numeric"
+                value={workoutForm.duration}
+                onChangeText={(text) => handleWorkoutInput('duration', text)}
+              />
+              <TextInput
+                style={styles.inputHalf}
+                placeholder="Date (YYYY-MM-DD)"
+                placeholderTextColor="#999"
+                value={workoutForm.date}
+                onChangeText={(text) => handleWorkoutInput('date', text)}
+              />
+            </View>
+            
+            <TextInput
+              style={styles.input}
+              placeholder="Notes (optional)"
+              placeholderTextColor="#999"
+              multiline
+              numberOfLines={3}
+              value={workoutForm.notes}
+              onChangeText={(text) => handleWorkoutInput('notes', text)}
+            />
+            
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.cancelButton} onPress={closeWorkoutModal}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveButton} onPress={handleSaveWorkout}>
+                <Text style={styles.saveButtonText}>💾 Save Workout</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </View>
       </Modal>
-
     </View>
   );
 };
@@ -787,8 +1457,9 @@ const styles = StyleSheet.create({
     height: 6,
     backgroundColor: '#f0f0f0',
     borderRadius: 3,
+    overflow: 'hidden',
   },
-  macroFill: {
+  macroBarFill: {
     height: '100%',
     borderRadius: 3,
   },
@@ -959,99 +1630,71 @@ const styles = StyleSheet.create({
 
   // Custom Date Picker Modal Styles
   modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 1000,
-  },
-  customDateModal: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 20,
-    width: '90%',
-    maxWidth: 400,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    width: '100%',
     marginBottom: 20,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
   },
   closeButton: {
-    fontSize: 24,
-    color: '#666',
-    fontWeight: 'bold',
+    padding: 5,
   },
-  datePickerContainer: {
-    marginBottom: 20,
+  closeButtonText: {
+    fontSize: 20,
+    color: '#999',
   },
-  dateInput: {
-    marginBottom: 15,
-  },
-  dateLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  dateButton: {
+  input: {
     backgroundColor: '#f5f5f5',
     paddingVertical: 12,
     paddingHorizontal: 15,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#e0e0e0',
-  },
-  dateButtonText: {
+    marginBottom: 15,
+    width: '100%',
     fontSize: 16,
-    color: '#333',
+  },
+  flexiFitButton: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#e74c3c',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  flexiFitButtonText: {
+    fontSize: 24,
+    color: 'white',
   },
   applyDateButton: {
     backgroundColor: '#e74c3c',
     paddingVertical: 15,
+    paddingHorizontal: 25,
     borderRadius: 12,
     alignItems: 'center',
   },
   applyDateButtonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: '600',
-  },
-  flexiFitButton: {
-    position: 'absolute',
-    bottom: 30,
-    right: 20,
-    zIndex: 1000,
-  },
-  flexiFitGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    borderRadius: 25,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  flexiFitIcon: {
-    fontSize: 20,
-    marginRight: 6,
-  },
-  flexiFitText: {
-    color: 'white',
-    fontSize: 14,
     fontWeight: '600',
   },
   
@@ -1489,6 +2132,47 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
+  inputRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 15,
+  },
+  inputHalf: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 20,
+    width: '90%',
+    maxWidth: 400,
+    alignItems: 'center',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginTop: 20,
+  },
+  cancelButton: {
+    backgroundColor: '#e0e0e0',
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: '#333',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 
   // Save button styles
   saveButton: {
@@ -1512,6 +2196,58 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
+  // Quick Actions Card Styles
+  quickActionsCard: {
+    backgroundColor: 'white',
+    borderRadius: 15,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  quickActionsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    gap: 15,
+  },
+  quickActionButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 15,
+    borderRadius: 12,
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  quickActionIcon: {
+    fontSize: 28,
+    marginBottom: 8,
+  },
+  quickActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 30,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#555',
+    marginBottom: 10,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#999',
+  },
 });
 
 export default Activity;

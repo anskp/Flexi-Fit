@@ -13,7 +13,10 @@ import {
   Alert,
   Animated,
   Easing,
+  ScrollView,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
+import { saveDietEntry } from '../../api/dietService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -68,6 +71,46 @@ const FloatingParticle = ({ delay = 0, style }) => {
         },
       ]}
     />
+  );
+};
+
+const QuickMealCard = ({ meal, onPress, style }) => {
+  const scale = useRef(new Animated.Value(0)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(scale, {
+        toValue: 1,
+        tension: 100,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View
+      style={[
+        styles.quickMealCard,
+        style,
+        {
+          transform: [{ scale }],
+          opacity,
+        },
+      ]}
+    >
+      <TouchableOpacity onPress={onPress} style={styles.quickMealButton}>
+        <Text style={styles.quickMealIcon}>{meal.icon}</Text>
+        <Text style={styles.quickMealName}>{meal.name}</Text>
+        <Text style={styles.quickMealCalories}>{meal.calories} kcal</Text>
+      </TouchableOpacity>
+    </Animated.View>
   );
 };
 
@@ -262,13 +305,6 @@ const PulsingButton = ({ onPress, children, style }) => {
 };
 
 const DietLog = () => {
-  const [form, setForm] = useState({
-    mealName: '',
-    calories: '',
-    protein: '',
-    carbs: '',
-    fat: '',
-  });
   const [logs, setLogs] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [stats, setStats] = useState({
@@ -279,6 +315,47 @@ const DietLog = () => {
 
   const headerScale = useRef(new Animated.Value(1)).current;
   const modalSlide = useRef(new Animated.Value(height)).current;
+
+  // Quick meal options with more variety and better categorization
+  const quickMeals = [
+    // Breakfast
+    { name: 'Oatmeal Bowl', calories: 150, icon: '🥣', protein: 6, carbs: 27, fats: 3, category: 'breakfast' },
+    { name: 'Greek Yogurt', calories: 59, icon: '🥛', protein: 10, carbs: 3.6, fats: 0.4, category: 'breakfast' },
+    { name: 'Eggs & Toast', calories: 155, icon: '🥚', protein: 13, carbs: 1.1, fats: 11, category: 'breakfast' },
+    { name: 'Smoothie Bowl', calories: 180, icon: '🍓', protein: 8, carbs: 25, fats: 5, category: 'breakfast' },
+    
+    // Lunch
+    { name: 'Chicken Salad', calories: 165, icon: '🍗', protein: 31, carbs: 0, fats: 3.6, category: 'lunch' },
+    { name: 'Tuna Sandwich', calories: 220, icon: '🥪', protein: 18, carbs: 25, fats: 8, category: 'lunch' },
+    { name: 'Quinoa Bowl', calories: 185, icon: '🥗', protein: 12, carbs: 28, fats: 6, category: 'lunch' },
+    { name: 'Turkey Wrap', calories: 195, icon: '🌯', protein: 22, carbs: 18, fats: 7, category: 'lunch' },
+    
+    // Dinner
+    { name: 'Salmon Fillet', calories: 208, icon: '🐟', protein: 25, carbs: 0, fats: 12, category: 'dinner' },
+    { name: 'Beef Steak', calories: 250, icon: '🥩', protein: 26, carbs: 0, fats: 15, category: 'dinner' },
+    { name: 'Pasta Primavera', calories: 320, icon: '🍝', protein: 12, carbs: 45, fats: 10, category: 'dinner' },
+    { name: 'Stir Fry', calories: 280, icon: '🥘', protein: 18, carbs: 22, fats: 12, category: 'dinner' },
+    
+    // Snacks
+    { name: 'Banana', calories: 89, icon: '🍌', protein: 1.1, carbs: 23, fats: 0.3, category: 'snack' },
+    { name: 'Almonds', calories: 164, icon: '🥜', protein: 6, carbs: 6, fats: 14, category: 'snack' },
+    { name: 'Apple', calories: 52, icon: '🍎', protein: 0.3, carbs: 14, fats: 0.2, category: 'snack' },
+    { name: 'Protein Bar', calories: 200, icon: '🍫', protein: 20, carbs: 15, fats: 8, category: 'snack' },
+  ];
+
+  const mealCategories = [
+    { id: 'all', name: 'All', icon: '🍽️' },
+    { id: 'breakfast', name: 'Breakfast', icon: '🌅' },
+    { id: 'lunch', name: 'Lunch', icon: '☀️' },
+    { id: 'dinner', name: 'Dinner', icon: '🌙' },
+    { id: 'snack', name: 'Snacks', icon: '🍿' },
+  ];
+
+  const [selectedCategory, setSelectedCategory] = useState('all');
+
+  const filteredMeals = selectedCategory === 'all' 
+    ? quickMeals 
+    : quickMeals.filter(meal => meal.category === selectedCategory);
 
   useEffect(() => {
     const totalCalories = logs.reduce((sum, log) => sum + parseInt(log.calories || 0), 0);
@@ -305,38 +382,77 @@ const DietLog = () => {
     ]).start();
   }, [logs.length]);
 
-  const handleInput = (key, value) => setForm({ ...form, [key]: value });
+  const handleQuickMeal = async (meal) => {
+    try {
+      const response = await saveDietEntry({
+        mealName: meal.name,
+        calories: meal.calories.toString(),
+        protein: meal.protein.toString(),
+        carbs: meal.carbs.toString(),
+        fats: meal.fats.toString(),
+        mealType: meal.category
+      });
 
-  const clearForm = () => setForm({
-    mealName: '',
-    calories: '',
-    protein: '',
-    carbs: '',
-    fat: '',
-  });
-
-  const validateForm = () => {
-    if (!form.mealName.trim()) return 'Meal name required';
-    if (!form.calories.trim()) return 'Calories required';
-    return null;
+      if (response.success) {
+        // Add to local state with enhanced data
+        const newLog = {
+          ...meal,
+          id: Date.now().toString(),
+          timestamp: new Date().toLocaleTimeString(),
+          date: new Date().toLocaleDateString(),
+        };
+        setLogs([newLog, ...logs]);
+        
+        // Show success animation
+        Animated.sequence([
+          Animated.timing(headerScale, {
+            toValue: 1.1,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+          Animated.timing(headerScale, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+        ]).start();
+        
+        Alert.alert('Success', `${meal.name} logged successfully! 🎉`);
+      } else {
+        Alert.alert('Error', response.message || 'Failed to log meal');
+      }
+    } catch (error) {
+      console.error('Quick meal error:', error);
+      Alert.alert('Error', 'Failed to log meal. Please try again.');
+    }
   };
 
-  const handleSave = () => {
-    const error = validateForm();
-    if (error) {
-      Alert.alert('Validation Error', error);
+  const handleCustomMeal = async () => {
+    if (!dietForm.mealName.trim() || !dietForm.calories.trim()) {
+      Alert.alert('Validation Error', 'Please enter at least a meal name and calories.');
       return;
     }
-    setLogs([
-      {
-        ...form,
-        id: Date.now().toString(),
-        timestamp: new Date().toLocaleTimeString(),
-      },
-      ...logs,
-    ]);
-    clearForm();
-    closeModal();
+    
+    try {
+      const response = await saveDietEntry(dietForm);
+
+      if (response.success) {
+        const newLog = {
+          ...dietForm,
+          id: Date.now().toString(),
+          timestamp: new Date().toLocaleTimeString(),
+          date: new Date().toLocaleDateString(),
+        };
+        setLogs([newLog, ...logs]);
+        closeModal();
+        Alert.alert('Success', 'Custom meal logged successfully! 🎉');
+      } else {
+        Alert.alert('Error', response.message || 'Failed to save meal');
+      }
+    } catch (error) {
+      console.error('Save diet error:', error);
+      Alert.alert('Error', 'Failed to save meal. Please try again.');
+    }
   };
 
   const openModal = () => {
@@ -356,7 +472,6 @@ const DietLog = () => {
       useNativeDriver: true,
     }).start(() => {
       setModalVisible(false);
-      clearForm();
     });
   };
 
@@ -418,110 +533,72 @@ const DietLog = () => {
         </View>
       </Animated.View>
 
+      {/* Quick Meals Section */}
+      <View style={styles.quickMealsSection}>
+        <Text style={styles.sectionTitle}>Quick Add Meals</Text>
+        
+        {/* Category Filter */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryFilter}>
+          {mealCategories.map((category) => (
+            <TouchableOpacity
+              key={category.id}
+              style={[
+                styles.categoryButton,
+                selectedCategory === category.id && styles.selectedCategoryButton
+              ]}
+              onPress={() => setSelectedCategory(category.id)}
+            >
+              <Text style={styles.categoryIcon}>{category.icon}</Text>
+              <Text style={[
+                styles.categoryText,
+                selectedCategory === category.id && styles.selectedCategoryText
+              ]}>
+                {category.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickMealsScroll}>
+          {filteredMeals.map((meal, index) => (
+            <QuickMealCard
+              key={meal.name}
+              meal={meal}
+              onPress={() => handleQuickMeal(meal)}
+              style={{ marginLeft: index === 0 ? 16 : 12 }}
+            />
+          ))}
+        </ScrollView>
+      </View>
+
       {/* Meal List */}
-      {logs.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyTitle}>🍽️ No meals logged yet</Text>
-          <Text style={styles.emptySubtitle}>Start tracking your nutrition by adding your first meal!</Text>
-          <TouchableOpacity style={styles.addFirstMealButton} onPress={openModal}>
-            <Text style={styles.addFirstMealButtonText}>➕ Add Your First Meal</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <FlatList
-          data={logs}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item, index }) => (
-            <MealCard item={item} index={index} onDelete={deleteMeal} />
-          )}
-          contentContainerStyle={styles.listContainer}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+      <View style={styles.mealListSection}>
+        <Text style={styles.sectionTitle}>Today's Meals</Text>
+        {logs.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyTitle}>🍽️ No meals logged yet</Text>
+            <Text style={styles.emptySubtitle}>Start tracking your nutrition by adding your first meal!</Text>
+            <TouchableOpacity style={styles.addFirstMealButton} onPress={openModal}>
+              <Text style={styles.addFirstMealButtonText}>➕ Add Your First Meal</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <FlatList
+            data={logs}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item, index }) => (
+              <MealCard item={item} index={index} onDelete={deleteMeal} />
+            )}
+            contentContainerStyle={styles.listContainer}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+      </View>
 
       {/* Floating Action Button */}
       <PulsingButton style={styles.fab} onPress={openModal}>
-        <Text style={styles.fabText}>+</Text>
+        <Icon name="add" size={32} color="#fff" />
       </PulsingButton>
-
-      {/* Modal */}
-      <Modal
-        visible={modalVisible}
-        transparent={true}
-        animationType="none"
-        onRequestClose={closeModal}
-      >
-        <View style={styles.modalOverlay}>
-          <Animated.View
-            style={[
-              styles.modalContent,
-              { transform: [{ translateY: modalSlide }] },
-            ]}
-          >
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>🍽️ Log Your Meal</Text>
-              <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
-                <Text style={styles.closeButtonText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Meal Name (e.g., Grilled Chicken)"
-              placeholderTextColor="#999"
-              value={form.mealName}
-              onChangeText={(t) => handleInput('mealName', t)}
-            />
-
-            <View style={styles.inputRow}>
-              <TextInput
-                style={styles.inputHalf}
-                placeholder="Calories"
-                placeholderTextColor="#999"
-                keyboardType="numeric"
-                value={form.calories}
-                onChangeText={(t) => handleInput('calories', t.replace(/[^0-9]/g, ''))}
-              />
-              <TextInput
-                style={styles.inputHalf}
-                placeholder="Protein (g)"
-                placeholderTextColor="#999"
-                keyboardType="numeric"
-                value={form.protein}
-                onChangeText={(t) => handleInput('protein', t.replace(/[^0-9]/g, ''))}
-              />
-            </View>
-
-            <View style={styles.inputRow}>
-              <TextInput
-                style={styles.inputHalf}
-                placeholder="Carbs (g)"
-                placeholderTextColor="#999"
-                keyboardType="numeric"
-                value={form.carbs}
-                onChangeText={(t) => handleInput('carbs', t.replace(/[^0-9]/g, ''))}
-              />
-              <TextInput
-                style={styles.inputHalf}
-                placeholder="Fat (g)"
-                placeholderTextColor="#999"
-                keyboardType="numeric"
-                value={form.fat}
-                onChangeText={(t) => handleInput('fat', t.replace(/[^0-9]/g, ''))}
-              />
-            </View>
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                <Text style={styles.saveButtonText}>💾 Save Meal</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.cancelButton} onPress={closeModal}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 };
@@ -856,6 +933,89 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'System',
     letterSpacing: 0.5,
+  },
+  quickMealsSection: {
+    marginTop: 20,
+    paddingHorizontal: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    color: '#fff',
+    fontWeight: 'bold',
+    marginBottom: 15,
+    fontFamily: 'System',
+    letterSpacing: 0.3,
+  },
+  quickMealsScroll: {
+    paddingVertical: 5,
+  },
+  quickMealCard: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 15,
+    padding: 15,
+    marginRight: 10,
+    width: 120,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  quickMealButton: {
+    alignItems: 'center',
+  },
+  quickMealIcon: {
+    fontSize: 28,
+    marginBottom: 8,
+  },
+  quickMealName: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: 'bold',
+    marginBottom: 4,
+    fontFamily: 'System',
+    textAlign: 'center',
+  },
+  quickMealCalories: {
+    fontSize: 12,
+    color: '#4ecdc4',
+    fontWeight: '600',
+    fontFamily: 'System',
+  },
+  categoryFilter: {
+    flexDirection: 'row',
+    marginBottom: 15,
+    paddingHorizontal: 16,
+  },
+  categoryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  selectedCategoryButton: {
+    borderColor: '#4ecdc4',
+    borderWidth: 1,
+  },
+  categoryIcon: {
+    fontSize: 20,
+    marginRight: 8,
+  },
+  categoryText: {
+    fontSize: 14,
+    color: '#bbb',
+    fontWeight: '500',
+    fontFamily: 'System',
+  },
+  selectedCategoryText: {
+    color: '#4ecdc4',
+    fontWeight: '600',
   },
 });
 
