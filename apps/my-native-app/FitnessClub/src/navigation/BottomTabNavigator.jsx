@@ -14,6 +14,8 @@ import Profile from '../screens/Member/Profile';
 const Tab = createBottomTabNavigator();
 
 const BottomTabNavigator = () => {
+  console.log('BottomTabNavigator: Rendering bottom tab navigator');
+  
   return (
     <Tab.Navigator
                    screenOptions={({ route }) => ({

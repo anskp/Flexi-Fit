@@ -42,17 +42,40 @@ const SignupScreen = () => {
      
      setLoading(true);
      try {
+       console.log('Starting signup process...');
        // Step 1: Create the user account using the context signup function
        const signupResponse = await signup(email, password);
+       console.log('Signup response:', signupResponse);
        
        if (signupResponse.success) {
+         console.log('Signup successful, proceeding to role selection...');
          // Step 2: Automatically assign the 'MEMBER' role
          const roleResponse = await selectRole('MEMBER');
+         console.log('Role selection response:', roleResponse);
          
          if (roleResponse.success) {
-           // Step 3: Navigate to the member profile setup
-           console.log('Navigating to MemberProfile...');
-           navigation.navigate('MemberProfile'); 
+           // Step 3: The user is now authenticated and will be automatically 
+           // moved to the main app stack by the AppNavigator
+           console.log('Signup and role selection successful. User is now authenticated.');
+           console.log('AppNavigator will automatically switch to AppStack.');
+           
+           // Show success message to user
+           Alert.alert(
+             'Success!',
+             'Account created successfully! You will be redirected to the main app.',
+             [{ 
+               text: 'OK',
+               onPress: () => {
+                 // Small delay to ensure state updates are processed
+                 setTimeout(() => {
+                   console.log('Success alert dismissed, navigation should happen automatically');
+                 }, 100);
+               }
+             }]
+           );
+           
+           // The AppNavigator will automatically handle the navigation switch
+           // No manual navigation needed - just let the authentication state change
          } else {
              throw new Error(roleResponse.message || 'Failed to assign role');
          }
@@ -60,6 +83,7 @@ const SignupScreen = () => {
            throw new Error(signupResponse.message || 'Signup failed');
        }
      } catch (err) {
+       console.error('Signup error:', err);
        Alert.alert('Signup Failed', parseApiError(err));
      } finally {
        setLoading(false);

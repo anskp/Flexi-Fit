@@ -1,5 +1,5 @@
 // src/screens/LoginScreen.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -22,7 +22,33 @@ const LoginScreen = () => {
   const [loading, setLoading] = useState(false);
 
   const navigation = useNavigation();
-  const { login } = useAuth();
+  const { login, isAuthenticated, token, user } = useAuth();
+
+  // Monitor authentication state changes
+  useEffect(() => {
+    console.log('LoginScreen: Authentication state changed', { 
+      isAuthenticated, 
+      hasToken: !!token, 
+      hasUser: !!user,
+      userRole: user?.role 
+    });
+    
+    // If user becomes authenticated, log it
+    if (isAuthenticated) {
+      console.log('LoginScreen: User is now authenticated!');
+      
+      // Force navigation to main app as backup
+      setTimeout(() => {
+        console.log('LoginScreen: Force navigating to main app');
+        // Try to navigate to MainTabs if we're in the AppStack
+        try {
+          navigation.navigate('MainTabs');
+        } catch (error) {
+          console.log('LoginScreen: Navigation failed, AppNavigator should handle it automatically');
+        }
+      }, 1000);
+    }
+  }, [isAuthenticated, token, user]);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -31,14 +57,40 @@ const LoginScreen = () => {
     }
     setLoading(true);
     try {
+      console.log('Starting login process...');
       const response = await login(email, password);
-      if (!response.success) {
+      console.log('Login response:', response);
+      
+      if (response.success) {
+        console.log('Login successful! AppNavigator will automatically switch to AppStack.');
+        // Show success message to user
+        Alert.alert(
+          'Success!',
+          'Login successful! You will be redirected to the main app.',
+          [{ 
+            text: 'OK',
+            onPress: () => {
+              // Small delay to ensure state updates are processed
+              setTimeout(() => {
+                console.log('LoginScreen: After delay - checking auth state', { 
+                  isAuthenticated, 
+                  hasToken: !!token, 
+                  hasUser: !!user 
+                });
+              }, 100);
+            }
+          }]
+        );
+        // The AppNavigator will automatically handle the navigation switch
+        // No manual navigation needed - just let the authentication state change
+      } else {
         Alert.alert(
           'Login Failed',
           response.message || 'An unknown error occurred.'
         );
       }
     } catch (err) {
+      console.error('Login error:', err);
       Alert.alert('Login Failed', parseApiError(err));
     } finally {
       setLoading(false);
