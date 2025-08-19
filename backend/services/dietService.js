@@ -32,9 +32,9 @@ export const getLogsByDate = async (userId, dateString) => {
     acc.totalCalories += log.calories;
     acc.totalProtein += log.protein || 0;
     acc.totalCarbs += log.carbs || 0;
-    acc.totalFat += log.fat || 0;
+    acc.totalFats += log.fats || 0;
     return acc;
-  }, { totalCalories: 0, totalProtein: 0, totalCarbs: 0, totalFat: 0 });
+  }, { totalCalories: 0, totalProtein: 0, totalCarbs: 0, totalFats: 0 });
 
   return { logs, summary };
 };

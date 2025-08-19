@@ -16,13 +16,19 @@ const cuidSchema = Joi.string().length(25).required(); // CUIDs are 25 chars lon
 
 // --- Schemas ---
 
+
+
 export const getAllGymsSchema = Joi.object({
   lat: Joi.number().optional(),
   lon: Joi.number().optional(),
-  radius: Joi.number().positive().default(10),
-  page: Joi.number().integer().min(1).default(1),
-  limit: Joi.number().integer().min(1).default(10),
-});
+  radius: Joi.number().positive().default(10),       // in km, positive number, default 10
+  page: Joi.number().integer().min(1).default(1),    // pagination page, default 1
+  limit: Joi.number().integer().min(1).default(50),  // pagination limit, default 50 matching frontend
+  sort: Joi.string().valid('distance', 'rating', 'price', 'name').default('distance'),
+  filter: Joi.string().valid('all', 'premium', 'standard', 'express', 'open').default('all'),
+  search: Joi.string().allow('').optional()          // allow empty string or undefined
+}).options({ convert: true }); // Enable automatic string->number conversion
+
 
 export const gymIdParamSchema = Joi.object({
   id: cuidSchema.label('Gym ID'),

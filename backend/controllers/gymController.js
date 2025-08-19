@@ -6,6 +6,7 @@ import catchAsync from '../utils/catchAsync.js';
 
 // --- Public Controllers ---
 export const getAllGyms = catchAsync(async (req, res) => {
+   console.log('[gymController] getAllGyms called with query:', req.query);
   const result = await gymService.getAll(req.query);
   res.status(200).json({ success: true, data: result });
 });

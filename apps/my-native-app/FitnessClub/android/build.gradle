@@ -11,6 +11,11 @@ buildscript {
         google()
         mavenCentral()
     }
+     configurations.all {
+        resolutionStrategy {
+            force 'com.google.android.gms:play-services-location:21.0.1'
+        }
+    }
     dependencies {
         classpath("com.android.tools.build:gradle:8.8.2")
         classpath("com.facebook.react:react-native-gradle-plugin")

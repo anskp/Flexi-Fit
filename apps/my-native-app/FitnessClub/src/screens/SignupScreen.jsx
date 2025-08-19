@@ -51,6 +51,7 @@ const SignupScreen = () => {
          
          if (roleResponse.success) {
            // Step 3: Navigate to the member profile setup
+           console.log('Navigating to MemberProfile...');
            navigation.navigate('MemberProfile'); 
          } else {
              throw new Error(roleResponse.message || 'Failed to assign role');

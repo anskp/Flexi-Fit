@@ -1,12 +1,11 @@
 // src/services/authService.js
-
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import AppError from '../utils/AppError.js'; // You must create this utility
 
-const prisma = new PrismaClient();
+
 
 /**
  * Generates a JWT for a given user.

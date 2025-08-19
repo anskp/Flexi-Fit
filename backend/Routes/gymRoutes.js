@@ -23,6 +23,10 @@ const router = express.Router();
 //================================================================
 // 1. PUBLIC ROUTES (No authentication required)
 //================================================================
+router.use((req, res, next) => {
+  console.log('[gymRoutes] hit: ', req.method, req.path);
+  next();
+});
 router.get('/discover', validate(getAllGymsSchema), gymController.getAllGyms);
 router.get('/profile/:id', validate(gymIdParamSchema), gymController.getGymById);
 router.get('/:gymId/plans', gymController.getGymPlans); // gymId param validation could be added

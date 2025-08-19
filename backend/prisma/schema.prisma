@@ -55,6 +55,7 @@ model MemberProfile {
   id               String  @id @default(cuid())
   user             User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId           String  @unique
+  name             String?
   age              Int?
   gender           String?
   weight           Float?
@@ -208,7 +209,13 @@ model WorkoutSession {
   userId String
   date   DateTime     @default(now())
   logs   WorkoutLog[]
-
+  workoutType  String? // e.g., 'Strength Training', 'Cardio'
+  workoutName  String? // e.g., 'Upper Body Push'
+  duration     Int? // Total duration in minutes
+  intensity    String? // e.g., 'low', 'medium', 'high'
+  notes        String? // General notes for the whole workout
+  muscleGroups Json // ✅ CHANGED from String[] to Json
+  equipment    Json // ✅ CHANGED from String[] to Json
   @@index([userId, date])
 }
 
@@ -221,7 +228,10 @@ model WorkoutLog {
   sets       Int?
   reps       Int?
   weight     Float?
-  duration   Int?
+  duration   Int? // <-- This field can likely be removed as duration is now on the session
+  
+  // --- ADD THIS FIELD ---
+  notes      String? // Specific notes for this exercise set
 }
 
 model DietLog {
@@ -229,15 +239,22 @@ model DietLog {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
   mealType  String
-  foodName  String
+   // --- MODIFIED FIELDS ---
+  mealName  String   // Renamed from foodName for consistency with UI
   photoUrl  String?
   calories  Int
-  protein   Float?
-  carbs     Float?
-  fat       Float?
+  protein   Int?     @default(0) // Changed from Float to Int (grams are usually whole numbers)
+  carbs     Int?     @default(0) // Changed from Float to Int
+  fats      Int?     @default(0) // Renamed from 'fat' and changed to Int
+
+  // --- NEW FIELDS ---
+  fiber     Int?     @default(0) // To match the UI form
+  sugar     Int?     @default(0) // To match the UI form
+
   createdAt DateTime @default(now())
 
   @@index([userId, createdAt])
+  
 }
 
 // --- Health Sync Models ---

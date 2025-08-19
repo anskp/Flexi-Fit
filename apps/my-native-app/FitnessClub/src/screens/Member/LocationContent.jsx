@@ -35,6 +35,15 @@ const LocationContent = ({
   onSortChange,
   onRequestLocationPermission
 }) => {
+  // Safety check for required props
+  if (!onGymPress || !onMapMarkerPress || !onMyLocation || !onCameraPress) {
+    console.error('LocationContent: Missing required callback props');
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Error: Missing required props</Text>
+      </View>
+    );
+  }
   const initialRegion = {
     latitude: 28.7041,
     longitude: 77.1025,
@@ -51,96 +60,101 @@ const LocationContent = ({
     if (error) {
       return <Text style={styles.errorText}>{error}</Text>;
     }
-    if (gyms.length === 0) {
+    if (!gyms || gyms.length === 0) {
       return <Text style={styles.emptyText}>No gyms found. Try expanding your search area or adjusting filters.</Text>;
     }
     return (
       <ScrollView style={styles.gymList} showsVerticalScrollIndicator={false}>
-        {gyms.map((gym) => (
-          <TouchableOpacity
-            key={gym.id}
-            style={[
-              styles.gymCard,
-              gym.isNearest && styles.nearestGymCard
-            ]}
-            onPress={() => onGymPress(gym)}
-          >
-            <View style={[
-              styles.gymImageContainer,
-              gym.isNearest && styles.nearestGymImageContainer
-            ]}>
-              <Image
-                source={{ uri: gym.photos?.[0] || 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400' }}
-                style={[
-                  styles.gymImage,
-                  gym.isNearest && styles.nearestGymImage
-                ]}
-                resizeMode="cover"
-              />
-              {gym.isNearest && (
-                <View style={[
-                  styles.nearestBadge,
-                  styles.nearestGymBadge
-                ]}>
-                  <Text style={[
-                    styles.nearestText,
-                    styles.nearestGymText
-                  ]}>Nearest</Text>
-                </View>
-              )}
-              <View style={styles.gymLogo}>
-                <Text style={styles.gymLogoText}>{gym.name.charAt(0)}</Text>
-              </View>
-            </View>
-            
-            <View style={styles.gymInfo}>
-              <View style={styles.gymHeader}>
-                <Text style={styles.gymName} numberOfLines={1}>{gym.name}</Text>
-                <View style={styles.gymType}>
-                  <Text style={styles.gymTypeText}>{gym.type || 'Standard'}</Text>
+        {gyms.map((gym) => {
+          if (!gym || !gym.id) return null;
+          
+          return (
+            <TouchableOpacity
+              key={gym.id}
+              style={[
+                styles.gymCard,
+                gym.isNearest && styles.nearestGymCard
+              ]}
+              onPress={() => onGymPress(gym)}
+            >
+              <View style={[
+                styles.gymImageContainer,
+                gym.isNearest && styles.nearestGymImageContainer
+              ]}>
+                <Image
+                  source={{ uri: gym.photos?.[0] || 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400' }}
+                  style={[
+                    styles.gymImage,
+                    gym.isNearest && styles.nearestGymImage
+                  ]}
+                  resizeMode="cover"
+                />
+                {gym.isNearest && (
+                  <View style={[
+                    styles.nearestBadge,
+                    styles.nearestGymBadge
+                  ]}>
+                    <Text style={[
+                      styles.nearestText,
+                      styles.nearestGymText
+                    ]}>Nearest</Text>
+                  </View>
+                )}
+                <View style={styles.gymLogo}>
+                  <Text style={styles.gymLogoText}>{gym.name ? gym.name.charAt(0) : 'G'}</Text>
                 </View>
               </View>
               
-              <View style={styles.gymLocationRow}>
-                <Text style={styles.locationIcon}>📍</Text>
-                <Text style={styles.gymLocation} numberOfLines={1}>{gym.address}</Text>
+              <View style={styles.gymInfo}>
+                <View style={styles.gymHeader}>
+                  <Text style={styles.gymName} numberOfLines={1}>{gym.name || 'Unknown Gym'}</Text>
+                  <View style={styles.gymType}>
+                    <Text style={styles.gymTypeText}>{gym.type || 'Standard'}</Text>
+                  </View>
+                </View>
+                
+                <View style={styles.gymLocationRow}>
+                  <Text style={styles.locationIcon}>📍</Text>
+                  <Text style={styles.gymLocation} numberOfLines={1}>{gym.address || 'Address not available'}</Text>
+                </View>
+                
+                <View style={styles.gymStats}>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statLabel}>Distance</Text>
+                    <Text style={styles.statValue}>{gym.distance ? `${gym.distance.toFixed(2)} km` : 'N/A'}</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statLabel}>Rating</Text>
+                    <Text style={styles.statValue}>⭐ {gym.rating || '4.5'}</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statLabel}>Price</Text>
+                    <Text style={styles.statValue}>{gym.dailyPassPrice ? `₹${gym.dailyPassPrice}/day` : 'N/A'}</Text>
+                  </View>
+                </View>
               </View>
               
-              <View style={styles.gymStats}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statLabel}>Distance</Text>
-                  <Text style={styles.statValue}>{gym.distance ? `${gym.distance.toFixed(2)} km` : 'N/A'}</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Text style={styles.statLabel}>Rating</Text>
-                  <Text style={styles.statValue}>⭐ {gym.rating || '4.5'}</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Text style={styles.statLabel}>Price</Text>
-                  <Text style={styles.statValue}>{gym.dailyPassPrice ? `₹${gym.dailyPassPrice}/day` : 'N/A'}</Text>
-                </View>
+              <View style={styles.gymArrow}>
+                <Text style={styles.arrowText}>›</Text>
               </View>
-            </View>
-            
-            <View style={styles.gymArrow}>
-              <Text style={styles.arrowText}>›</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
     );
   };
 
-  return (
-    <>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.searchButton} onPress={onSearchPress}>
-          <Icon name="search" size={28} color="#000" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.cameraButton} onPress={onCameraPress} activeOpacity={0.8}>
-          <Icon name="camera" size={32} color="#000" />
-        </TouchableOpacity>
-      </View>
+  try {
+    return (
+      <>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.searchButton} onPress={onSearchPress}>
+            <Icon name="search" size={28} color="#000" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.cameraButton} onPress={onCameraPress} activeOpacity={0.8}>
+            <Icon name="camera" size={32} color="#000" />
+          </TouchableOpacity>
+        </View>
 
       <View style={styles.mainContent}>
         {!locationPermission && (
@@ -183,16 +197,20 @@ const LocationContent = ({
               </View>
             </Marker>
           )}
-          {gyms.map((gym) => (
-            <Marker
-              key={gym.id}
-              coordinate={gym.coordinates}
-              title={gym.name}
-              description={gym.address}
-              pinColor={mapSelectedGym?.id === gym.id ? "#e74c3c" : "#27ae60"}
-              onPress={() => onMapMarkerPress(gym)}
-            />
-          ))}
+          {gyms && gyms.map((gym) => {
+            if (!gym || !gym.id || !gym.coordinates) return null;
+            
+            return (
+              <Marker
+                key={gym.id}
+                coordinate={gym.coordinates}
+                title={gym.name || 'Gym'}
+                description={gym.address || 'Address not available'}
+                pinColor={mapSelectedGym?.id === gym.id ? "#e74c3c" : "#27ae60"}
+                onPress={() => onMapMarkerPress(gym)}
+              />
+            );
+          })}
         </MapView>
 
         <View style={styles.myLocationButtonContainer}>
@@ -212,7 +230,7 @@ const LocationContent = ({
           <View style={styles.bottomSheetHeader}>
             <View>
               <Text style={styles.bottomSheetTitle}>Gyms Near You</Text>
-              <Text style={styles.subtitleText}>{gyms.length} fitness centers found</Text>
+              <Text style={styles.subtitleText}>{gyms ? gyms.length : 0} fitness centers found</Text>
             </View>
           </View>
           
@@ -229,6 +247,14 @@ const LocationContent = ({
       </Modal>
     </>
   );
+  } catch (error) {
+    console.error('LocationContent render error:', error);
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Something went wrong. Please try again.</Text>
+      </View>
+    );
+  }
 };
 
 const styles = StyleSheet.create({
@@ -302,6 +328,16 @@ const styles = StyleSheet.create({
     loadingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', zIndex: 1500 },
     loadingCard: { backgroundColor: 'white', borderRadius: 15, padding: 25, flexDirection: 'row', alignItems: 'center' },
     loadingText: { fontSize: 16, color: '#333', marginLeft: 15, fontWeight: '600' },
+    nearestGymImageContainer: { borderColor: '#e74c3c', borderWidth: 2 },
+    nearestGymImage: { borderColor: '#e74c3c', borderWidth: 2 },
+    nearestGymBadge: { backgroundColor: '#e74c3c' },
+    nearestGymText: { color: 'white' },
+    gymLogo: { position: 'absolute', top: 5, right: 5, width: 30, height: 30, borderRadius: 15, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
+    gymLogoText: { color: 'white', fontSize: 14, fontWeight: 'bold' },
+    gymType: { backgroundColor: '#f0f0f0', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+    gymTypeText: { fontSize: 10, color: '#666', fontWeight: '600' },
+    nearestBadge: { position: 'absolute', top: 5, left: 5, backgroundColor: '#e74c3c', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+    nearestText: { color: 'white', fontSize: 10, fontWeight: 'bold' },
 });
 
 export default LocationContent;

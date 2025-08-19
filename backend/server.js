@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 dotenv.config();
+import {prisma} from './lib/prisma.js';
 import express from 'express';
 import passport from 'passport';
 import cors from 'cors';
@@ -30,6 +31,7 @@ import multiGymRoutes from './Routes/multiGymRoutes.js';
 import adminRoutes from './Routes/adminRoutes.js';
 import errorHandler from './middlewares/errorHandler.js';
 import cartRoutes from './Routes/cartRoutes.js';
+import trainingRoutes from './Routes/trainingRoutes.js';
 // --- Import Socket.io Handlers ---
 import { handleSendMessage } from './controllers/chatController.js';
 
@@ -41,6 +43,25 @@ const io = new Server(httpServer, {
     methods: ["GET", "POST"]
   }
 });
+// ✅ ADD THIS TEST FUNCTION
+async function testDatabaseConnection() {
+  console.log("--- Running Database Connection Test on Startup ---");
+  console.log("DATABASE_URL Loaded in server.js:", process.env.DATABASE_URL ? "Yes" : "!!! No, it's missing !!!");
+  try {
+    // This is a simple query that forces a connection.
+    await prisma.$queryRaw`SELECT 1`;
+    console.log("✅✅✅ Database Connection Successful! ✅✅✅");
+  } catch (error) {
+    console.error("❌❌❌ DATABASE CONNECTION FAILED! ❌❌❌");
+    console.error("The server cannot start because it cannot connect to the database.");
+    console.error("Error details:", error);
+    // Exit the process with a failure code, which will stop nodemon
+    process.exit(1); 
+  }
+}
+
+// ✅ CALL THE TEST FUNCTION IMMEDIATELY
+testDatabaseConnection();
 
 // --- Socket.IO Authentication Middleware ---
 // This middleware runs for every new socket connection.
@@ -122,6 +143,7 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/multi-gym', multiGymRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/cart', cartRoutes);
+app.use('/api/training', trainingRoutes);
 // --- Global Error Handler ---
 app.use(errorHandler);
 

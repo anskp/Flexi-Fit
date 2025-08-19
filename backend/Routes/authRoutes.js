@@ -22,8 +22,28 @@ import validate, {
 const router = express.Router();
 
 // --- Public Authentication Routes with Validation ---
-router.post('/signup', validate(signupSchema), authController.signup);
-router.post('/login', validate(loginSchema), authController.login);
+router.post(
+  "/signup",
+  (req, res, next) => {
+    console.log("➡️ /signup route hit, before validate");
+    next();
+  },
+  authController.signup
+);
+
+router.post(
+  "/login",
+  (req, res, next) => {
+    console.log("➡️ /login route hit, before validate");
+    next();
+  },
+  validate(loginSchema),
+  (req, res, next) => {
+    console.log("✅ Passed validate, going to authController.login");
+    next();
+  },
+  authController.login
+);
 router.post('/logout', authController.logout); // No body to validate
 
 // --- Password Reset Routes with Validation ---

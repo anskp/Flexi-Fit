@@ -6,12 +6,14 @@ import * as authService from '../services/authService.js';
 import catchAsync from '../utils/catchAsync.js';
 // --- Core Auth ---
 export const signup = catchAsync(async (req, res, next) => {
+  console.log("Route hit, before service");
   const { email, password } = req.body;
   const result = await authService.signup({ email, password });
   res.status(201).json({ success: true, message: 'Signup successful.', data: result });
 });
 
 export const login = catchAsync(async (req, res, next) => {
+  console.log("Route hit, before service");
   const { email, password } = req.body;
   const result = await authService.login({ email, password });
   res.status(200).json({ success: true, message: 'Login successful.', data: result });
