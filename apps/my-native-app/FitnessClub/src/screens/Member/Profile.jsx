@@ -114,8 +114,11 @@ const Profile = () => {
           <Text style={styles.profileMembership}>{userProfile.membership} Member</Text>
           <Text style={styles.profileSince}>Member since {userProfile.memberSince}</Text>
         </View>
-        <TouchableOpacity style={styles.editButton}>
-          <Text style={styles.editButtonText}>Edit</Text>
+        <TouchableOpacity 
+          style={styles.editButton}
+          onPress={() => navigation.navigate('MemberProfile')}
+        >
+          <Text style={styles.editButtonText}>Edit Profile</Text>
         </TouchableOpacity>
       </View>
 
@@ -159,6 +162,13 @@ const Profile = () => {
       {/* Quick Actions */}
       <View style={styles.actionsCard}>
         <Text style={styles.actionsTitle}>Quick Actions</Text>
+        <TouchableOpacity 
+          style={[styles.actionButton, styles.memberProfileButton]}
+          onPress={() => navigation.navigate('MemberProfile')}
+        >
+          <Text style={styles.actionIcon}>👤</Text>
+          <Text style={styles.actionText}>Member Profile</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton}>
           <Text style={styles.actionIcon}>⚙️</Text>
           <Text style={styles.actionText}>Settings</Text>
@@ -736,5 +746,12 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingVertical: 15,
     paddingHorizontal: 15,
+  },
+  memberProfileButton: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 10,
+    marginBottom: 10,
+    borderWidth: 2,
+    borderColor: '#e74c3c',
   },
 }); 

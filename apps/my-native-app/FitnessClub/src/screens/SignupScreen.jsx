@@ -90,6 +90,8 @@ const SignupScreen = () => {
      }
    };
 
+  
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#C53030" />
