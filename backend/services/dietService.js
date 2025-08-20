@@ -5,12 +5,13 @@ import AppError from '../utils/AppError.js';
 const prisma = new PrismaClient();
 
 export const createLog = async (userId, logData) => {
-  return await prisma.dietLog.create({
+    return await prisma.dietLog.create({
     data: {
       userId,
       ...logData,
     },
   });
+  console.log("service recieved and updated diet log")
 };
 
 export const getLogsByDate = async (userId, dateString) => {

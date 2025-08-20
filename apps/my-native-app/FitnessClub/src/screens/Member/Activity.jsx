@@ -25,7 +25,6 @@ import { saveWorkoutEntry } from '../../api/trainingService';
 
 const Activity = () => {
   const navigation = useNavigation();
-  const [activeTab, setActiveTab] = useState('activity');
   const [selectedPeriod, setSelectedPeriod] = useState('week');
   const [fadeAnim] = useState(new Animated.Value(0));
   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
@@ -312,11 +311,7 @@ const Activity = () => {
   const muscleGroups = [ /* ...original data... */ ];
   const equipment = [ /* ...original data... */ ];
 
-  const tabs = [
-    { id: 'activity', title: 'Activity', icon: '📊' },
-    { id: 'diet', title: 'Diet', icon: '🥗' },
-    { id: 'training', title: 'Training', icon: '💪' },
-  ];
+  // Removed tabs array since we're removing tab navigation
 
   // --- CONDITIONAL RENDERING FOR LOADING AND ERROR STATES ---
   if (loading) {
@@ -442,20 +437,7 @@ const Activity = () => {
         )}
       </View>
 
-      {/* Quick Actions */}
-      <View style={styles.quickActionsCard}>
-        <Text style={styles.cardTitle}>⚡ Quick Actions</Text>
-        <View style={styles.quickActionsGrid}>
-          <TouchableOpacity style={styles.quickActionButton} onPress={openWorkoutModal}>
-            <Text style={styles.quickActionIcon}>💪</Text>
-            <Text style={styles.quickActionText}>Log Workout</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickActionButton} onPress={openDietModal}>
-            <Text style={styles.quickActionIcon}>🍎</Text>
-            <Text style={styles.quickActionText}>Log Meal</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+
     </Animated.View>
   );
 
@@ -583,20 +565,7 @@ const Activity = () => {
         )}
       </View>
 
-      {/* Quick Actions */}
-      <View style={styles.quickActionsCard}>
-        <Text style={styles.cardTitle}>⚡ Quick Actions</Text>
-        <View style={styles.quickActionsGrid}>
-          <TouchableOpacity style={styles.quickActionButton} onPress={openDietModal}>
-            <Text style={styles.quickActionIcon}>🍎</Text>
-            <Text style={styles.quickActionText}>Log Meal</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickActionButton}>
-            <Text style={styles.quickActionIcon}>💧</Text>
-            <Text style={styles.quickActionText}>Log Water</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+
     </Animated.View>
   );
 
@@ -673,20 +642,7 @@ const Activity = () => {
         )}
       </View>
 
-      {/* Quick Actions */}
-      <View style={styles.quickActionsCard}>
-        <Text style={styles.cardTitle}>⚡ Quick Actions</Text>
-        <View style={styles.quickActionsGrid}>
-          <TouchableOpacity style={styles.quickActionButton} onPress={openWorkoutModal}>
-            <Text style={styles.quickActionIcon}>💪</Text>
-            <Text style={styles.quickActionText}>Log Workout</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickActionButton}>
-            <Text style={styles.quickActionIcon}>📊</Text>
-            <Text style={styles.quickActionText}>View Progress</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+
     </Animated.View>
   );
 
@@ -740,31 +696,46 @@ const Activity = () => {
         </View>
       </LinearGradient>
 
-      {/* Tab Navigation */}
-      <View style={styles.tabContainer}>
-        {tabs.map((tab) => (
-          <TouchableOpacity
-            key={tab.id}
-            style={[
-              styles.tab,
-              activeTab === tab.id && styles.activeTab
-            ]}
-            onPress={() => setActiveTab(tab.id)}
-          >
-            <Text style={styles.tabIcon}>{tab.icon}</Text>
-            <Text style={[
-              styles.tabText,
-              activeTab === tab.id && styles.activeTabText
-            ]}>{tab.title}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Tab Content */}
+      {/* Main Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {activeTab === 'activity' && renderActivityTab()}
-        {activeTab === 'diet' && renderDietTab()}
-        {activeTab === 'training' && renderTrainingTab()}
+        {renderActivityTab()}
+        
+        {/* Diet and Training Buttons */}
+        <View style={styles.featureButtonsContainer}>
+          <TouchableOpacity 
+            style={styles.featureButton}
+            onPress={() => navigation.navigate('DietLog')}
+          >
+            <LinearGradient
+              colors={['#4ecdc4', '#44a08d']}
+              style={styles.featureButtonGradient}
+            >
+              <Text style={styles.featureButtonIcon}>🥗</Text>
+              <View style={styles.featureButtonContent}>
+                <Text style={styles.featureButtonTitle}>Diet & Nutrition</Text>
+                <Text style={styles.featureButtonSubtitle}>Track your meals and nutrition</Text>
+              </View>
+              <Text style={styles.featureButtonArrow}>→</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.featureButton}
+            onPress={() => navigation.navigate('Training')}
+          >
+            <LinearGradient
+              colors={['#ff6b6b', '#ee5a52']}
+              style={styles.featureButtonGradient}
+            >
+              <Text style={styles.featureButtonIcon}>💪</Text>
+              <View style={styles.featureButtonContent}>
+                <Text style={styles.featureButtonTitle}>Training & Workouts</Text>
+                <Text style={styles.featureButtonSubtitle}>Manage your workout plans</Text>
+              </View>
+              <Text style={styles.featureButtonArrow}>→</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
       {/* Floating Action Button */}
@@ -1216,41 +1187,7 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
   },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: 'white',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  tab: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  activeTab: {
-    backgroundColor: '#e74c3c',
-  },
-  tabIcon: {
-    fontSize: 20,
-    marginBottom: 5,
-  },
-  tabText: {
-    fontSize: 12,
-    color: '#666',
-    fontWeight: '600',
-  },
-  activeTabText: {
-    color: 'white',
-  },
+  // Removed tab-related styles since we removed tab navigation
   content: {
     flex: 1,
     paddingHorizontal: 20,
@@ -2196,44 +2133,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
-  // Quick Actions Card Styles
-  quickActionsCard: {
-    backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  quickActionsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    gap: 15,
-  },
-  quickActionButton: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 15,
-    borderRadius: 12,
-    backgroundColor: '#f8f9fa',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  quickActionIcon: {
-    fontSize: 28,
-    marginBottom: 8,
-  },
-  quickActionText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-  },
+
   emptyState: {
     alignItems: 'center',
     paddingVertical: 30,
@@ -2247,6 +2147,50 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     color: '#999',
+  },
+  
+  // Feature Buttons Styles
+  featureButtonsContainer: {
+    marginTop: 20,
+    marginBottom: 30,
+  },
+  featureButton: {
+    marginBottom: 15,
+    borderRadius: 15,
+    overflow: 'hidden',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+  },
+  featureButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    paddingHorizontal: 25,
+  },
+  featureButtonIcon: {
+    fontSize: 32,
+    marginRight: 15,
+  },
+  featureButtonContent: {
+    flex: 1,
+  },
+  featureButtonTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 4,
+  },
+  featureButtonSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  featureButtonArrow: {
+    fontSize: 24,
+    color: 'white',
+    fontWeight: 'bold',
   },
 });
 

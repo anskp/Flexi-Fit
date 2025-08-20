@@ -137,7 +137,7 @@ export const getGymDetails = async (gymId) => {
   try {
     console.log('[GymService] Getting gym details for:', gymId);
     
-    const response = await apiClient.get(`/gyms/${gymId}`);
+    const response = await apiClient.get(`/gyms/profile/${gymId}`);
     console.log('[GymService] Gym details response:', response.data);
     
     return response.data;

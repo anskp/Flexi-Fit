@@ -15,11 +15,12 @@ import {
   Modal,
   StyleSheet,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { PermissionsAndroid } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Geolocation from '@react-native-community/geolocation';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as gymService from '../../api/gymService';
 import parseApiError from '../../utils/parseApiError';
 
@@ -47,9 +48,14 @@ const LocationMain = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMoreGyms, setHasMoreGyms] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  
+  // Map refresh state
+  const [mapRefreshKey, setMapRefreshKey] = useState(0);
 
   // Animation ref
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  // Map ref for programmatic control
+  const mapRef = useRef(null);
 
   // Start pulse animation
   useEffect(() => {
@@ -76,19 +82,104 @@ const LocationMain = () => {
     initializeLocation();
   }, []);
 
+  // Restore location when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('🔄 Screen focused - checking location state');
+      const handleFocus = async () => {
+        const restored = await restoreLocationState();
+        if (restored) {
+          // Force map refresh when location is restored
+          setTimeout(() => {
+            console.log('🗺️ Forcing map refresh after location restoration');
+            setMapRefreshKey(prev => prev + 1);
+            if (mapRef.current) {
+              centerMapOnUser();
+            }
+          }, 1000);
+        }
+      };
+      handleFocus();
+    }, [])
+  );
+
   const initializeLocation = async () => {
     console.log('🚀 Initializing location...');
     setLoading(true);
     setError('');
     
     try {
-      await checkLocationPermission();
+      // First try to restore from storage
+      const restored = await restoreLocationState();
+      if (!restored) {
+        // If no stored location, proceed with normal initialization
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await checkLocationPermission();
+      }
     } catch (error) {
       console.error('❌ Location initialization failed:', error);
       setError('Failed to initialize location. Please try again.');
       setLoading(false);
     }
   };
+
+  // Function to save location to persistent storage
+  const saveLocationToStorage = async (location, permission) => {
+    try {
+      const locationData = {
+        latitude: location.latitude,
+        longitude: location.longitude,
+        timestamp: Date.now(),
+        permission: permission
+      };
+      await AsyncStorage.setItem('userLocation', JSON.stringify(locationData));
+      console.log('💾 Location saved to storage:', locationData);
+    } catch (error) {
+      console.error('❌ Failed to save location to storage:', error);
+    }
+  };
+
+  // Function to restore location from persistent storage
+  const restoreLocationState = async () => {
+    try {
+      const storedLocation = await AsyncStorage.getItem('userLocation');
+      if (storedLocation) {
+        const locationData = JSON.parse(storedLocation);
+        const now = Date.now();
+        const locationAge = now - locationData.timestamp;
+        
+        // Check if stored location is less than 30 minutes old
+        if (locationAge < 30 * 60 * 1000) {
+          console.log('📱 Restoring location from storage:', locationData);
+          setUserLocation({
+            latitude: locationData.latitude,
+            longitude: locationData.longitude
+          });
+          setLocationPermission(locationData.permission);
+          
+          // If we have a valid location, fetch gyms
+          if (locationData.permission) {
+            fetchGyms({
+              latitude: locationData.latitude,
+              longitude: locationData.longitude
+            }, 1, false);
+          }
+          
+          setLoading(false);
+          return true;
+        } else {
+          console.log('⏰ Stored location is too old, clearing storage');
+          await AsyncStorage.removeItem('userLocation');
+        }
+      }
+      return false;
+    } catch (error) {
+      console.error('❌ Failed to restore location from storage:', error);
+      return false;
+    }
+  };
+
+
 
   const checkLocationPermission = async () => {
     console.log('🔍 Checking location permission...');
@@ -222,50 +313,87 @@ const LocationMain = () => {
       setError('');
       setShowPermissionRequest(false);
       
-      // Set a timeout for location request
+      // Single, reliable location strategy with proper timeout handling
+      const locationOptions = {
+        enableHighAccuracy: false, // Start with low accuracy for better reliability
+        timeout: 30000, // 30 seconds total timeout
+        maximumAge: 600000, // 10 minutes cache
+        distanceFilter: 50 // Update if moved more than 50 meters
+      };
+      
+      console.log('📍 Using location options:', locationOptions);
+      
+      // Set a timeout for the entire location request
       const locationTimeout = setTimeout(() => {
         console.log('⏰ Location request timed out');
         setLocationPermission(false);
         setUserLocation(null);
-        setError('Location request timed out. Please try again.');
+        setError('Location request timed out. Please check your GPS settings and try again.');
         setLoading(false);
         reject(new Error('Location request timed out'));
-      }, 15000); // 15 second timeout
+      }, 35000); // 35 seconds total timeout
       
-      Geolocation.getCurrentPosition(
-        (position) => {
-          clearTimeout(locationTimeout);
-          const { latitude, longitude } = position.coords;
-          const newLocation = { latitude, longitude };
-          console.log('✅ Location obtained successfully:', newLocation);
-          setUserLocation(newLocation);
-          setLocationPermission(true); // Only set to true after we actually get location
-          setLoading(false);
-          setCurrentPage(1);
-          // Use the newly obtained location
-          fetchGyms(newLocation, 1, false);
-          resolve(newLocation);
-        },
+             Geolocation.getCurrentPosition(
+         async (position) => {
+           clearTimeout(locationTimeout);
+           const { latitude, longitude } = position.coords;
+           
+           // Validate coordinates
+           if (typeof latitude !== 'number' || typeof longitude !== 'number' || 
+               isNaN(latitude) || isNaN(longitude)) {
+             console.error('❌ Invalid coordinates received:', { latitude, longitude });
+             setError('Invalid location data received. Please try again.');
+             setLoading(false);
+             reject(new Error('Invalid coordinates'));
+             return;
+           }
+           
+           const newLocation = { latitude, longitude };
+           console.log('✅ Location obtained successfully:', newLocation);
+           
+           // Update state
+           setUserLocation(newLocation);
+           setLocationPermission(true);
+           setLoading(false);
+           setCurrentPage(1);
+           
+           // Save location to persistent storage
+           await saveLocationToStorage(newLocation, true);
+           
+           // Fetch gyms with the new location
+           fetchGyms(newLocation, 1, false);
+           
+           // Center map on new location with longer delay to ensure state is updated
+           setTimeout(() => {
+             console.log('🗺️ Attempting to center map after location update');
+             centerMapOnUser();
+           }, 1500);
+           
+           resolve(newLocation);
+         },
         (error) => {
           clearTimeout(locationTimeout);
           console.error('❌ Location error:', error);
           setLocationPermission(false);
           setUserLocation(null);
           
-          // Provide more specific error messages
+          // Provide specific error messages based on error code
           let errorMessage = 'Could not get your location. ';
           switch (error.code) {
             case 1:
-              errorMessage += 'Location permission denied.';
+              errorMessage += 'Location permission denied. Please enable location access in settings.';
               break;
             case 2:
-              errorMessage += 'Location unavailable. Please check your GPS settings.';
+              errorMessage += 'Location unavailable. Please check your GPS settings and try again.';
               break;
             case 3:
-              errorMessage += 'Location request timed out. Please try again.';
+              errorMessage += 'Location request timed out. Please check your GPS settings and try again.';
+              break;
+            case 4:
+              errorMessage += 'Location service is not available. Please try again later.';
               break;
             default:
-              errorMessage += error.message || 'Unknown error occurred.';
+              errorMessage += 'Please check your location settings and try again.';
           }
           
           setError(errorMessage);
@@ -273,12 +401,7 @@ const LocationMain = () => {
           setGyms([]);
           reject(error);
         },
-        { 
-          enableHighAccuracy: true, 
-          timeout: 15000, 
-          maximumAge: 300000, // 5 minutes cache
-          distanceFilter: 10 // Update if moved more than 10 meters
-        }
+        locationOptions
       );
     });
   };
@@ -305,26 +428,42 @@ const LocationMain = () => {
         if (granted === PermissionsAndroid.RESULTS.GRANTED) {
           console.log('✅ Permission granted, getting location...');
           try {
+            // Add a short delay to ensure permission is fully processed
+            await new Promise(resolve => setTimeout(resolve, 1000));
             await getCurrentLocation();
           } catch (error) {
             console.error('❌ Failed to get location after permission granted:', error);
-            setError('Permission granted but failed to get location. Please try again.');
+            
+            // More specific error handling for timeout cases
+            if (error.message && error.message.includes('timed out')) {
+              setError('Location request timed out. Please check your GPS settings and try again.');
+            } else if (error.code === 2) {
+              setError('Location unavailable. Please check your GPS settings and try again.');
+            } else if (error.code === 3) {
+              setError('Location request timed out. Please check your GPS settings and try again.');
+            } else {
+              setError('Permission granted but failed to get location. Please try again.');
+            }
             setLoading(false);
           }
-        } else if (granted === PermissionsAndroid.RESULTS.DENIED) {
-          setLocationPermission(false);
-          setShowPermissionRequest(false);
-          setError('Location permission denied. Please enable location access in settings to find nearby gyms.');
-          setLoading(false);
-          setGyms([]);
-        } else {
-          // Ask Me Later
-          setLocationPermission(false);
-          setShowPermissionRequest(false);
-          setError('Location permission not granted. Please enable location access to find nearby gyms.');
-          setLoading(false);
-          setGyms([]);
-        }
+                 } else if (granted === PermissionsAndroid.RESULTS.DENIED) {
+           setLocationPermission(false);
+           setShowPermissionRequest(false);
+           setError('Location permission denied. Please enable location access in settings to find nearby gyms.');
+           setLoading(false);
+           setGyms([]);
+           // Save permission state to storage
+           await saveLocationToStorage(null, false);
+         } else {
+           // Ask Me Later
+           setLocationPermission(false);
+           setShowPermissionRequest(false);
+           setError('Location permission not granted. Please enable location access to find nearby gyms.');
+           setLoading(false);
+           setGyms([]);
+           // Save permission state to storage
+           await saveLocationToStorage(null, false);
+         }
       } catch (err) {
         console.error('❌ Permission request failed:', err);
         setLocationPermission(false);
@@ -346,15 +485,17 @@ const LocationMain = () => {
     }
   };
 
-  const skipLocationPermission = () => {
-    console.log('⏭️ User skipped location permission');
-    setShowPermissionRequest(false);
-    setLocationPermission(false);
-    setUserLocation(null);
-    setError('Location access is required to find nearby gyms. Please enable location access.');
-    setGyms([]);
-    setLoading(false);
-  };
+     const skipLocationPermission = async () => {
+     console.log('⏭️ User skipped location permission');
+     setShowPermissionRequest(false);
+     setLocationPermission(false);
+     setUserLocation(null);
+     setError('Location access is required to find nearby gyms. Please enable location access.');
+     setGyms([]);
+     setLoading(false);
+     // Save permission state to storage
+     await saveLocationToStorage(null, false);
+   };
 
   const retryLocation = async () => {
     console.log('🔄 Retrying location...');
@@ -369,10 +510,45 @@ const LocationMain = () => {
       }
     } catch (error) {
       console.error('❌ Retry failed:', error);
-      setError('Failed to get location. Please check your GPS settings and try again.');
+      
+      // More specific error messages for retry
+      if (error.message && error.message.includes('timed out')) {
+        setError('Location request timed out. Please check your GPS settings and try again.');
+      } else if (error.code === 2) {
+        setError('Location unavailable. Please check your GPS settings and try again.');
+      } else if (error.code === 3) {
+        setError('Location request timed out. Please check your internet connection and try again.');
+      } else {
+        setError('Failed to get location. Please check your GPS settings and try again.');
+      }
       setLoading(false);
     }
   };
+
+     // Add a function to check if location services are enabled
+   const checkLocationServices = () => {
+     return new Promise((resolve) => {
+       // Simple check - if Geolocation is available, assume services are available
+       if (!Geolocation) {
+         console.log('❌ Geolocation not available');
+         resolve(false);
+         return;
+       }
+       
+       console.log('✅ Geolocation available');
+       resolve(true);
+     });
+   };
+
+   // Function to clear stored location data
+   const clearStoredLocation = async () => {
+     try {
+       await AsyncStorage.removeItem('userLocation');
+       console.log('🗑️ Stored location data cleared');
+     } catch (error) {
+       console.error('❌ Failed to clear stored location:', error);
+     }
+   };
 
   // Radius modal UX helpers
   const confirmRadius = () => {
@@ -461,7 +637,46 @@ const LocationMain = () => {
     longitudeDelta: 0.0421,
   };
 
-  const mapRegion = userLocation ? { ...userLocation, latitudeDelta: 0.0922, longitudeDelta: 0.0421 } : initialRegion;
+  const mapRegion = userLocation ? { 
+    latitude: userLocation.latitude, 
+    longitude: userLocation.longitude, 
+    latitudeDelta: 0.0922, 
+    longitudeDelta: 0.0421 
+  } : initialRegion;
+
+  // Debug log for map region
+  useEffect(() => {
+    console.log('🗺️ Map region updated:', mapRegion);
+  }, [mapRegion]);
+
+  // Function to center map on user location
+  const centerMapOnUser = () => {
+    if (mapRef.current && userLocation) {
+      console.log('🗺️ Centering map on user location:', userLocation);
+      const region = {
+        latitude: userLocation.latitude,
+        longitude: userLocation.longitude,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      };
+      mapRef.current.animateToRegion(region, 1000);
+    } else {
+      console.log('❌ Cannot center map - mapRef or userLocation not available');
+    }
+  };
+
+     // Effect to center map when user location changes
+   useEffect(() => {
+     console.log('📍 User location changed:', userLocation);
+     if (userLocation && mapRef.current) {
+       // Small delay to ensure map is ready
+       setTimeout(() => {
+         centerMapOnUser();
+         // Force map refresh when location changes
+         setMapRefreshKey(prev => prev + 1);
+       }, 1000);
+     }
+   }, [userLocation]);
 
   const renderGymList = () => {
     if (gymsLoading) {
@@ -497,7 +712,7 @@ const LocationMain = () => {
               styles.gymCard,
               selectedGym?.id === gym.id && styles.selectedGymCard
             ]}
-            onPress={() => navigation.navigate('GymProfile', { gymData: gym })}
+            onPress={() => navigation.navigate('GymDetails', { gymId: gym.id })}
           >
             <Text style={styles.gymName}>{gym.name}</Text>
             <Text style={styles.gymAddress}>{gym.address}</Text>
@@ -539,12 +754,29 @@ const LocationMain = () => {
               <Icon name="chevron-down" size={20} color="#e74c3c" />
             </TouchableOpacity>
           )}
-          <TouchableOpacity 
-            style={styles.refreshButton}
-            onPress={retryLocation}
-          >
-            <Icon name="refresh" size={24} color="#e74c3c" />
-          </TouchableOpacity>
+                     <TouchableOpacity 
+             style={styles.refreshButton}
+             onPress={async () => {
+               console.log('🔄 Manual refresh requested');
+               setLoading(true);
+               setError('');
+               try {
+                 await getCurrentLocation();
+                 // Force map refresh after getting new location
+                 setTimeout(() => {
+                   setMapRefreshKey(prev => prev + 1);
+                   if (mapRef.current) {
+                     centerMapOnUser();
+                   }
+                 }, 1000);
+               } catch (error) {
+                 console.error('❌ Manual refresh failed:', error);
+                 setLoading(false);
+               }
+             }}
+           >
+             <Icon name="refresh" size={24} color="#e74c3c" />
+           </TouchableOpacity>
         </View>
 
         {/* Location Status Bar */}
@@ -569,34 +801,66 @@ const LocationMain = () => {
           )}
         </View>
 
-        {/* Map Section */}
-        <View style={styles.mapContainer}>
-          <MapView
-            style={styles.map}
-            region={mapRegion}
-            showsUserLocation={false}
-            showsMyLocationButton={false}
-            provider={PROVIDER_GOOGLE}
-          >
-            {userLocation && (
-              <Marker coordinate={userLocation} title="You are here">
-                <View style={styles.userLocationMarker}>
-                  <Animated.View style={[styles.userLocationPulse, { transform: [{ scale: pulseAnim }] }]} />
-                  <View style={styles.userLocationDot} />
-                </View>
-              </Marker>
-            )}
-            {gyms.map((gym) => (
-              <Marker
-                key={gym.id}
-                coordinate={gym.coordinates}
-                title={gym.name}
-                description={gym.address}
-                pinColor={mapSelectedGym?.id === gym.id ? "#e74c3c" : "#27ae60"}
-                onPress={() => setMapSelectedGym(gym)}
-              />
-            ))}
-          </MapView>
+                 {/* Map Section */}
+         <View style={styles.mapContainer}>
+           <MapView
+             ref={mapRef}
+             style={styles.map}
+             region={mapRegion}
+             showsUserLocation={true}
+             showsMyLocationButton={false}
+             provider={PROVIDER_GOOGLE}
+             key={`map-${mapRefreshKey}`}
+             onMapReady={() => {
+               console.log('🗺️ Map is ready');
+               // Center map on user location when map is ready
+               if (userLocation) {
+                 console.log('📍 Centering map on user location:', userLocation);
+                 setTimeout(() => {
+                   centerMapOnUser();
+                 }, 500);
+               }
+             }}
+           >
+             {userLocation && (
+               <Marker 
+                 key={`user-location-${mapRefreshKey}`}
+                 coordinate={userLocation} 
+                 title="You are here"
+                 description="Your current location"
+                 anchor={{ x: 0.5, y: 0.5 }}
+               >
+                 <View style={styles.userLocationMarker}>
+                   <Animated.View style={[styles.userLocationPulse, { transform: [{ scale: pulseAnim }] }]} />
+                   <View style={styles.userLocationDot} />
+                 </View>
+               </Marker>
+             )}
+             {gyms.map((gym) => (
+               <Marker
+                 key={`gym-${gym.id}-${mapRefreshKey}`}
+                 coordinate={gym.coordinates}
+                 title={gym.name}
+                 description={gym.address}
+                 pinColor={mapSelectedGym?.id === gym.id ? "#e74c3c" : "#27ae60"}
+                 onPress={() => {
+                   setMapSelectedGym(gym);
+                   navigation.navigate('GymDetails', { gymId: gym.id });
+                 }}
+               />
+             ))}
+           </MapView>
+          
+          {/* My Location Button */}
+          {userLocation && (
+            <TouchableOpacity 
+              style={styles.myLocationButton} 
+              onPress={centerMapOnUser}
+              activeOpacity={0.8}
+            >
+              <Icon name="locate" size={24} color="#fff" />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Details Section */}
@@ -614,12 +878,31 @@ const LocationMain = () => {
             <View style={styles.errorContainer}>
               <Icon name="alert-circle-outline" size={24} color="#e74c3c" style={styles.errorIcon} />
               <Text style={styles.errorText}>{error}</Text>
-              <TouchableOpacity 
-                style={styles.retryButton}
-                onPress={retryLocation}
-              >
-                <Text style={styles.retryButtonText}>Try Again</Text>
-              </TouchableOpacity>
+              <View style={styles.errorActions}>
+                <TouchableOpacity 
+                  style={[styles.retryButton, styles.primaryRetryButton]}
+                  onPress={retryLocation}
+                >
+                  <Text style={styles.retryButtonText}>Try Again</Text>
+                </TouchableOpacity>
+                {(error.includes('GPS') || error.includes('settings') || error.includes('timed out')) && (
+                  <TouchableOpacity 
+                    style={[styles.retryButton, styles.secondaryRetryButton]}
+                    onPress={() => {
+                      Alert.alert(
+                        'Location Settings',
+                        'Please check the following:\n\n• GPS is enabled\n• Location services are on\n• Internet connection is stable\n• Try moving to an open area\n\nThen try again.',
+                        [
+                          { text: 'OK', style: 'default' },
+                          { text: 'Try Again', onPress: retryLocation }
+                        ]
+                      );
+                    }}
+                  >
+                    <Text style={styles.secondaryRetryButtonText}>Troubleshoot</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           )}
 
@@ -768,15 +1051,33 @@ const styles = {
     marginBottom: 10,
   },
   retryButton: {
-    backgroundColor: '#e74c3c',
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 8,
+    marginHorizontal: 5,
+  },
+  primaryRetryButton: {
+    backgroundColor: '#e74c3c',
+  },
+  secondaryRetryButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#e74c3c',
   },
   retryButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  secondaryRetryButtonText: {
+    color: '#e74c3c',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  errorActions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 10,
   },
   locationInfo: {
     alignItems: 'center',
@@ -986,6 +1287,22 @@ const styles = {
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  myLocationButton: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#e74c3c',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
   locationStatusBar: {
     flexDirection: 'row',

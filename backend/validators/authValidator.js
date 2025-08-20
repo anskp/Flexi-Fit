@@ -63,8 +63,9 @@ export const selectRoleSchema = Joi.object({
 });
 
 export const createMemberProfileSchema = Joi.object({
+  name: Joi.string().min(2).max(100).required(),
   age: Joi.number().integer().min(13).max(100).required(),
-  gender: Joi.string().required(),
+  gender: Joi.string().valid('Male', 'Female', 'Other').required(),
   weight: Joi.number().positive().required(),
   height: Joi.number().positive().required(),
   healthConditions: Joi.string().allow('').optional(),

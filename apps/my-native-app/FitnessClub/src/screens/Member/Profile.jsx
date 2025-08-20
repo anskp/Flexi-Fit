@@ -1,14 +1,23 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, Text, ScrollView, TouchableOpacity, Image, Switch } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, Text, ScrollView, TouchableOpacity, Image, Switch, ActivityIndicator, Alert } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/authContext';
+import { getUserProfile, getUserStats, getUserNotifications, getCommunityPosts, updateNotificationSettings } from '../../api/userService';
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigation = useNavigation();
   const { logout } = useAuth();
+
+  // State for fetched data
+  const [userProfile, setUserProfile] = useState(null);
+  const [userStats, setUserStats] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [communityPosts, setCommunityPosts] = useState([]);
 
   const tabs = [
     { id: 'profile', title: 'Profile', icon: '👤' },
@@ -16,103 +25,125 @@ const Profile = () => {
     { id: 'notifications', title: 'Notifications', icon: '🔔' },
   ];
 
-  const userProfile = {
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+91 98765 43210",
-    membership: "Premium",
-    memberSince: "January 2024",
-    avatar: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
-    stats: {
-      workouts: 45,
-      streak: 12,
-      points: 1250,
-      level: "Gold"
+  // Data fetching functions
+  const fetchProfileData = async () => {
+    setLoading(true);
+    setError(null);
+
+    const [profileResult, statsResult, notificationsResult, postsResult] = await Promise.allSettled([
+      getUserProfile(),
+      getUserStats(),
+      getUserNotifications(),
+      getCommunityPosts()
+    ]);
+
+    if (profileResult.status === 'fulfilled') {
+      const pr = profileResult.value;
+      setUserProfile(pr.data || pr);
+    } else {
+      console.warn('Profile fetch failed:', profileResult.reason?.message || profileResult.reason);
+    }
+
+    if (statsResult.status === 'fulfilled') {
+      const sr = statsResult.value;
+      // dashboard returns { success, data } where data contains stats; adapt accordingly
+      const data = sr.data || sr;
+      setUserStats(data.data || data);
+    } else {
+      console.warn('Stats fetch failed:', statsResult.reason?.message || statsResult.reason);
+    }
+
+    if (notificationsResult.status === 'fulfilled') {
+      const nr = notificationsResult.value;
+      setNotifications(nr.data || nr);
+    } else {
+      console.warn('Notifications fetch failed:', notificationsResult.reason?.message || notificationsResult.reason);
+    }
+
+    if (postsResult.status === 'fulfilled') {
+      const cr = postsResult.value;
+      setCommunityPosts(cr.data || cr);
+    } else {
+      console.warn('Community posts fetch failed:', postsResult.reason?.message || postsResult.reason);
+    }
+
+    // If critical profile failed, surface an error; otherwise proceed
+    if (profileResult.status === 'rejected') {
+      setError('Failed to load profile. Please try again.');
+    }
+    setLoading(false);
+  };
+
+  const handleNotificationToggle = async (value) => {
+    try {
+      setNotificationsEnabled(value);
+      await updateNotificationSettings({ enabled: value });
+    } catch (error) {
+      console.error('Update notification settings error:', error);
+      Alert.alert('Error', 'Failed to update notification settings');
+      // Revert the toggle if update failed
+      setNotificationsEnabled(!value);
     }
   };
 
-  const communityPosts = [
-    {
-      id: 1,
-      user: "Sarah Wilson",
-      avatar: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
-      content: "Just completed my 30-day fitness challenge! 💪 Feeling amazing and stronger than ever. Who's up for the next challenge?",
-      likes: 24,
-      comments: 8,
-      time: "2 hours ago",
-      image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400"
-    },
-    {
-      id: 2,
-      user: "Mike Johnson",
-      avatar: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
-      content: "New personal record on deadlifts today! 225 lbs for 5 reps. Progress feels great! 🏋️‍♂️",
-      likes: 18,
-      comments: 5,
-      time: "5 hours ago"
-    },
-    {
-      id: 3,
-      user: "Emma Davis",
-      avatar: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
-      content: "Morning yoga session complete! 🧘‍♀️ Perfect way to start the day. Anyone else love sunrise workouts?",
-      likes: 31,
-      comments: 12,
-      time: "1 day ago"
-    }
-  ];
+  // Fetch data on component mount
+  useEffect(() => {
+    fetchProfileData();
+  }, []);
 
-  const notifications = [
-    {
-      id: 1,
-      type: "workout",
-      title: "Workout Reminder",
-      message: "Time for your scheduled workout! Don't break your streak.",
-      time: "5 minutes ago",
-      read: false,
-      icon: "💪"
-    },
-    {
-      id: 2,
-      type: "achievement",
-      title: "Achievement Unlocked!",
-      message: "Congratulations! You've completed 10 workouts this month.",
-      time: "1 hour ago",
-      read: false,
-      icon: "🏆"
-    },
-    {
-      id: 3,
-      type: "community",
-      title: "New Community Post",
-      message: "Sarah Wilson posted about her fitness challenge completion.",
-      time: "2 hours ago",
-      read: true,
-      icon: "👥"
-    },
-    {
-      id: 4,
-      type: "event",
-      title: "Event Reminder",
-      message: "Yoga workshop starts in 30 minutes at Zen Fitness Studio.",
-      time: "3 hours ago",
-      read: true,
-      icon: "🧘‍♀️"
-    }
-  ];
+  // Loading state
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#e74c3c" />
+        <Text style={{ marginTop: 15, fontSize: 16, color: '#555' }}>Loading Profile...</Text>
+      </View>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+        <Text style={{ color: '#c0392b', marginBottom: 20, fontSize: 16, textAlign: 'center' }}>
+          {error}
+        </Text>
+        <TouchableOpacity onPress={fetchProfileData} style={styles.retryButton}>
+          <Text style={styles.retryButtonText}>Try Again</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // Default values for safety
+  const safeUserProfile = userProfile || {
+    name: "User",
+    email: "user@example.com",
+    phone: "",
+    membership: "Basic",
+    memberSince: "Recently",
+    avatar: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400"
+  };
+
+  const safeUserStats = userStats || {
+    workouts: 0,
+    streak: 0,
+    points: 0,
+    level: "Bronze"
+  };
 
   const renderProfileTab = () => (
     <View style={styles.tabContent}>
       {/* Profile Header */}
       <View style={styles.profileHeader}>
         <Image
-          source={{ uri: userProfile.avatar }}
+          source={{ uri: safeUserProfile.avatar }}
           style={styles.profileAvatar}
         />
         <View style={styles.profileInfo}>
-          <Text style={styles.profileName}>{userProfile.name}</Text>
-          <Text style={styles.profileMembership}>{userProfile.membership} Member</Text>
-          <Text style={styles.profileSince}>Member since {userProfile.memberSince}</Text>
+          <Text style={styles.profileName}>{safeUserProfile.name}</Text>
+          <Text style={styles.profileMembership}>{safeUserProfile.membership} Member</Text>
+          <Text style={styles.profileSince}>Member since {safeUserProfile.memberSince}</Text>
         </View>
         <TouchableOpacity 
           style={styles.editButton}
@@ -125,19 +156,19 @@ const Profile = () => {
       {/* Stats Cards */}
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
-          <Text style={styles.statValue}>{userProfile.stats.workouts}</Text>
+          <Text style={styles.statValue}>{safeUserStats.workouts}</Text>
           <Text style={styles.statLabel}>Workouts</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statValue}>{userProfile.stats.streak}</Text>
+          <Text style={styles.statValue}>{safeUserStats.streak}</Text>
           <Text style={styles.statLabel}>Day Streak</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statValue}>{userProfile.stats.points}</Text>
+          <Text style={styles.statValue}>{safeUserStats.points}</Text>
           <Text style={styles.statLabel}>Points</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statValue}>{userProfile.stats.level}</Text>
+          <Text style={styles.statValue}>{safeUserStats.level}</Text>
           <Text style={styles.statLabel}>Level</Text>
         </View>
       </View>
@@ -147,15 +178,15 @@ const Profile = () => {
         <Text style={styles.detailsTitle}>Personal Information</Text>
         <View style={styles.detailItem}>
           <Text style={styles.detailLabel}>Email</Text>
-          <Text style={styles.detailValue}>{userProfile.email}</Text>
+          <Text style={styles.detailValue}>{safeUserProfile.email}</Text>
         </View>
         <View style={styles.detailItem}>
           <Text style={styles.detailLabel}>Phone</Text>
-          <Text style={styles.detailValue}>{userProfile.phone}</Text>
+          <Text style={styles.detailValue}>{safeUserProfile.phone || 'Not provided'}</Text>
         </View>
         <View style={styles.detailItem}>
           <Text style={styles.detailLabel}>Membership</Text>
-          <Text style={styles.detailValue}>{userProfile.membership}</Text>
+          <Text style={styles.detailValue}>{safeUserProfile.membership}</Text>
         </View>
       </View>
 
@@ -213,38 +244,45 @@ const Profile = () => {
 
       {/* Community Posts */}
       <View style={styles.postsContainer}>
-        {communityPosts.map((post) => (
-          <View key={post.id} style={styles.postCard}>
-            <View style={styles.postHeader}>
-              <Image source={{ uri: post.avatar }} style={styles.postAvatar} />
-              <View style={styles.postUserInfo}>
-                <Text style={styles.postUserName}>{post.user}</Text>
-                <Text style={styles.postTime}>{post.time}</Text>
+        {communityPosts && communityPosts.length > 0 ? (
+          communityPosts.map((post) => (
+            <View key={post.id} style={styles.postCard}>
+              <View style={styles.postHeader}>
+                <Image source={{ uri: post.avatar || post.userAvatar }} style={styles.postAvatar} />
+                <View style={styles.postUserInfo}>
+                  <Text style={styles.postUserName}>{post.user || post.userName}</Text>
+                  <Text style={styles.postTime}>{post.time || post.createdAt}</Text>
+                </View>
+              </View>
+              
+              <Text style={styles.postContent}>{post.content || post.message}</Text>
+              
+              {post.image && (
+                <Image source={{ uri: post.image }} style={styles.postImage} />
+              )}
+              
+              <View style={styles.postActions}>
+                <TouchableOpacity style={styles.postAction}>
+                  <Text style={styles.postActionIcon}>❤️</Text>
+                  <Text style={styles.postActionText}>{post.likes || 0}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.postAction}>
+                  <Text style={styles.postActionIcon}>💬</Text>
+                  <Text style={styles.postActionText}>{post.comments || 0}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.postAction}>
+                  <Text style={styles.postActionIcon}>📤</Text>
+                  <Text style={styles.postActionText}>Share</Text>
+                </TouchableOpacity>
               </View>
             </View>
-            
-            <Text style={styles.postContent}>{post.content}</Text>
-            
-            {post.image && (
-              <Image source={{ uri: post.image }} style={styles.postImage} />
-            )}
-            
-            <View style={styles.postActions}>
-              <TouchableOpacity style={styles.postAction}>
-                <Text style={styles.postActionIcon}>❤️</Text>
-                <Text style={styles.postActionText}>{post.likes}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.postAction}>
-                <Text style={styles.postActionIcon}>💬</Text>
-                <Text style={styles.postActionText}>{post.comments}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.postAction}>
-                <Text style={styles.postActionIcon}>📤</Text>
-                <Text style={styles.postActionText}>Share</Text>
-              </TouchableOpacity>
-            </View>
+          ))
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>No community posts yet</Text>
+            <Text style={styles.emptySubtext}>Be the first to share your fitness journey!</Text>
           </View>
-        ))}
+        )}
       </View>
     </View>
   );
@@ -260,7 +298,7 @@ const Profile = () => {
           </View>
           <Switch
             value={notificationsEnabled}
-            onValueChange={setNotificationsEnabled}
+            onValueChange={handleNotificationToggle}
             trackColor={{ false: '#767577', true: '#e74c3c' }}
             thumbColor={notificationsEnabled ? '#fff' : '#f4f3f4'}
           />
@@ -269,25 +307,32 @@ const Profile = () => {
 
       {/* Notifications List */}
       <View style={styles.notificationsContainer}>
-        {notifications.map((notification) => (
-          <TouchableOpacity
-            key={notification.id}
-            style={[
-              styles.notificationCard,
-              !notification.read && styles.unreadNotification
-            ]}
-          >
-            <View style={styles.notificationIcon}>
-              <Text style={styles.notificationIconText}>{notification.icon}</Text>
-            </View>
-            <View style={styles.notificationContent}>
-              <Text style={styles.notificationTitle}>{notification.title}</Text>
-              <Text style={styles.notificationMessage}>{notification.message}</Text>
-              <Text style={styles.notificationTime}>{notification.time}</Text>
-            </View>
-            {!notification.read && <View style={styles.unreadDot} />}
-          </TouchableOpacity>
-        ))}
+        {notifications && notifications.length > 0 ? (
+          notifications.map((notification) => (
+            <TouchableOpacity
+              key={notification.id}
+              style={[
+                styles.notificationCard,
+                !notification.read && styles.unreadNotification
+              ]}
+            >
+              <View style={styles.notificationIcon}>
+                <Text style={styles.notificationIconText}>{notification.icon || '🔔'}</Text>
+              </View>
+              <View style={styles.notificationContent}>
+                <Text style={styles.notificationTitle}>{notification.title}</Text>
+                <Text style={styles.notificationMessage}>{notification.message}</Text>
+                <Text style={styles.notificationTime}>{notification.time || notification.createdAt}</Text>
+              </View>
+              {!notification.read && <View style={styles.unreadDot} />}
+            </TouchableOpacity>
+          ))
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>No notifications yet</Text>
+            <Text style={styles.emptySubtext}>You're all caught up!</Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -753,5 +798,17 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderWidth: 2,
     borderColor: '#e74c3c',
+  },
+  retryButton: {
+    backgroundColor: '#e74c3c',
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
 }); 

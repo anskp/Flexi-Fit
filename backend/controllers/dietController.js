@@ -5,6 +5,7 @@ import catchAsync from '../utils/catchAsync.js';
 
 export const logDietEntry = catchAsync(async (req, res) => {
   const newEntry = await dietService.createLog(req.user.id, req.body);
+  console.log("controller recieved dietlog")
   res.status(201).json({ success: true, message: 'Diet entry logged successfully.', data: newEntry });
 });
 

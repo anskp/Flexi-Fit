@@ -14,9 +14,12 @@ import {
   Animated,
   Easing,
   ScrollView,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { saveDietEntry } from '../../api/dietService';
+import { launchImageLibrary } from 'react-native-image-picker';
 
 const { width, height } = Dimensions.get('window');
 
@@ -171,12 +174,27 @@ const MealCard = ({ item, index, onDelete }) => {
       ]}
     >
       <View style={styles.mealCardContent}>
+        {/* Meal Photo */}
+        {item.photo && (
+          <Image source={{ uri: item.photo }} style={styles.mealCardPhoto} />
+        )}
+        
         <View style={styles.mealHeader}>
           <Text style={styles.mealName}>{item.mealName}</Text>
           <View style={styles.caloriesBadge}>
             <Text style={styles.caloriesText}>{item.calories} kcal</Text>
           </View>
         </View>
+        
+        {/* Meal Type Badge */}
+        {item.mealType && (
+          <View style={styles.mealTypeBadge}>
+            <Text style={styles.mealTypeBadgeText}>
+              {item.mealType.charAt(0).toUpperCase() + item.mealType.slice(1)}
+            </Text>
+          </View>
+        )}
+        
         <View style={styles.macroRow}>
           <View style={styles.macroItem}>
             <Text style={styles.macroLabel}>Protein</Text>
@@ -188,9 +206,17 @@ const MealCard = ({ item, index, onDelete }) => {
           </View>
           <View style={styles.macroItem}>
             <Text style={styles.macroLabel}>Fat</Text>
-            <Text style={styles.macroValue}>{item.fat || 0}g</Text>
+            <Text style={styles.macroValue}>{item.fats || 0}g</Text>
           </View>
         </View>
+        
+        {/* Notes */}
+        {item.notes && (
+          <View style={styles.notesContainer}>
+            <Text style={styles.notesText}>{item.notes}</Text>
+          </View>
+        )}
+        
         <View style={styles.cardFooter}>
           <Text style={styles.timeStamp}>{item.timestamp}</Text>
           <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
@@ -307,10 +333,25 @@ const PulsingButton = ({ onPress, children, style }) => {
 const DietLog = () => {
   const [logs, setLogs] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({
     totalCalories: 0,
     totalProtein: 0,
     totalMeals: 0,
+  });
+  
+  // Custom meal form state
+  const [dietForm, setDietForm] = useState({
+    mealName: '',
+    calories: '',
+    protein: '',
+    carbs: '',
+    fats: '',
+    fiber: '',
+    sugar: '',
+    mealType: 'breakfast',
+    notes: '',
+    photo: null,
   });
 
   const headerScale = useRef(new Animated.Value(1)).current;
@@ -433,6 +474,7 @@ const DietLog = () => {
       return;
     }
     
+    setLoading(true);
     try {
       const response = await saveDietEntry(dietForm);
 
@@ -445,6 +487,7 @@ const DietLog = () => {
         };
         setLogs([newLog, ...logs]);
         closeModal();
+        resetDietForm();
         Alert.alert('Success', 'Custom meal logged successfully! 🎉');
       } else {
         Alert.alert('Error', response.message || 'Failed to save meal');
@@ -452,7 +495,52 @@ const DietLog = () => {
     } catch (error) {
       console.error('Save diet error:', error);
       Alert.alert('Error', 'Failed to save meal. Please try again.');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const resetDietForm = () => {
+    setDietForm({
+      mealName: '',
+      calories: '',
+      protein: '',
+      carbs: '',
+      fats: '',
+      fiber: '',
+      sugar: '',
+      mealType: 'breakfast',
+      notes: '',
+      photo: null,
+    });
+  };
+
+  const handleDietInput = (key, value) => {
+    setDietForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  const selectImage = () => {
+    const options = {
+      mediaType: 'photo',
+      quality: 0.8,
+      maxWidth: 800,
+      maxHeight: 800,
+    };
+
+    launchImageLibrary(options, (response) => {
+      if (response.didCancel) {
+        console.log('User cancelled image picker');
+      } else if (response.error) {
+        Alert.alert('Error', 'Failed to pick image');
+      } else if (response.assets && response.assets[0]) {
+        const imageUri = response.assets[0].uri;
+        setDietForm(prev => ({ ...prev, photo: imageUri }));
+      }
+    });
+  };
+
+  const removePhoto = () => {
+    setDietForm(prev => ({ ...prev, photo: null }));
   };
 
   const openModal = () => {
@@ -472,6 +560,7 @@ const DietLog = () => {
       useNativeDriver: true,
     }).start(() => {
       setModalVisible(false);
+      resetDietForm();
     });
   };
 
@@ -599,6 +688,159 @@ const DietLog = () => {
       <PulsingButton style={styles.fab} onPress={openModal}>
         <Icon name="add" size={32} color="#fff" />
       </PulsingButton>
+
+      {/* Custom Meal Modal */}
+      <Modal visible={modalVisible} transparent={true} animationType="fade">
+        <View style={styles.modalOverlay}>
+          <Animated.View 
+            style={[
+              styles.modalContent,
+              { transform: [{ translateY: modalSlide }] }
+            ]}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add Custom Meal</Text>
+              <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Photo Section */}
+              <View style={styles.photoSection}>
+                <Text style={styles.sectionLabel}>📸 Meal Photo (Optional)</Text>
+                {dietForm.photo ? (
+                  <View style={styles.photoContainer}>
+                    <Image source={{ uri: dietForm.photo }} style={styles.mealPhoto} />
+                    <TouchableOpacity style={styles.removePhotoButton} onPress={removePhoto}>
+                      <Text style={styles.removePhotoText}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity style={styles.addPhotoButton} onPress={selectImage}>
+                    <Icon name="camera" size={32} color="#4ecdc4" />
+                    <Text style={styles.addPhotoText}>Add Photo</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Basic Info */}
+              <Text style={styles.sectionLabel}>🍽️ Meal Information</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Meal Name"
+                placeholderTextColor="#888"
+                value={dietForm.mealName}
+                onChangeText={(text) => handleDietInput('mealName', text)}
+              />
+
+              {/* Meal Type Selector */}
+              <View style={styles.mealTypeContainer}>
+                <Text style={styles.mealTypeLabel}>Meal Type:</Text>
+                <View style={styles.mealTypeButtons}>
+                  {['breakfast', 'lunch', 'dinner', 'snack'].map((type) => (
+                    <TouchableOpacity
+                      key={type}
+                      style={[
+                        styles.mealTypeButton,
+                        dietForm.mealType === type && styles.selectedMealTypeButton
+                      ]}
+                      onPress={() => handleDietInput('mealType', type)}
+                    >
+                      <Text style={[
+                        styles.mealTypeText,
+                        dietForm.mealType === type && styles.selectedMealTypeText
+                      ]}>
+                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Calories */}
+              <Text style={styles.sectionLabel}>🔥 Calories</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Calories"
+                placeholderTextColor="#888"
+                keyboardType="numeric"
+                value={dietForm.calories}
+                onChangeText={(text) => handleDietInput('calories', text)}
+              />
+
+              {/* Macronutrients */}
+              <Text style={styles.sectionLabel}>🥗 Macronutrients</Text>
+              <View style={styles.inputRow}>
+                <TextInput
+                  style={styles.inputHalf}
+                  placeholder="Protein (g)"
+                  placeholderTextColor="#888"
+                  keyboardType="numeric"
+                  value={dietForm.protein}
+                  onChangeText={(text) => handleDietInput('protein', text)}
+                />
+                <TextInput
+                  style={styles.inputHalf}
+                  placeholder="Carbs (g)"
+                  placeholderTextColor="#888"
+                  keyboardType="numeric"
+                  value={dietForm.carbs}
+                  onChangeText={(text) => handleDietInput('carbs', text)}
+                />
+              </View>
+              <View style={styles.inputRow}>
+                <TextInput
+                  style={styles.inputHalf}
+                  placeholder="Fats (g)"
+                  placeholderTextColor="#888"
+                  keyboardType="numeric"
+                  value={dietForm.fats}
+                  onChangeText={(text) => handleDietInput('fats', text)}
+                />
+                <TextInput
+                  style={styles.inputHalf}
+                  placeholder="Fiber (g)"
+                  placeholderTextColor="#888"
+                  keyboardType="numeric"
+                  value={dietForm.fiber}
+                  onChangeText={(text) => handleDietInput('fiber', text)}
+                />
+              </View>
+
+              {/* Notes */}
+              <Text style={styles.sectionLabel}>📝 Notes (Optional)</Text>
+              <TextInput
+                style={[styles.input, styles.notesInput]}
+                placeholder="Add any notes about your meal..."
+                placeholderTextColor="#888"
+                multiline
+                numberOfLines={3}
+                value={dietForm.notes}
+                onChangeText={(text) => handleDietInput('notes', text)}
+              />
+
+              {/* Action Buttons */}
+              <View style={styles.modalActions}>
+                <TouchableOpacity style={styles.cancelButton} onPress={closeModal}>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.saveButton} 
+                  onPress={handleCustomMeal}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.saveButtonText}>Save Meal</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </Animated.View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -702,6 +944,38 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   mealCardContent: {},
+  mealCardPhoto: {
+    width: '100%',
+    height: 150,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  mealTypeBadge: {
+    backgroundColor: '#4ecdc4',
+    borderRadius: 12,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    alignSelf: 'flex-start',
+    marginBottom: 10,
+  },
+  mealTypeBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+    fontFamily: 'System',
+  },
+  notesContainer: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 10,
+  },
+  notesText: {
+    color: '#bbb',
+    fontSize: 13,
+    fontStyle: 'italic',
+    fontFamily: 'System',
+  },
   mealHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1016,6 +1290,208 @@ const styles = StyleSheet.create({
   selectedCategoryText: {
     color: '#4ecdc4',
     fontWeight: '600',
+  },
+  
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#202040',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 22,
+    maxHeight: '90%',
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    color: '#fff',
+    fontWeight: 'bold',
+    fontFamily: 'System',
+    letterSpacing: 0.3,
+  },
+  closeButton: {
+    padding: 6,
+    borderRadius: 12,
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontSize: 20,
+    fontFamily: 'System',
+  },
+  
+  // Photo Section Styles
+  photoSection: {
+    marginBottom: 20,
+  },
+  sectionLabel: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: '600',
+    marginBottom: 10,
+    fontFamily: 'System',
+  },
+  addPhotoButton: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 15,
+    padding: 20,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#4ecdc4',
+    borderStyle: 'dashed',
+  },
+  addPhotoText: {
+    color: '#4ecdc4',
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 8,
+    fontFamily: 'System',
+  },
+  photoContainer: {
+    position: 'relative',
+    borderRadius: 15,
+    overflow: 'hidden',
+  },
+  mealPhoto: {
+    width: '100%',
+    height: 200,
+    borderRadius: 15,
+  },
+  removePhotoButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(255,0,0,0.8)',
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  removePhotoText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  
+  // Meal Type Styles
+  mealTypeContainer: {
+    marginBottom: 20,
+  },
+  mealTypeLabel: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: '600',
+    marginBottom: 10,
+    fontFamily: 'System',
+  },
+  mealTypeButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  mealTypeButton: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  selectedMealTypeButton: {
+    backgroundColor: '#4ecdc4',
+    borderColor: '#4ecdc4',
+  },
+  mealTypeText: {
+    color: '#bbb',
+    fontSize: 14,
+    fontWeight: '500',
+    fontFamily: 'System',
+  },
+  selectedMealTypeText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  
+  // Input Styles
+  input: {
+    backgroundColor: '#282850',
+    borderRadius: 10,
+    padding: 12,
+    color: '#fff',
+    marginBottom: 15,
+    fontSize: 15,
+    fontFamily: 'System',
+    fontWeight: '400',
+  },
+  inputRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  inputHalf: {
+    flex: 1,
+    backgroundColor: '#282850',
+    borderRadius: 10,
+    padding: 12,
+    color: '#fff',
+    fontSize: 15,
+    marginRight: 8,
+    fontFamily: 'System',
+    fontWeight: '400',
+  },
+  notesInput: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+  
+  // Action Buttons
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  saveButton: {
+    backgroundColor: '#4ecdc4',
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 12,
+    flex: 1,
+    marginLeft: 10,
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    fontFamily: 'System',
+    letterSpacing: 0.5,
+  },
+  cancelButton: {
+    backgroundColor: '#282850',
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 12,
+    flex: 1,
+    marginRight: 10,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    fontFamily: 'System',
+    letterSpacing: 0.5,
   },
 });
 

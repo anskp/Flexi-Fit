@@ -24,12 +24,20 @@ const GymDetailsScreen = () => {
       }
       try {
         setLoading(true);
+        setError('');
+        console.log('[GymDetailsScreen] Fetching gym details for ID:', gymId);
+        
         const response = await gymService.getGymDetails(gymId);
-        if (response.success) {
+        console.log('[GymDetailsScreen] API response:', response);
+        
+        if (response.success && response.data) {
           setGym(response.data);
+        } else {
+          setError(response.message || 'Failed to load gym details');
         }
       } catch (err) {
-        setError(parseApiError(err));
+        console.error('[GymDetailsScreen] Error fetching gym details:', err);
+        setError(parseApiError(err) || 'Failed to load gym details');
       } finally {
         setLoading(false);
       }
@@ -51,15 +59,55 @@ const GymDetailsScreen = () => {
   }
 
   if (loading) {
-    return <View style={styles.centerContainer}><ActivityIndicator size="large" color="#e74c3c" /></View>;
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#e74c3c" />
+        <Text style={styles.loadingText}>Loading gym details...</Text>
+      </View>
+    );
   }
 
   if (error) {
-    return <View style={styles.centerContainer}><Text style={styles.errorText}>{error}</Text></View>;
+    return (
+      <View style={styles.centerContainer}>
+        <Icon name="alert-circle-outline" size={48} color="#e74c3c" style={styles.errorIcon} />
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity 
+          style={styles.retryButton}
+          onPress={() => {
+            setLoading(true);
+            setError('');
+            // Re-fetch gym details
+            const fetchGymDetails = async () => {
+              try {
+                const response = await gymService.getGymDetails(gymId);
+                if (response.success && response.data) {
+                  setGym(response.data);
+                } else {
+                  setError(response.message || 'Failed to load gym details');
+                }
+              } catch (err) {
+                setError(parseApiError(err) || 'Failed to load gym details');
+              } finally {
+                setLoading(false);
+              }
+            };
+            fetchGymDetails();
+          }}
+        >
+          <Text style={styles.retryButtonText}>Try Again</Text>
+        </TouchableOpacity>
+      </View>
+    );
   }
 
   if (!gym) {
-    return <View style={styles.centerContainer}><Text>Gym details could not be loaded.</Text></View>;
+    return (
+      <View style={styles.centerContainer}>
+        <Icon name="fitness-outline" size={48} color="#ccc" />
+        <Text style={styles.noDataText}>Gym details could not be loaded.</Text>
+      </View>
+    );
   }
 
   return (
@@ -107,12 +155,16 @@ const GymDetailsScreen = () => {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Membership Plans</Text>
-          {gym.plans.map(plan => (
-            <TouchableOpacity key={plan.id} style={styles.planCard} onPress={() => handleSubscribe(plan)}>
-              <Text style={styles.planName}>{plan.name} ({plan.duration})</Text>
-              <Text style={styles.planPrice}>₹{plan.price}</Text>
-            </TouchableOpacity>
-          ))}
+          {gym.plans && gym.plans.length > 0 ? (
+            gym.plans.map(plan => (
+              <TouchableOpacity key={plan.id || plan.name} style={styles.planCard} onPress={() => handleSubscribe(plan)}>
+                <Text style={styles.planName}>{plan.name} ({plan.duration})</Text>
+                <Text style={styles.planPrice}>₹{plan.price}</Text>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <Text style={styles.noPlansText}>No membership plans available</Text>
+          )}
         </View>
       </View>
     </ScrollView>
@@ -122,8 +174,23 @@ const GymDetailsScreen = () => {
 // Add your styles here
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fff' },
-    centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    errorText: { color: 'red', fontSize: 16 },
+    centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+    errorText: { color: '#e74c3c', fontSize: 16, textAlign: 'center', marginTop: 10 },
+    errorIcon: { marginBottom: 10 },
+    loadingText: { marginTop: 10, fontSize: 16, color: '#666' },
+    noDataText: { fontSize: 16, color: '#666', textAlign: 'center', marginTop: 10 },
+    retryButton: { 
+        backgroundColor: '#e74c3c', 
+        paddingVertical: 12, 
+        paddingHorizontal: 24, 
+        borderRadius: 8, 
+        marginTop: 20 
+    },
+    retryButtonText: { 
+        color: 'white', 
+        fontSize: 16, 
+        fontWeight: 'bold' 
+    },
     headerImage: { width: '100%', height: 250 },
     backButton: { position: 'absolute', top: 40, left: 15, backgroundColor: 'rgba(255,255,255,0.8)', padding: 8, borderRadius: 20 },
     contentContainer: { padding: 20 },
@@ -139,6 +206,7 @@ const styles = StyleSheet.create({
     planCard: { backgroundColor: '#f8f8f8', padding: 15, borderRadius: 10, marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: '#eee' },
     planName: { fontSize: 16, fontWeight: '600', color: '#333' },
     planPrice: { fontSize: 16, fontWeight: 'bold', color: '#e74c3c' },
+    noPlansText: { fontSize: 14, color: '#999', textAlign: 'center', fontStyle: 'italic' },
 });
 
 export default GymDetailsScreen;
