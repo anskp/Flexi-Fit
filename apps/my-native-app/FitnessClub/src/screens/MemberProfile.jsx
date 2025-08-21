@@ -1,236 +1,8 @@
-// // src/screens/Member/MemberProfile.jsx
-// import React, { useState } from 'react';
-// import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
-// import { Picker } from '@react-native-picker/picker';
-// import { useNavigation } from '@react-navigation/native';
-// import { useAuth } from '../context/authContext';
-// import * as authService from '../api/authService';
-// import parseApiError from '../utils/parseApiError';
-
-// const MemberProfile = () => {
-//   const { reloadUser } = useAuth(); // We'll use this to trigger the switch to the main app
-//   const [loading, setLoading] = useState(false);
-//   const navigation = useNavigation();
-  
-//   const [formData, setFormData] = useState({
-//     name: '',
-//     age: '',
-//     gender: '', // Default to empty
-//     weight: '',
-//     height: '',
-//     healthConditions: '',
-//     fitnessGoal: '',
-//   });
-
-//   const handleSubmit = async () => {
-//     // Basic validation
-//     if (!formData.name || !formData.age || !formData.gender || !formData.weight || !formData.height || !formData.fitnessGoal) {
-//         Alert.alert('Incomplete Form', 'Please fill out all fields to continue.');
-//         return;
-//     }
-
-//     setLoading(true);
-//     try {
-//       const payload = {
-//         name: formData.name,
-//         age: parseInt(formData.age, 10),
-//         gender: formData.gender,
-//         weight: parseFloat(formData.weight),
-//         height: parseFloat(formData.height),
-//         healthConditions: formData.healthConditions,
-//         fitnessGoal: formData.fitnessGoal,
-//       };
-
-//       const response = await authService.createMemberProfile(payload);
-      
-//       if (response.success) {
-//         Alert.alert('Profile Updated!', 'Your profile has been saved successfully.');
-//         // Navigate back to the main profile screen
-//         navigation.goBack();
-//       }
-//     } catch (err) {
-//       Alert.alert('Profile Update Failed', parseApiError(err));
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   return (
-//     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-//       <Text style={styles.title}>Profile Setup</Text>
-      
-//       <View style={styles.inputGroup}>
-//         <Text style={styles.label}>Name</Text>
-//         <TextInput 
-//           style={styles.input} 
-//           placeholder="Enter your name" 
-//           placeholderTextColor="#999"
-//           value={formData.name}
-//           onChangeText={(text) => setFormData({...formData, name: text})}
-//         />
-//       </View>
-      
-//       <View style={styles.inputGroup}>
-//         <Text style={styles.label}>Age</Text>
-//         <TextInput 
-//           style={styles.input} 
-//           placeholder="Enter your age" 
-//           placeholderTextColor="#999" 
-//           keyboardType="number-pad" 
-//           value={formData.age}
-//           onChangeText={(text) => setFormData({...formData, age: text})}
-//         />
-//       </View>
-      
-//       <View style={styles.inputGroup}>
-//         <Text style={styles.label}>Gender</Text>
-//         <View style={styles.pickerContainer}>
-//             <Picker 
-//                 selectedValue={formData.gender}
-//                 onValueChange={(itemValue) => setFormData({...formData, gender: itemValue})}
-//                 style={styles.picker}
-//             >
-//                 <Picker.Item label="Select gender..." value="" />
-//                 <Picker.Item label="Male" value="Male" />
-//                 <Picker.Item label="Female" value="Female" />
-//                 <Picker.Item label="Other" value="Other" />
-//             </Picker>
-//         </View>
-//       </View>
-      
-//       <View style={styles.inputGroup}>
-//         <Text style={styles.label}>Weight (kg)</Text>
-//         <TextInput 
-//           style={styles.input} 
-//           placeholder="e.g., 75" 
-//           placeholderTextColor="#999" 
-//           keyboardType="numeric" 
-//           value={formData.weight}
-//           onChangeText={(text) => setFormData({...formData, weight: text})}
-//         />
-//       </View>
-      
-//       <View style={styles.inputGroup}>
-//         <Text style={styles.label}>Height (cm)</Text>
-//         <TextInput 
-//           style={styles.input} 
-//           placeholder="e.g., 180" 
-//           placeholderTextColor="#999" 
-//           keyboardType="numeric" 
-//           value={formData.height}
-//           onChangeText={(text) => setFormData({...formData, height: text})}
-//         />
-//       </View>
-      
-//       <View style={styles.inputGroup}>
-//         <Text style={styles.label}>Health Conditions (Optional)</Text>
-//         <TextInput
-//           style={[styles.input, styles.multilineInput]}
-//           placeholder="e.g., Asthma, previous injuries"
-//           placeholderTextColor="#999"
-//           multiline
-//           value={formData.healthConditions}
-//           onChangeText={(text) => setFormData({...formData, healthConditions: text})}
-//         />
-//       </View>
-      
-//       <View style={styles.inputGroup}>
-//         <Text style={styles.label}>Fitness Goal</Text>
-//         <TextInput 
-//           style={styles.input} 
-//           placeholder="e.g., Lose 10kg, build muscle" 
-//           placeholderTextColor="#999" 
-//           value={formData.fitnessGoal}
-//           onChangeText={(text) => setFormData({...formData, fitnessGoal: text})}
-//         />
-//       </View>
-      
-//       <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={loading}>
-//         {loading ? (
-//             <ActivityIndicator color="#fff" />
-//         ) : (
-//             <Text style={styles.buttonText}>Submit & Start</Text>
-//         )}
-//       </TouchableOpacity>
-//     </ScrollView>
-//   );
-// };
-
-// // --- Your Original Styles, with a few additions ---
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     backgroundColor: '#FFFFFF',
-//     padding: 20,
-//   },
-//   title: {
-//     fontSize: 28,
-//     fontWeight: 'bold',
-//     color: '#333',
-//     marginBottom: 30,
-//     marginTop: 40,
-//     textAlign: 'center',
-//   },
-//   inputGroup: {
-//     marginBottom: 20,
-//   },
-//   label: {
-//     fontSize: 16,
-//     marginBottom: 8,
-//     color: '#555',
-//     fontWeight: '600',
-//   },
-//   input: {
-//     borderWidth: 1,
-//     borderColor: '#ccc',
-//     borderRadius: 8,
-//     paddingVertical: 12,
-//     paddingHorizontal: 15,
-//     fontSize: 16,
-//     color: '#333',
-//   },
-//   multilineInput: {
-//     height: 100,
-//     textAlignVertical: 'top',
-//   },
-//   pickerContainer: {
-//       borderWidth: 1,
-//       borderColor: '#ccc',
-//       borderRadius: 8,
-//   },
-//   picker: {
-//     height: 50,
-//     width: '100%',
-//     color: '#333',
-//   },
-//   submitButton: {
-//     backgroundColor: '#255f99',
-//     paddingVertical: 15,
-//     paddingHorizontal: 30,
-//     borderRadius: 30,
-//     marginTop: 20,
-//     alignItems: 'center',
-//     justifyContent: 'center',
-//     minHeight: 50,
-//   },
-//   buttonText: {
-//     color: '#fff',
-//     fontSize: 18,
-//     fontWeight: 'bold',
-//   },
-// });
-
-// export default MemberProfile;
-
-
-
 // src/screens/Member/MemberProfile.jsx
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/authContext';
-
 import parseApiError from '../utils/parseApiError';
 import apiClient from '../api/apiClient';
 
@@ -250,62 +22,49 @@ const MemberProfile = () => {
     fitnessGoal: '',
   });
 
+  const [weightUnit, setWeightUnit] = useState('KG');
+  const [heightUnit, setHeightUnit] = useState('CM');
+
   const steps = [
     {
-      title: "What's your name?",
-      subtitle: "Let's start with the basics",
+      title: "WHAT'S YOUR NAME?",
       field: 'name',
-      placeholder: 'Enter your full name',
       type: 'text'
     },
     {
-      title: "How old are you?",
-      subtitle: "This helps us personalize your fitness plan",
+      title: "HOW OLD ARE YOU?",
       field: 'age',
-      placeholder: 'Enter your age',
       type: 'number'
     },
     {
-      title: "What's your gender?",
-      subtitle: "This helps with fitness calculations",
+      title: "WHAT'S YOUR GENDER?",
       field: 'gender',
-      type: 'picker',
-      options: [
-        { label: 'Select gender...', value: '' },
-        { label: 'Male', value: 'Male' },
-        { label: 'Female', value: 'Female' },
-        { label: 'Other', value: 'Other' }
-      ]
+      type: 'gender'
     },
     {
-      title: "What's your weight?",
-      subtitle: "In kilograms (kg)",
+      title: "WHAT'S YOUR CURRENT WEIGHT?",
       field: 'weight',
-      placeholder: 'e.g., 75',
-      type: 'number'
+      type: 'weight'
     },
     {
-      title: "What's your height?",
-      subtitle: "In centimeters (cm)",
+      title: "WHAT'S YOUR HEIGHT?",
       field: 'height',
-      placeholder: 'e.g., 180',
-      type: 'number'
+      type: 'height'
     },
     {
-      title: "Any health conditions?",
-      subtitle: "Optional - helps us keep you safe",
-      field: 'healthConditions',
-      placeholder: 'e.g., Asthma, previous injuries (or leave blank)',
-      type: 'multiline',
-      optional: true
-    },
-    {
-      title: "What's your fitness goal?",
-      subtitle: "What do you want to achieve?",
+      title: "WHAT'S YOUR GOAL?",
       field: 'fitnessGoal',
-      placeholder: 'e.g., Lose 10kg, build muscle, get stronger',
-      type: 'text'
+      type: 'goal'
     }
+  ];
+
+  const goals = [
+    { title: "Build strength", subtitle: "Get stronger without getting bulky" },
+    { title: "Get in shape", subtitle: "Build your fitness and discipline from the ground up" },
+    { title: "Build Muscle", subtitle: "Increase muscle size and strength" },
+    { title: "Get Lean", subtitle: "Lose body fat and become more defined" },
+    { title: "Lose Weight", subtitle: "Lose extra body fat in a safe and healthy way" },
+    { title: "Overall Fitness", subtitle: "Increase muscle mass while decreasing body fat" }
   ];
 
   const currentStepData = steps[currentStep];
@@ -316,7 +75,7 @@ const MemberProfile = () => {
     const currentField = currentStepData.field;
     const value = formData[currentField];
     
-    if (!currentStepData.optional && (!value || value.trim() === '')) {
+    if (!value || value.trim() === '') {
       Alert.alert('Required Field', 'Please fill out this field to continue.');
       return false;
     }
@@ -332,7 +91,7 @@ const MemberProfile = () => {
     if (currentField === 'weight') {
       const weight = parseFloat(value);
       if (isNaN(weight) || weight < 1 || weight > 500) {
-        Alert.alert('Invalid Weight', 'Please enter a valid weight between 1 and 500 kg.');
+        Alert.alert('Invalid Weight', 'Please enter a valid weight.');
         return false;
       }
     }
@@ -340,7 +99,7 @@ const MemberProfile = () => {
     if (currentField === 'height') {
       const height = parseFloat(value);
       if (isNaN(height) || height < 50 || height > 300) {
-        Alert.alert('Invalid Height', 'Please enter a valid height between 50 and 300 cm.');
+        Alert.alert('Invalid Height', 'Please enter a valid height.');
         return false;
       }
     }
@@ -361,7 +120,13 @@ const MemberProfile = () => {
   const handleBack = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
+    } else {
+      navigation.goBack();
     }
+  };
+
+  const handleSkip = () => {
+    navigation.goBack();
   };
 
   const handleSubmit = async () => {
@@ -381,11 +146,7 @@ const MemberProfile = () => {
       
       if (response.data.success) {
         Alert.alert('Profile Complete!', 'Welcome to FitFlex. Let\'s get started.');
-        
-        // Refresh user profile from backend
         await refreshUserProfile();
-        
-        // Navigation will automatically handle the redirect to main app
       }
     } catch (err) {
       Alert.alert('Profile Setup Failed', parseApiError(err));
@@ -405,58 +166,189 @@ const MemberProfile = () => {
     switch (currentStepData.type) {
       case 'text':
         return (
-          <TextInput
-            style={styles.input}
-            placeholder={currentStepData.placeholder}
-            placeholderTextColor="#999"
-            value={formData[currentStepData.field]}
-            onChangeText={updateFormData}
-            autoFocus={true}
-          />
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.textInput}
+              placeholder=""
+              placeholderTextColor="#999"
+              value={formData[currentStepData.field]}
+              onChangeText={updateFormData}
+              autoFocus={true}
+            />
+            <View style={styles.inputLine} />
+          </View>
         );
       
       case 'number':
         return (
-          <TextInput
-            style={styles.input}
-            placeholder={currentStepData.placeholder}
-            placeholderTextColor="#999"
-            keyboardType="numeric"
-            value={formData[currentStepData.field]}
-            onChangeText={updateFormData}
-            autoFocus={true}
-          />
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.textInput}
+              placeholder=""
+              placeholderTextColor="#999"
+              keyboardType="numeric"
+              value={formData[currentStepData.field]}
+              onChangeText={updateFormData}
+              autoFocus={true}
+            />
+            <View style={styles.inputLine} />
+          </View>
         );
       
-      case 'multiline':
+      case 'gender':
         return (
-          <TextInput
-            style={[styles.input, styles.multilineInput]}
-            placeholder={currentStepData.placeholder}
-            placeholderTextColor="#999"
-            multiline
-            value={formData[currentStepData.field]}
-            onChangeText={updateFormData}
-            autoFocus={true}
-          />
-        );
-      
-      case 'picker':
-        return (
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={formData[currentStepData.field]}
-              onValueChange={updateFormData}
-              style={styles.picker}
+          <View style={styles.genderContainer}>
+            <TouchableOpacity 
+              style={[
+                styles.genderOption,
+                formData.gender === 'Male' && styles.genderSelected
+              ]}
+              onPress={() => updateFormData('Male')}
             >
-              {currentStepData.options.map((option, index) => (
-                <Picker.Item 
-                  key={index} 
-                  label={option.label} 
-                  value={option.value} 
+              <View style={styles.genderImage}>
+                <Image 
+                  source={require('../assets/boyy.jpg')} 
+                  style={styles.genderImageStyle}
                 />
-              ))}
-            </Picker>
+              </View>
+              <View style={[
+                styles.radioButton,
+                formData.gender === 'Male' && styles.radioSelected
+              ]} />
+              <Text style={styles.genderText}>Male</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[
+                styles.genderOption,
+                formData.gender === 'Female' && styles.genderSelected
+              ]}
+              onPress={() => updateFormData('Female')}
+            >
+              <View style={styles.genderImage}>
+                <Image 
+                  source={require('../assets/girll.jpg')} 
+                  style={styles.genderImageStyle}
+                />
+              </View>
+              <View style={[
+                styles.radioButton,
+                formData.gender === 'Female' && styles.radioSelected
+              ]} />
+              <Text style={styles.genderText}>Female</Text>
+            </TouchableOpacity>
+          </View>
+        );
+      
+      case 'weight':
+        return (
+          <View style={styles.weightContainer}>
+            <View style={styles.unitToggle}>
+              <TouchableOpacity 
+                style={[
+                  styles.unitButton,
+                  weightUnit === 'KG' && styles.unitSelected
+                ]}
+                onPress={() => setWeightUnit('KG')}
+              >
+                <Text style={[
+                  styles.unitText,
+                  weightUnit === 'KG' && styles.unitTextSelected
+                ]}>KG</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[
+                  styles.unitButton,
+                  weightUnit === 'LBS' && styles.unitSelected
+                ]}
+                onPress={() => setWeightUnit('LBS')}
+              >
+                <Text style={[
+                  styles.unitText,
+                  weightUnit === 'LBS' && styles.unitTextSelected
+                ]}>LBS</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.textInput}
+                placeholder=""
+                placeholderTextColor="#999"
+                keyboardType="numeric"
+                value={formData.weight}
+                onChangeText={updateFormData}
+                autoFocus={true}
+              />
+              <View style={styles.inputLine} />
+            </View>
+            <View style={styles.bmiContainer}>
+              <Text style={styles.bmiLabel}>YOUR CURRENT BMI</Text>
+              <Text style={styles.bmiValue}>00.0</Text>
+              <Text style={styles.bmiMessage}>You may need to do more workout to be better</Text>
+            </View>
+          </View>
+        );
+      
+      case 'height':
+        return (
+          <View style={styles.heightContainer}>
+            <View style={styles.unitToggle}>
+              <TouchableOpacity 
+                style={[
+                  styles.unitButton,
+                  heightUnit === 'CM' && styles.unitSelected
+                ]}
+                onPress={() => setHeightUnit('CM')}
+              >
+                <Text style={[
+                  styles.unitText,
+                  heightUnit === 'CM' && styles.unitTextSelected
+                ]}>CM</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[
+                  styles.unitButton,
+                  heightUnit === 'FT' && styles.unitSelected
+                ]}
+                onPress={() => setHeightUnit('FT')}
+              >
+                <Text style={[
+                  styles.unitText,
+                  heightUnit === 'FT' && styles.unitTextSelected
+                ]}>FT</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.textInput}
+                placeholder=""
+                placeholderTextColor="#999"
+                keyboardType="numeric"
+                value={formData.height}
+                onChangeText={updateFormData}
+                autoFocus={true}
+              />
+              <View style={styles.inputLine} />
+            </View>
+          </View>
+        );
+      
+      case 'goal':
+        return (
+          <View style={styles.goalsContainer}>
+            {goals.map((goal, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.goalCard,
+                  formData.fitnessGoal === goal.title && styles.goalSelected
+                ]}
+                onPress={() => updateFormData(goal.title)}
+              >
+                <Text style={styles.goalTitle}>{goal.title}</Text>
+                <Text style={styles.goalSubtitle}>{goal.subtitle}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
         );
       
@@ -467,8 +359,12 @@ const MemberProfile = () => {
 
   return (
     <View style={styles.container}>
-      {/* Progress Bar */}
-      <View style={styles.progressContainer}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+          <Text style={styles.backIcon}>‹</Text>
+        </TouchableOpacity>
+        
         <View style={styles.progressBar}>
           <View 
             style={[
@@ -477,53 +373,29 @@ const MemberProfile = () => {
             ]} 
           />
         </View>
-        <Text style={styles.progressText}>
-          {currentStep + 1} of {totalSteps}
-        </Text>
+        
+        <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+          <Text style={styles.skipText}>Skip</Text>
+        </TouchableOpacity>
       </View>
 
-      <ScrollView 
-        style={styles.content} 
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Step Content */}
-        <View style={styles.stepContainer}>
-          <Text style={styles.stepTitle}>{currentStepData.title}</Text>
-          <Text style={styles.stepSubtitle}>{currentStepData.subtitle}</Text>
-          
-          <View style={styles.inputContainer}>
-            {renderInput()}
-          </View>
-        </View>
-      </ScrollView>
+      {/* Main Content */}
+      <View style={styles.content}>
+        <Text style={styles.question}>{currentStepData.title}</Text>
+        {renderInput()}
+      </View>
 
-      {/* Navigation Buttons */}
+      {/* Next Button */}
       <View style={styles.buttonContainer}>
-        {currentStep > 0 && (
-          <TouchableOpacity 
-            style={styles.backButton} 
-            onPress={handleBack}
-            disabled={loading}
-          >
-            <Text style={styles.backButtonText}>Back</Text>
-          </TouchableOpacity>
-        )}
-        
         <TouchableOpacity 
-          style={[
-            styles.nextButton,
-            currentStep === 0 && styles.nextButtonFull
-          ]} 
+          style={styles.nextButton} 
           onPress={handleNext}
           disabled={loading}
         >
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.nextButtonText}>
-              {isLastStep ? 'Complete Profile' : 'Next'}
-            </Text>
+            <Text style={styles.nextButtonText}>Next</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -536,119 +408,208 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  progressContainer: {
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 20,
   },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backIcon: {
+    fontSize: 24,
+    color: '#000',
+    fontWeight: 'bold',
+  },
   progressBar: {
+    flex: 1,
     height: 4,
     backgroundColor: '#E5E5E5',
     borderRadius: 2,
-    marginBottom: 10,
+    marginHorizontal: 20,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#255f99',
+    backgroundColor: '#007AFF',
     borderRadius: 2,
   },
-  progressText: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
+  skipButton: {
+    paddingHorizontal: 10,
+  },
+  skipText: {
+    fontSize: 16,
+    color: '#000',
     fontWeight: '500',
   },
   content: {
     flex: 1,
-  },
-  contentContainer: {
-    flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: 20,
-  },
-  stepContainer: {
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingHorizontal: 40,
   },
-  stepTitle: {
-    fontSize: 28,
+  question: {
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  stepSubtitle: {
-    fontSize: 16,
-    color: '#666',
+    color: '#000',
     textAlign: 'center',
     marginBottom: 40,
+    textTransform: 'uppercase',
   },
   inputContainer: {
     width: '100%',
-    maxWidth: 300,
+    alignItems: 'center',
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    fontSize: 18,
-    color: '#333',
-    backgroundColor: '#FAFAFA',
-  },
-  multilineInput: {
-    height: 120,
-    textAlignVertical: 'top',
-  },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 12,
-    backgroundColor: '#FAFAFA',
-  },
-  picker: {
-    height: 50,
+  textInput: {
     width: '100%',
-    color: '#333',
+    fontSize: 18,
+    color: '#000',
+    textAlign: 'center',
+    paddingVertical: 10,
   },
-  buttonContainer: {
+  inputLine: {
+    width: '100%',
+    height: 1,
+    backgroundColor: '#000',
+    marginTop: 5,
+  },
+  genderContainer: {
     flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginTop: 20,
+  },
+  genderOption: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  genderImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F0F0F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+    overflow: 'hidden',
+  },
+  genderImageStyle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
+  radioButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#000',
+    marginBottom: 10,
+  },
+  radioSelected: {
+    backgroundColor: '#000',
+  },
+  genderText: {
+    fontSize: 16,
+    color: '#000',
+    fontWeight: '500',
+  },
+  weightContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  unitToggle: {
+    flexDirection: 'row',
+    backgroundColor: '#F0F0F0',
+    borderRadius: 8,
+    padding: 4,
+    marginBottom: 30,
+  },
+  unitButton: {
     paddingHorizontal: 20,
-    paddingBottom: 40,
-    paddingTop: 20,
+    paddingVertical: 10,
+    borderRadius: 6,
+  },
+  unitSelected: {
+    backgroundColor: '#000',
+  },
+  unitText: {
+    fontSize: 16,
+    color: '#000',
+    fontWeight: '500',
+  },
+  unitTextSelected: {
+    color: '#FFF',
+  },
+  bmiContainer: {
+    alignItems: 'center',
+    marginTop: 30,
+  },
+  bmiLabel: {
+    fontSize: 14,
+    color: '#000',
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  bmiValue: {
+    fontSize: 32,
+    color: '#000',
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  bmiMessage: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+  },
+  heightContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  goalsContainer: {
+    width: '100%',
     gap: 15,
   },
-  backButton: {
-    flex: 1,
-    paddingVertical: 16,
+  goalCard: {
+    backgroundColor: '#000',
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#255f99',
-    alignItems: 'center',
-    justifyContent: 'center',
+    padding: 20,
+    marginBottom: 10,
   },
-  backButtonText: {
-    color: '#255f99',
-    fontSize: 16,
-    fontWeight: '600',
+  goalSelected: {
+    backgroundColor: '#007AFF',
+  },
+  goalTitle: {
+    fontSize: 18,
+    color: '#FFF',
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  goalSubtitle: {
+    fontSize: 14,
+    color: '#FFF',
+    opacity: 0.8,
+  },
+  buttonContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
   },
   nextButton: {
-    flex: 2,
-    backgroundColor: '#255f99',
-    paddingVertical: 16,
+    backgroundColor: '#000',
     borderRadius: 12,
+    paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 50,
-  },
-  nextButtonFull: {
-    flex: 1,
   },
   nextButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
 

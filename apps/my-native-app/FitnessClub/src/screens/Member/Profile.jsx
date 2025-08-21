@@ -193,13 +193,6 @@ const Profile = () => {
       {/* Quick Actions */}
       <View style={styles.actionsCard}>
         <Text style={styles.actionsTitle}>Quick Actions</Text>
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.memberProfileButton]}
-          onPress={() => navigation.navigate('MemberProfile')}
-        >
-          <Text style={styles.actionIcon}>👤</Text>
-          <Text style={styles.actionText}>Member Profile</Text>
-        </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton}>
           <Text style={styles.actionIcon}>⚙️</Text>
           <Text style={styles.actionText}>Settings</Text>
