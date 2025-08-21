@@ -4,6 +4,8 @@ import express from 'express';
 import passport from 'passport';
 import * as authController from '../controllers/authController.js';
 import jwtAuth from '../middlewares/jwtAuth.js';
+import auth0Auth from '../middlewares/auth0Auth.js';
+import auth0Routes from './auth0Routes.js';
 
 // Import the validation middleware and all schemas
 import validate, {
@@ -61,6 +63,12 @@ router.get('/google/callback',
     passport.authenticate('google', { failureRedirect: '/login', session: false }), 
     authController.googleCallback
 );
+
+// --- Auth0 Routes ---
+router.post('/auth0/verify-user', auth0Auth, authController.verifyAuth0User);
+
+// Add Auth0 router for profile operations
+router.use('/auth0', auth0Routes);
 
 
 // --- Protected Routes (Require a valid JWT) ---

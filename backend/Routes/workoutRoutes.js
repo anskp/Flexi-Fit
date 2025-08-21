@@ -2,6 +2,7 @@
 import express from 'express';
 import * as workoutController from '../controllers/workoutController.js';
 import jwtAuth from '../middlewares/jwtAuth.js';
+import auth0WorkoutRoutes from './auth0WorkoutRoutes.js';
 import validate, {
     logSessionSchema,
     getHistorySchema,
@@ -9,6 +10,9 @@ import validate, {
 } from '../validators/workoutValidator.js';
 
 const router = express.Router();
+
+// Add Auth0 workout routes
+router.use('/auth0', auth0WorkoutRoutes);
 
 // Apply JWT authentication to all workout-related routes
 router.use(jwtAuth);

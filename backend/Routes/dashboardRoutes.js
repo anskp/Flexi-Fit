@@ -1,6 +1,7 @@
 // Routes/dashboardRoutes.js
 import express from 'express';
 import jwtAuth from '../middlewares/jwtAuth.js';
+import auth0DashboardRoutes from './auth0DashboardRoutes.js';
 
 // Import all necessary dashboard controllers
 import * as memberDashboardController from '../controllers/dashboardController.js';
@@ -9,6 +10,9 @@ import * as gymDashboardController from '../controllers/gymController.js';
 import * as trainerDashboardController from '../controllers/trainerController.js';
 
 const router = express.Router();
+
+// Add Auth0 dashboard routes
+router.use('/auth0', auth0DashboardRoutes);
 
 // Apply JWT authentication to the main dashboard route
 router.use(jwtAuth);

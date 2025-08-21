@@ -45,17 +45,32 @@ export const resetPassword = catchAsync(async (req, res, next) => {
 });
 
 
-// --- Profile & Role Management (Requires JWT) ---
+// Helper function to get user ID from either JWT or Auth0
+const getUserId = async (req) => {
+  // If Auth0 middleware was used
+  if (req.auth?.payload) {
+    console.log('[AuthController] Using Auth0 user ID from payload');
+    // Get our DB user ID from Auth0 sub
+    const user = await authService.getUserByAuth0Id(req.auth.payload.sub);
+    return user.id;
+  }
+  // If JWT middleware was used
+  console.log('[AuthController] Using JWT user ID');
+  return req.user?.id;
+};
+
+// --- Profile & Role Management (Requires JWT or Auth0) ---
 export const selectRole = catchAsync(async (req, res, next) => {
   const { role } = req.body;
-  const userId = req.user.id;
+  const userId = await getUserId(req);
   const result = await authService.selectRole({ userId, role });
   res.status(200).json({ success: true, message: 'Role selected successfully.', data: result });
 });
 
 export const createMemberProfile = catchAsync(async (req, res, next) => {
+  const userId = await getUserId(req);
   const profile = await authService.createProfile({
-    userId: req.user.id,
+    userId: userId,
     profileType: 'MEMBER',
     data: req.body,
   });
@@ -63,8 +78,9 @@ export const createMemberProfile = catchAsync(async (req, res, next) => {
 });
 
 export const createTrainerProfile = catchAsync(async (req, res, next) => {
+  const userId = await getUserId(req);
   const profile = await authService.createProfile({
-    userId: req.user.id,
+    userId: userId,
     profileType: 'TRAINER',
     data: req.body,
   });
@@ -72,8 +88,9 @@ export const createTrainerProfile = catchAsync(async (req, res, next) => {
 });
 
 export const createGymProfile = catchAsync(async (req, res, next) => {
+    const userId = await getUserId(req);
     const gym = await authService.createProfile({
-        userId: req.user.id,
+        userId: userId,
         profileType: 'GYM',
         data: req.body
     });
@@ -81,8 +98,9 @@ export const createGymProfile = catchAsync(async (req, res, next) => {
 });
 
 export const createMultiGymMemberProfile = catchAsync(async (req, res, next) => {
+  const userId = await getUserId(req);
   const profile = await authService.createProfile({
-    userId: req.user.id,
+    userId: userId,
     profileType: 'MULTI_GYM',
     data: req.body,
   });
@@ -95,5 +113,36 @@ export const registerAdmin = catchAsync(async (req, res, next) => {
     const { email, password, secretKey } = req.body;
     const newAdmin = await authService.registerAdmin({ email, password, secretKey });
     res.status(201).json({ success: true, message: 'Admin user created successfully.', data: newAdmin });
+});
+
+// --- Auth0 Verification ---
+export const verifyAuth0User = catchAsync(async (req, res, next) => {
+  console.log('[AuthController] Auth0 verification endpoint hit'); // ✅ LOGGING
+  console.log('[AuthController] Request headers:', req.headers);
+  console.log('[AuthController] Request body:', req.body);
+  console.log('[AuthController] Auth object:', req.auth);
+  
+  // The auth0Auth middleware has already validated the token and populated req.auth
+  const auth0Payload = req.auth?.payload;
+  
+  if (!auth0Payload) {
+    console.error('[AuthController] No auth0 payload found in request');
+    return res.status(401).json({ 
+      success: false, 
+      message: 'No Auth0 payload found' 
+    });
+  }
+  
+  console.log('[AuthController] Auth0 payload:', auth0Payload);
+  
+  const user = await authService.verifyAuth0User(auth0Payload);
+  
+  console.log('[AuthController] User verification result:', user ? 'Success' : 'Failed');
+  
+  res.status(200).json({ 
+    success: true, 
+    message: 'Auth0 user verified successfully.', 
+    data: user 
+  });
 });
 

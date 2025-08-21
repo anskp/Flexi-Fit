@@ -22,8 +22,12 @@ apiClient.interceptors.request.use(
 
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+        console.log(`[API] Added Auth0 token to request: ${config.method?.toUpperCase()} ${config.url}`);
+      } else {
+        console.log(`[API] No Auth0 token found for request: ${config.method?.toUpperCase()} ${config.url}`);
       }
       console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`);
+      console.log('[API] Request headers:', config.headers);
       return config;
     } catch (error) {
       console.error('[API] Interceptor error: Could not get credentials.', error);

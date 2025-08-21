@@ -9,7 +9,7 @@ import parseApiError from '../utils/parseApiError';
 export const getDashboardData = async () => {
   try {
     console.log('[DashboardService] Fetching member dashboard data...');
-    const response = await apiClient.get('/dashboard');
+    const response = await apiClient.get('/dashboard/auth0');
     
     console.log('[DashboardService] Raw response:', response.data);
     

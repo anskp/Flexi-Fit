@@ -282,3 +282,75 @@ export const registerAdmin = async ({ email, password, secretKey }) => {
     return userResponse;
 };
 
+// --- Auth0 Services ---
+
+export const verifyAuth0User = async (auth0Payload) => {
+  console.log(`[AuthService] Auth0 verification attempt for user: ${auth0Payload.sub}`); // ✅ LOGGING
+  console.log(`[AuthService] Auth0 payload received:`, auth0Payload); // ✅ LOGGING
+  
+  try {
+    // Search for existing user by auth0_id
+    let user = await prisma.user.findUnique({
+      where: { auth0_id: auth0Payload.sub },
+      include: {
+        memberProfile: true,
+        trainerProfile: true,
+        multiGymProfile: true,
+        managedGyms: true,
+      }
+    });
+
+    if (user) {
+      console.log(`[AuthService] Found existing user with auth0_id: ${auth0Payload.sub}, User ID: ${user.id}`); // ✅ LOGGING
+      const { password, ...userResponse } = user;
+      return userResponse;
+    }
+
+    // User doesn't exist, create new user
+    // Extract email from Auth0 payload - it might be in different fields
+    const email = auth0Payload.email || auth0Payload['https://api.fitnessclub.com/email'] || `user_${auth0Payload.sub}@auth0.com`;
+    
+    console.log(`[AuthService] Creating new user for auth0_id: ${auth0Payload.sub}, email: ${email}`); // ✅ LOGGING
+    
+    user = await prisma.user.create({
+      data: {
+        auth0_id: auth0Payload.sub,
+        email: email,
+        provider: 'auth0',
+        role: 'MEMBER', // Default role for new Auth0 users
+      },
+      include: {
+        memberProfile: true,
+        trainerProfile: true,
+        multiGymProfile: true,
+        managedGyms: true,
+      }
+    });
+
+    console.log(`[AuthService] Successfully created new user with ID: ${user.id}`); // ✅ LOGGING
+    
+    const { password, ...userResponse } = user;
+    return userResponse;
+    
+  } catch (error) {
+    console.error(`[AuthService] Error in verifyAuth0User:`, error); // ✅ LOGGING
+    throw error;
+  }
+};
+
+// Helper function to get user by Auth0 ID
+export const getUserByAuth0Id = async (auth0Sub) => {
+  console.log(`[AuthService] Getting user by Auth0 ID: ${auth0Sub}`); // ✅ LOGGING
+  
+  const user = await prisma.user.findUnique({
+    where: { auth0_id: auth0Sub }
+  });
+  
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+  
+  console.log(`[AuthService] Found user with ID: ${user.id}`); // ✅ LOGGING
+  return user;
+};
+

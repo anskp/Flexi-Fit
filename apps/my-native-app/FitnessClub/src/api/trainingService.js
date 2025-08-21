@@ -26,7 +26,7 @@ export const saveWorkoutEntry = async (workoutData) => {
 
     console.log('[TrainingService] Transformed data:', transformedData);
     
-    const response = await apiClient.post('/workouts/sessions', transformedData);
+    const response = await apiClient.post('/workouts/auth0/sessions', transformedData);
     
     console.log('[TrainingService] Raw response:', response.data);
     
@@ -55,7 +55,7 @@ export const getWorkoutHistory = async (pagination = { page: 1, limit: 10 }) => 
   try {
     console.log('[TrainingService] Fetching workout history:', pagination);
     
-    const response = await apiClient.get('/workouts/sessions', { params: pagination });
+    const response = await apiClient.get('/workouts/auth0/sessions', { params: pagination });
     
     console.log('[TrainingService] Raw response:', response.data);
     
@@ -85,7 +85,7 @@ export const getWorkoutSessionById = async (sessionId) => {
   try {
     console.log('[TrainingService] Fetching workout session:', sessionId);
     
-    const response = await apiClient.get(`/workouts/sessions/${sessionId}`);
+    const response = await apiClient.get(`/workouts/auth0/sessions/${sessionId}`);
     
     console.log('[TrainingService] Raw response:', response.data);
     
@@ -113,7 +113,7 @@ export const getExerciseLibrary = async () => {
   try {
     console.log('[TrainingService] Fetching exercise library');
     
-    const response = await apiClient.get('/workouts/library');
+    const response = await apiClient.get('/workouts/auth0/library');
     
     console.log('[TrainingService] Raw response:', response.data);
     
@@ -142,7 +142,7 @@ export const deleteWorkoutSession = async (sessionId) => {
   try {
     console.log('[TrainingService] Deleting workout session:', sessionId);
     
-    await apiClient.delete(`/workouts/sessions/${sessionId}`);
+    await apiClient.delete(`/workouts/auth0/sessions/${sessionId}`);
     
     return {
       success: true,

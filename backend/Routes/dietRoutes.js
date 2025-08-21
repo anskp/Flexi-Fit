@@ -2,6 +2,7 @@
 import express from 'express';
 import * as dietController from '../controllers/dietController.js';
 import jwtAuth from '../middlewares/jwtAuth.js';
+import auth0DietRoutes from './auth0DietRoutes.js';
 import validate, {
   createLogSchema,
   updateLogSchema,
@@ -10,6 +11,9 @@ import validate, {
 } from '../validators/dietValidator.js';
 
 const router = express.Router();
+
+// Add Auth0 diet routes
+router.use('/auth0', auth0DietRoutes);
 
 // Protect all diet-related routes
 router.use(jwtAuth);

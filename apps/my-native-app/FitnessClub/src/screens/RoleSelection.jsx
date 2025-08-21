@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Alert, Linking } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../context/authContext';
+import apiClient from '../api/apiClient';
 
 const roles = [
   { label: 'Member', description: 'Access gym facilities and classes' },
@@ -11,39 +13,62 @@ const roles = [
 
 const RoleSelection = () => {
   const navigation = useNavigation();
+  const { userProfile, refreshUserProfile } = useAuth();
 
-  // Function to handle navigation based on role
-  const handleRolePress = (roleLabel) => {
-    if (roleLabel === 'Member') {
-      navigation.navigate('MemberProfile');
-    } else if (roleLabel === 'Trainer') {
-      // Redirect trainers to website
-      Alert.alert(
-        'Trainer Registration',
-        'Trainer registration is available on our website. Would you like to visit the website?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Visit Website', 
-            onPress: () => Linking.openURL('https://fitnessclub.com/trainer-signup') 
-          }
-        ]
-      );
-    } else if (roleLabel === 'Gym Owner') {
-      // Redirect gym owners to website
-      Alert.alert(
-        'Gym Owner Registration',
-        'Gym owner registration is available on our website. Would you like to visit the website?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Visit Website', 
-            onPress: () => Linking.openURL('https://fitnessclub.com/gym-signup') 
-          }
-        ]
-      );
-    } else if (roleLabel === 'Multi-Gym Member') {
-      navigation.navigate('MemberProfile');
+  // Function to handle role selection
+  const handleRolePress = async (roleLabel) => {
+    try {
+      let roleValue;
+      switch (roleLabel) {
+        case 'Member':
+          roleValue = 'MEMBER';
+          break;
+        case 'Multi-Gym Member':
+          roleValue = 'MULTI_GYM_MEMBER';
+          break;
+        case 'Trainer':
+          // Redirect trainers to website
+          Alert.alert(
+            'Trainer Registration',
+            'Trainer registration is available on our website. Would you like to visit the website?',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { 
+                text: 'Visit Website', 
+                onPress: () => Linking.openURL('https://fitnessclub.com/trainer-signup') 
+              }
+            ]
+          );
+          return;
+        case 'Gym Owner':
+          // Redirect gym owners to website
+          Alert.alert(
+            'Gym Owner Registration',
+            'Gym owner registration is available on our website. Would you like to visit the website?',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { 
+                text: 'Visit Website', 
+                onPress: () => Linking.openURL('https://fitnessclub.com/gym-signup') 
+              }
+            ]
+          );
+          return;
+        default:
+          return;
+      }
+
+      // Update user role in backend
+      const response = await apiClient.post('/auth/auth0/select-role', { role: roleValue });
+      
+      if (response.data.success) {
+        // Refresh user profile to get updated data
+        await refreshUserProfile();
+        console.log('Role selected successfully:', roleValue);
+      }
+    } catch (error) {
+      console.error('Error selecting role:', error);
+      Alert.alert('Error', 'Failed to select role. Please try again.');
     }
   };
 

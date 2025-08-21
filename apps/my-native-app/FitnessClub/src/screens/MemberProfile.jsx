@@ -235,7 +235,7 @@ import parseApiError from '../utils/parseApiError';
 import apiClient from '../api/apiClient';
 
 const MemberProfile = () => {
-  const { reloadUser } = useAuth();
+  const { userProfile, refreshUserProfile } = useAuth();
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
   const [currentStep, setCurrentStep] = useState(0);
@@ -377,12 +377,15 @@ const MemberProfile = () => {
         fitnessGoal: formData.fitnessGoal,
       };
 
-      const response = await apiClient.post('/auth/create-member-profile', payload);
+      const response = await apiClient.post('/auth/auth0/create-member-profile', payload);
       
-      if (response.success) {
+      if (response.data.success) {
         Alert.alert('Profile Complete!', 'Welcome to FitFlex. Let\'s get started.');
-        await reloadUser();
-        navigation.navigate('MainTabs');
+        
+        // Refresh user profile from backend
+        await refreshUserProfile();
+        
+        // Navigation will automatically handle the redirect to main app
       }
     } catch (err) {
       Alert.alert('Profile Setup Failed', parseApiError(err));
