@@ -1,25 +1,11 @@
 // src/screens/LoginScreen.jsx
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Alert, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
 import { useAuth } from '../context/authContext';
-import { testAuth0Configuration, testAuth0Login, clearAuth0Credentials } from '../utils/auth0Test';
 
 const LoginScreen = () => {
-  const { login, loading, error, isAuthenticated, user } = useAuth();
+  const { login, loading, error } = useAuth();
   const [loginError, setLoginError] = useState(null);
-  const [debugInfo, setDebugInfo] = useState({});
-  const [testing, setTesting] = useState(false);
-
-  useEffect(() => {
-    // Update debug info
-    setDebugInfo({
-      isAuthenticated,
-      hasUser: !!user,
-      userEmail: user?.email,
-      userRole: user?.role,
-      timestamp: new Date().toISOString()
-    });
-  }, [isAuthenticated, user]);
 
   const handleLogin = async () => {
     try {
@@ -35,67 +21,11 @@ const LoginScreen = () => {
     }
   };
 
-  const handleTestAuth0Config = async () => {
-    try {
-      setTesting(true);
-      const result = await testAuth0Configuration();
-      Alert.alert(
-        'Auth0 Configuration Test',
-        result.success ? 'Configuration is valid!' : `Error: ${result.error}`,
-        [{ text: 'OK' }]
-      );
-    } catch (error) {
-      Alert.alert('Test Error', error.message);
-    } finally {
-      setTesting(false);
-    }
-  };
-
-  const handleTestAuth0Login = async () => {
-    try {
-      setTesting(true);
-      const result = await testAuth0Login();
-      Alert.alert(
-        'Auth0 Login Test',
-        result.success ? 'Login test successful!' : `Error: ${result.error}`,
-        [{ text: 'OK' }]
-      );
-    } catch (error) {
-      Alert.alert('Test Error', error.message);
-    } finally {
-      setTesting(false);
-    }
-  };
-
-  const handleClearCredentials = async () => {
-    try {
-      setTesting(true);
-      const result = await clearAuth0Credentials();
-      Alert.alert(
-        'Clear Credentials',
-        result.success ? 'Credentials cleared!' : `Error: ${result.error}`,
-        [{ text: 'OK' }]
-      );
-    } catch (error) {
-      Alert.alert('Clear Error', error.message);
-    } finally {
-      setTesting(false);
-    }
-  };
-
-  const showDebugInfo = () => {
-    Alert.alert(
-      'Debug Information',
-      `Auth State: ${JSON.stringify(debugInfo, null, 2)}`,
-      [{ text: 'OK' }]
-    );
-  };
-
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.headerText}>Welcome to FitnessClub</Text>
+          <Text style={styles.headerText}>Welcome to Fitness Club</Text>
         </View>
         
         <View style={styles.formContainer}>
@@ -104,7 +34,7 @@ const LoginScreen = () => {
           <TouchableOpacity 
             style={styles.signInButton} 
             onPress={handleLogin} 
-            disabled={loading || testing}
+            disabled={loading}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
@@ -116,64 +46,12 @@ const LoginScreen = () => {
           {(error || loginError) && (
             <View style={styles.errorContainer}>
               <Text style={styles.errorText}>
-                Error: {loginError || error?.message || 'Unknown error occurred'}
+                {loginError || error?.message || 'Unknown error occurred'}
               </Text>
             </View>
           )}
-          
-          {/* Debug and Test Buttons */}
-          <View style={styles.debugContainer}>
-            <TouchableOpacity 
-              style={styles.debugButton} 
-              onPress={showDebugInfo}
-              disabled={testing}
-            >
-              <Text style={styles.debugButtonText}>Debug Info</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.testButton} 
-              onPress={handleTestAuth0Config}
-              disabled={testing}
-            >
-              <Text style={styles.testButtonText}>
-                {testing ? 'Testing...' : 'Test Auth0 Config'}
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.testButton} 
-              onPress={handleTestAuth0Login}
-              disabled={testing}
-            >
-              <Text style={styles.testButtonText}>
-                {testing ? 'Testing...' : 'Test Auth0 Login'}
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.clearButton} 
-              onPress={handleClearCredentials}
-              disabled={testing}
-            >
-              <Text style={styles.clearButtonText}>
-                {testing ? 'Clearing...' : 'Clear Credentials'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.statusContainer}>
-            <Text style={styles.statusText}>
-              Status: {loading ? 'Loading...' : isAuthenticated ? 'Authenticated' : 'Not Authenticated'}
-            </Text>
-            {user && (
-              <Text style={styles.userText}>
-                User: {user.email || user.name || 'Unknown'}
-              </Text>
-            )}
-          </View>
         </View>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 };
@@ -183,12 +61,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5'
   },
-  scrollContainer: {
-    flexGrow: 1
+  content: {
+    flex: 1,
+    justifyContent: 'center'
   },
   header: { 
     backgroundColor: '#d32f2f', 
-    padding: 60 
+    padding: 60,
+    alignItems: 'center'
   }, 
   headerText: { 
     color: '#ffffff', 
@@ -231,63 +111,6 @@ const styles = StyleSheet.create({
     color: '#d32f2f', 
     textAlign: 'center',
     fontSize: 14
-  },
-  debugContainer: {
-    marginTop: 20,
-    gap: 10
-  },
-  debugButton: {
-    padding: 10,
-    backgroundColor: '#2196f3',
-    borderRadius: 8,
-    alignItems: 'center'
-  },
-  debugButtonText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: 'bold'
-  },
-  testButton: {
-    padding: 10,
-    backgroundColor: '#ff9800',
-    borderRadius: 8,
-    alignItems: 'center'
-  },
-  testButtonText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: 'bold'
-  },
-  clearButton: {
-    padding: 10,
-    backgroundColor: '#f44336',
-    borderRadius: 8,
-    alignItems: 'center'
-  },
-  clearButtonText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: 'bold'
-  },
-  statusContainer: {
-    marginTop: 30,
-    padding: 15,
-    backgroundColor: '#e8f5e8',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#4caf50'
-  },
-  statusText: {
-    color: '#2e7d32',
-    fontSize: 14,
-    fontWeight: 'bold',
-    textAlign: 'center'
-  },
-  userText: {
-    color: '#2e7d32',
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 5
   }
 });
 
