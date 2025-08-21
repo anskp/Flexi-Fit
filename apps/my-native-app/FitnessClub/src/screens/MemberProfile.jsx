@@ -230,8 +230,9 @@ import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, Alert,
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/authContext';
-import * as authService from '../api/authService';
+
 import parseApiError from '../utils/parseApiError';
+import apiClient from '../api/apiClient';
 
 const MemberProfile = () => {
   const { reloadUser } = useAuth();
@@ -376,7 +377,7 @@ const MemberProfile = () => {
         fitnessGoal: formData.fitnessGoal,
       };
 
-      const response = await authService.createMemberProfile(payload);
+      const response = await apiClient.post('/auth/create-member-profile', payload);
       
       if (response.success) {
         Alert.alert('Profile Complete!', 'Welcome to FitFlex. Let\'s get started.');

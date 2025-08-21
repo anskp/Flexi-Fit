@@ -7,7 +7,6 @@ import DietLog from '../screens/Member/DietLog';
 import Training from '../screens/Member/Training';
 import MemberProfile from '../screens/MemberProfile';
 import GymDetailsScreen from '../screens/Member/GymDetailsScreen';
-import SignupScreen from '../screens/SignupScreen';
 import LoginScreen from '../screens/LoginScreen';
 
 const Stack = createNativeStackNavigator();
@@ -30,7 +29,6 @@ const AppStack = () => {
       <Stack.Screen name="Training" component={Training} />
       <Stack.Screen name="MemberProfile" component={MemberProfile} />
       <Stack.Screen name="GymDetails" component={GymDetailsScreen} />
-      <Stack.Screen name="SignupScreen" component={SignupScreen} />
       <Stack.Screen name="LoginScreen" component={LoginScreen} />
     </Stack.Navigator>
   );

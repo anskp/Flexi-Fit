@@ -1,25 +1,32 @@
 // src/api/apiClient.js
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import Auth0 from 'react-native-auth0';
+
+const auth0 = new Auth0({
+  domain: "dev-1de0bowjvfbbcx7q.us.auth0.com",
+  clientId: "rwah022fY6bSPr5gstiKqPAErQjgynT2"
+});
 
 const apiClient = axios.create({
-  baseURL: 'http://192.168.31.86:5000/api',
+  baseURL: 'http://192.168.31.86:5000/api', // Make sure this IP is correct
   timeout: 15000, // Increased timeout to 15 seconds
   headers: { 'Content-Type': 'application/json' }
 });
 
-// Request interceptor
+// REPLACE the old request interceptor with this new one
 apiClient.interceptors.request.use(
   async (config) => {
     try {
-      const token = await AsyncStorage.getItem('authToken');
+      const credentials = await auth0.credentialsManager.getCredentials();
+      const token = credentials?.accessToken;
+
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
       console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`);
       return config;
     } catch (error) {
-      console.error('[API] Request interceptor error:', error);
+      console.error('[API] Interceptor error: Could not get credentials.', error);
       return config;
     }
   },

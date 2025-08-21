@@ -90,6 +90,11 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        
+        manifestPlaceholders = [
+            auth0Domain: "dev-1de0bowjvfbbcx7q.us.auth0.com",
+            auth0Scheme: "com.fitnessclub.auth0"
+        ]
     }
     signingConfigs {
         debug {

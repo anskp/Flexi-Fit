@@ -1,125 +1,158 @@
 // src/context/AuthContext.js
-import { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useAuth0 } from 'react-native-auth0';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import apiClient from '../api/apiClient';
-import * as authService from '../api/authService';
+import { Platform } from 'react-native';
 
 const AuthContext = createContext();
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadToken = async () => {
-      const storedToken = await AsyncStorage.getItem('authToken');
-      if (storedToken) {
-        setToken(storedToken);
-        apiClient.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
-        // You can add a call here to verify the token and fetch user data if you want
-      }
-      setLoading(false);
-    };
-    loadToken();
-  }, []);
-
-  // Debug authentication state changes only when they actually change
-  useEffect(() => {
-    console.log('AuthContext: State changed', { 
-      hasUser: !!user, 
-      hasToken: !!token, 
-      isAuthenticated: !!token,
-      userRole: user?.role 
-    });
-  }, [user, token]);
-
-  const login = async (email, password) => {
-    const response = await authService.login(email, password);
-    if (response.data.success) {
-      const { token, user } = response.data.data;
-      console.log('AuthContext: Setting token and user after login', { token: !!token, user });
-      
-      // Set state and storage in the correct order
-      setToken(token);
-      setUser(user);
-      apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      await AsyncStorage.setItem('authToken', token);
-      
-      console.log('AuthContext: Login completed, isAuthenticated should be true');
-    }
-    return response.data;
-  };
-
-  const signup = async (email, password) => {
-    const response = await authService.signup(email, password);
-    if (response.data.success) {
-        const { token } = response.data.data;
-        console.log('AuthContext: Setting token after signup', { token: !!token });
-        
-        // Set state and storage in the correct order
-        setToken(token);
-        setUser({ email, role: null });
-        apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        await AsyncStorage.setItem('authToken', token);
-        
-        console.log('AuthContext: Signup completed, isAuthenticated should be true');
-    }
-    return response.data;
+// Platform-specific redirect URI
+const getRedirectUri = () => {
+  if (Platform.OS === 'ios') {
+    return 'com.fitnessclub.auth0://dev-1de0bowjvfbbcx7q.us.auth0.com/ios/com.fitnessclub/callback';
+  } else {
+    return 'com.fitnessclub.auth0://dev-1de0bowjvfbbcx7q.us.auth0.com/android/com.fitnessclub/callback';
   }
+};
+
+export const AuthProvider = ({ children }) => {
+  const { 
+    authorize, 
+    clearSession, 
+    user, 
+    error, 
+    getCredentials,
+    isLoading 
+  } = useAuth0();
+
+  const [token, setToken] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState(null);
+
+  // Check for existing credentials on app start
+  useEffect(() => {
+    const checkExistingAuth = async () => {
+      try {
+        console.log('AuthContext: Checking for existing credentials...');
+        const credentials = await getCredentials();
+        console.log('AuthContext: Credentials check result:', credentials ? 'Found' : 'Not found');
+        
+        if (credentials && credentials.accessToken) {
+          console.log('AuthContext: Setting authenticated state with existing token');
+          setToken(credentials.accessToken);
+          setIsAuthenticated(true);
+        }
+      } catch (error) {
+        console.log('AuthContext: No existing credentials found:', error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkExistingAuth();
+  }, [getCredentials]);
+
+  // Update authentication state when user changes
+  useEffect(() => {
+    console.log('AuthContext: User state changed:', user ? 'User found' : 'No user');
+    if (user) {
+      setIsAuthenticated(true);
+    } else {
+      setIsAuthenticated(false);
+      setToken(null);
+    }
+  }, [user]);
+
+  // Handle Auth0 errors
+  useEffect(() => {
+    if (error) {
+      console.error('AuthContext: Auth0 error:', error);
+      setAuthError(error);
+    }
+  }, [error]);
+
+  const login = async () => {
+    try {
+      console.log('AuthContext: Starting login process...');
+      setLoading(true);
+      setAuthError(null);
+      
+      const redirectUri = getRedirectUri();
+      console.log('AuthContext: Using redirect URI:', redirectUri);
+      
+      const credentials = await authorize({
+        scope: 'openid profile email',
+        audience: 'https://dev-1de0bowjvfbbcx7q.us.auth0.com/api/v2/',
+        prompt: 'login',
+        redirectUri: redirectUri
+      });
+      
+      console.log('AuthContext: Login successful, credentials:', credentials ? 'Received' : 'None');
+      
+      if (credentials && credentials.accessToken) {
+        console.log('AuthContext: Setting token and authenticated state');
+        setToken(credentials.accessToken);
+        setIsAuthenticated(true);
+        
+        // Store user role if available
+        if (credentials.user && credentials.user.role) {
+          await AsyncStorage.setItem('userRole', credentials.user.role);
+        }
+        
+        // Store user info
+        if (credentials.user) {
+          await AsyncStorage.setItem('userInfo', JSON.stringify(credentials.user));
+        }
+      }
+    } catch (e) {
+      console.error("AuthContext: Login error:", e);
+      setAuthError(e);
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const logout = async () => {
-    setToken(null);
-    setUser(null);
-    await AsyncStorage.removeItem('authToken');
-    delete apiClient.defaults.headers.common['Authorization'];
-  };
-
-  const selectRole = async (role) => {
-    const response = await authService.selectRole(role);
-    if (response.data.success) {
-        const { token, role: userRole } = response.data.data;
-        console.log('AuthContext: Setting token and role after role selection', { token: !!token, role: userRole });
-        
-        // Set state and storage in the correct order
-        setToken(token);
-        setUser(prevUser => ({ ...prevUser, role: userRole }));
-        apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        await AsyncStorage.setItem('authToken', token);
-        
-        console.log('AuthContext: Role selection completed, isAuthenticated should be true');
+    try {
+      console.log('AuthContext: Starting logout process...');
+      setLoading(true);
+      await clearSession();
+      setToken(null);
+      setIsAuthenticated(false);
+      setAuthError(null);
+      
+      // Clear stored user data
+      await AsyncStorage.removeItem('userRole');
+      await AsyncStorage.removeItem('userInfo');
+      
+      console.log('AuthContext: Logout successful');
+    } catch (e) {
+      console.error("AuthContext: Logout error:", e);
+      setAuthError(e);
+    } finally {
+      setLoading(false);
     }
-    return response.data;
   };
 
-  const reloadUser = async () => {
-        try {
-            console.log("Context: Reloading user data...");
-            // For now, we'll just set a basic user object
-            // You can implement userService.getMyProfile() later
-            setUser({ id: 'temp-user', email: 'user@example.com', profileComplete: true });
-            // Ensure the token is still set for authentication
-            const storedToken = await AsyncStorage.getItem('authToken');
-            if (storedToken) {
-                setToken(storedToken);
-                apiClient.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
-            }
-        } catch (error) {
-            console.error("Failed to reload user", error);
-        }
-    };
-
-  const value = { 
-    user, 
-    token, 
-    loading, 
-    isAuthenticated: !!token, 
-    login, 
-    signup, 
-    logout, 
-    selectRole, 
-    reloadUser 
+  const value = {
+    user,
+    token,
+    loading: loading || isLoading,
+    isAuthenticated,
+    login,
+    logout,
+    getCredentials,
+    error: authError || error
   };
+
+  console.log('AuthContext: State changed', { 
+    hasToken: !!token, 
+    hasUser: !!user, 
+    isAuthenticated, 
+    userRole: user?.role 
+  });
 
   return (
     <AuthContext.Provider value={value}>
@@ -129,5 +162,9 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => {
-  return useContext(AuthContext);
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };
