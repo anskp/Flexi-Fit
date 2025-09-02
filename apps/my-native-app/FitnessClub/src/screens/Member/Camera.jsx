@@ -4,6 +4,7 @@ import { LinearGradient } from 'react-native-linear-gradient';
 import { RNCamera } from 'react-native-camera';
 
 const Camera = () => {
+  const { colors } = useTheme();
   const [cameraType, setCameraType] = useState('back');
   const [flashMode, setFlashMode] = useState('off');
   const [isRecording, setIsRecording] = useState(false);
@@ -122,7 +123,7 @@ const Camera = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <LinearGradient
         colors={['#e74c3c', '#c0392b']}
@@ -139,7 +140,7 @@ const Camera = () => {
       </LinearGradient>
 
       {/* Mode Selection */}
-      <View style={styles.modeContainer}>
+      <View style={[styles.modeContainer, { backgroundColor: colors.surface }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {modes.map((modeItem) => (
             <TouchableOpacity
@@ -154,6 +155,7 @@ const Camera = () => {
               <Text style={styles.modeIcon}>{modeItem.icon}</Text>
               <Text style={[
                 styles.modeButtonText,
+                { color: colors.textSecondary },
                 mode === modeItem.id && styles.activeModeButtonText
               ]}>
                 {modeItem.title}
@@ -167,20 +169,20 @@ const Camera = () => {
       {capturedImage ? renderPreview() : renderCamera()}
 
       {/* Instructions */}
-      <View style={styles.instructionsContainer}>
-        <Text style={styles.instructionsTitle}>Instructions</Text>
+      <View style={[styles.instructionsContainer, { backgroundColor: colors.surface }]}>
+        <Text style={[styles.instructionsTitle, { color: colors.text }]}>Instructions</Text>
         {mode === 'checkin' && (
-          <Text style={styles.instructionsText}>
+          <Text style={[styles.instructionsText, { color: colors.textSecondary }]}>
             📍 Point camera at the gym's QR code or entrance to check-in
           </Text>
         )}
         {mode === 'checkout' && (
-          <Text style={styles.instructionsText}>
+          <Text style={[styles.instructionsText, { color: colors.textSecondary }]}>
             🚪 Point camera at the exit QR code to check-out
           </Text>
         )}
         {mode === 'diet' && (
-          <Text style={styles.instructionsText}>
+          <Text style={[styles.instructionsText, { color: colors.textSecondary }]}>
             📸 Take a photo of your meal to log it in your diet tracker
           </Text>
         )}
@@ -194,7 +196,6 @@ export default Camera;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
   },
   header: {
     paddingTop: 50,

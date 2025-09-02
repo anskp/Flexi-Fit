@@ -4,6 +4,7 @@ import { LinearGradient } from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/authContext';
 import { getUserProfile, getUserStats, getUserNotifications, getCommunityPosts, updateNotificationSettings } from '../../api/userService';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState('profile');
@@ -12,6 +13,7 @@ const Profile = () => {
   const [error, setError] = useState(null);
   const navigation = useNavigation();
   const { logout } = useAuth();
+  const { isDarkMode, toggleTheme, colors } = useTheme();
 
   // State for fetched data
   const [userProfile, setUserProfile] = useState(null);
@@ -20,9 +22,9 @@ const Profile = () => {
   const [communityPosts, setCommunityPosts] = useState([]);
 
   const tabs = [
-    { id: 'profile', title: 'Profile', icon: '👤' },
-    { id: 'community', title: 'Community', icon: '👥' },
-    { id: 'notifications', title: 'Notifications', icon: '🔔' },
+    { id: 'profile', title: 'Profile', icon: 'person' },
+    { id: 'community', title: 'Community', icon: 'group' },
+    { id: 'notifications', title: 'Notifications', icon: 'notifications' },
   ];
 
   // Data fetching functions
@@ -94,9 +96,9 @@ const Profile = () => {
   // Loading state
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#e74c3c" />
-        <Text style={{ marginTop: 15, fontSize: 16, color: '#555' }}>Loading Profile...</Text>
+      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ marginTop: 15, fontSize: 16, color: colors.textSecondary }}>Loading Profile...</Text>
       </View>
     );
   }
@@ -104,8 +106,8 @@ const Profile = () => {
   // Error state
   if (error) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
-        <Text style={{ color: '#c0392b', marginBottom: 20, fontSize: 16, textAlign: 'center' }}>
+      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+        <Text style={{ color: colors.error, marginBottom: 20, fontSize: 16, textAlign: 'center' }}>
           {error}
         </Text>
         <TouchableOpacity onPress={fetchProfileData} style={styles.retryButton}>
@@ -135,91 +137,95 @@ const Profile = () => {
   const renderProfileTab = () => (
     <View style={styles.tabContent}>
       {/* Profile Header */}
-      <View style={styles.profileHeader}>
+      <View style={[styles.profileHeader, { backgroundColor: colors.surface }]}>
         <Image
           source={{ uri: safeUserProfile.avatar }}
           style={styles.profileAvatar}
         />
         <View style={styles.profileInfo}>
-          <Text style={styles.profileName}>{safeUserProfile.name}</Text>
-          <Text style={styles.profileMembership}>{safeUserProfile.membership} Member</Text>
-          <Text style={styles.profileSince}>Member since {safeUserProfile.memberSince}</Text>
+          <Text style={[styles.profileName, { color: colors.text }]}>{safeUserProfile.name}</Text>
+          <Text style={[styles.profileMembership, { color: colors.primary }]}>{safeUserProfile.membership} Member</Text>
+          <Text style={[styles.profileSince, { color: colors.textSecondary }]}>Member since {safeUserProfile.memberSince}</Text>
         </View>
         <TouchableOpacity 
-          style={styles.editButton}
+          style={[styles.editButton, { backgroundColor: colors.primary }]}
           onPress={() => navigation.navigate('MemberProfile')}
         >
-          <Text style={styles.editButtonText}>Edit Profile</Text>
+          <Text style={[styles.editButtonText, { color: colors.primaryText }]}>Edit Profile</Text>
         </TouchableOpacity>
       </View>
 
       {/* Stats Cards */}
       <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{safeUserStats.workouts}</Text>
-          <Text style={styles.statLabel}>Workouts</Text>
+        <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.statValue, { color: colors.primary }]}>{safeUserStats.workouts}</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Workouts</Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{safeUserStats.streak}</Text>
-          <Text style={styles.statLabel}>Day Streak</Text>
+        <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.statValue, { color: colors.primary }]}>{safeUserStats.streak}</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Day Streak</Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{safeUserStats.points}</Text>
-          <Text style={styles.statLabel}>Points</Text>
+        <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.statValue, { color: colors.primary }]}>{safeUserStats.points}</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Points</Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{safeUserStats.level}</Text>
-          <Text style={styles.statLabel}>Level</Text>
+        <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.statValue, { color: colors.primary }]}>{safeUserStats.level}</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Level</Text>
         </View>
       </View>
 
       {/* Profile Details */}
-      <View style={styles.detailsCard}>
-        <Text style={styles.detailsTitle}>Personal Information</Text>
+      <View style={[styles.detailsCard, { backgroundColor: colors.surface }]}>
+        <Text style={[styles.detailsTitle, { color: colors.text }]}>Personal Information</Text>
         <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>Email</Text>
-          <Text style={styles.detailValue}>{safeUserProfile.email}</Text>
+          <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Email</Text>
+          <Text style={[styles.detailValue, { color: colors.text }]}>{safeUserProfile.email}</Text>
         </View>
         <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>Phone</Text>
-          <Text style={styles.detailValue}>{safeUserProfile.phone || 'Not provided'}</Text>
+          <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Phone</Text>
+          <Text style={[styles.detailValue, { color: colors.text }]}>{safeUserProfile.phone || 'Not provided'}</Text>
         </View>
         <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>Membership</Text>
-          <Text style={styles.detailValue}>{safeUserProfile.membership}</Text>
+          <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Membership</Text>
+          <Text style={[styles.detailValue, { color: colors.text }]}>{safeUserProfile.membership}</Text>
         </View>
       </View>
 
       {/* Quick Actions */}
-      <View style={styles.actionsCard}>
-        <Text style={styles.actionsTitle}>Quick Actions</Text>
-        <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionIcon}>⚙️</Text>
-          <Text style={styles.actionText}>Settings</Text>
+      <View style={[styles.actionsCard, { backgroundColor: colors.surface }]}>
+        <Text style={[styles.actionsTitle, { color: colors.text }]}>Quick Actions</Text>
+        <TouchableOpacity style={[styles.actionButton, { borderBottomColor: colors.border }]}>
+          <Icon name="settings" size={24} color={colors.textSecondary} style={styles.actionIcon} />
+          <Text style={[styles.actionText, { color: colors.text }]}>Settings</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionIcon}>🔒</Text>
-          <Text style={styles.actionText}>Privacy</Text>
+        <TouchableOpacity style={[styles.actionButton, { borderBottomColor: colors.border }]}>
+          <Icon name="security" size={24} color={colors.textSecondary} style={styles.actionIcon} />
+          <Text style={[styles.actionText, { color: colors.text }]}>Privacy</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionIcon}>❓</Text>
-          <Text style={styles.actionText}>Help & Support</Text>
+        <TouchableOpacity style={[styles.actionButton, { borderBottomColor: colors.border }]} onPress={toggleTheme}>
+          <Icon name={isDarkMode ? "light-mode" : "dark-mode"} size={24} color={colors.textSecondary} style={styles.actionIcon} />
+          <Text style={[styles.actionText, { color: colors.text }]}>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionIcon}>📱</Text>
-          <Text style={styles.actionText}>About App</Text>
+        <TouchableOpacity style={[styles.actionButton, { borderBottomColor: colors.border }]}>
+          <Icon name="help" size={24} color={colors.textSecondary} style={styles.actionIcon} />
+          <Text style={[styles.actionText, { color: colors.text }]}>Help & Support</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.actionButton, { borderBottomColor: colors.border }]}>
+          <Icon name="info" size={24} color={colors.textSecondary} style={styles.actionIcon} />
+          <Text style={[styles.actionText, { color: colors.text }]}>About App</Text>
         </TouchableOpacity>
         <TouchableOpacity 
-          style={[styles.actionButton, styles.signupButton]} 
+          style={[styles.actionButton, styles.signupButton, { backgroundColor: colors.primary }]} 
           onPress={() => {
             // Logout functionality
             logout();
-            // Navigate to login screen
-            navigation.navigate('LoginScreen');
+            // The logout function will automatically redirect to auth stack
+            // No need to manually navigate as the AppNavigator handles this
           }}
         >
-          <Text style={styles.actionIcon}>🚪</Text>
-          <Text style={styles.actionText}>Log Out</Text>
+          <Icon name="logout" size={24} color="white" style={styles.actionIcon} />
+          <Text style={[styles.actionText, { color: 'white' }]}>Log Out</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -230,7 +236,7 @@ const Profile = () => {
       {/* Create Post */}
       <View style={styles.createPostCard}>
         <TouchableOpacity style={styles.createPostButton}>
-          <Text style={styles.createPostIcon}>✏️</Text>
+          <Icon name="edit" size={20} color="#666" style={styles.createPostIcon} />
           <Text style={styles.createPostText}>Share your fitness journey...</Text>
         </TouchableOpacity>
       </View>
@@ -256,15 +262,15 @@ const Profile = () => {
               
               <View style={styles.postActions}>
                 <TouchableOpacity style={styles.postAction}>
-                  <Text style={styles.postActionIcon}>❤️</Text>
+                  <Icon name="favorite" size={18} color="#2196F3" style={styles.postActionIcon} />
                   <Text style={styles.postActionText}>{post.likes || 0}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.postAction}>
-                  <Text style={styles.postActionIcon}>💬</Text>
+                  <Icon name="chat-bubble" size={18} color="#666" style={styles.postActionIcon} />
                   <Text style={styles.postActionText}>{post.comments || 0}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.postAction}>
-                  <Text style={styles.postActionIcon}>📤</Text>
+                  <Icon name="share" size={18} color="#666" style={styles.postActionIcon} />
                   <Text style={styles.postActionText}>Share</Text>
                 </TouchableOpacity>
               </View>
@@ -286,13 +292,13 @@ const Profile = () => {
       <View style={styles.settingsCard}>
         <View style={styles.settingItem}>
           <View style={styles.settingInfo}>
-            <Text style={styles.settingIcon}>🔔</Text>
+            <Icon name="notifications" size={20} color="#666" style={styles.settingIcon} />
             <Text style={styles.settingText}>Push Notifications</Text>
           </View>
           <Switch
             value={notificationsEnabled}
             onValueChange={handleNotificationToggle}
-            trackColor={{ false: '#767577', true: '#e74c3c' }}
+            trackColor={{ false: '#767577', true: '#2196F3' }}
             thumbColor={notificationsEnabled ? '#fff' : '#f4f3f4'}
           />
         </View>
@@ -331,10 +337,10 @@ const Profile = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <LinearGradient
-        colors={['#e74c3c', '#c0392b']}
+        colors={['#2196F3', '#1976D2']}
         style={styles.header}
       >
         <View style={styles.headerContent}>
@@ -344,15 +350,15 @@ const Profile = () => {
       </LinearGradient>
 
       {/* Tab Navigation */}
-      <View style={styles.tabContainer}>
+      <View style={[styles.tabContainer, { backgroundColor: colors.surface }]}>
         {tabs.map((tab) => (
           <TouchableOpacity
             key={tab.id}
             style={[styles.tab, activeTab === tab.id && styles.activeTab]}
             onPress={() => setActiveTab(tab.id)}
           >
-            <Text style={styles.tabIcon}>{tab.icon}</Text>
-            <Text style={[styles.tabText, activeTab === tab.id && styles.activeTabText]}>
+            <Icon name={tab.icon} size={20} color={activeTab === tab.id ? 'white' : colors.textSecondary} style={styles.tabIcon} />
+            <Text style={[styles.tabText, { color: colors.textSecondary }, activeTab === tab.id && styles.activeTabText]}>
               {tab.title}
             </Text>
           </TouchableOpacity>
@@ -360,7 +366,7 @@ const Profile = () => {
       </View>
 
       {/* Tab Content */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={[styles.content, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
         {activeTab === 'profile' && renderProfileTab()}
         {activeTab === 'community' && renderCommunityTab()}
         {activeTab === 'notifications' && renderNotificationsTab()}
@@ -374,7 +380,6 @@ export default Profile;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   header: {
     paddingTop: 50,
@@ -396,7 +401,6 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: 'white',
     paddingHorizontal: 20,
     paddingVertical: 15,
     shadowColor: '#000',
@@ -415,15 +419,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   activeTab: {
-    backgroundColor: '#e74c3c',
+    backgroundColor: '#2196F3',
   },
   tabIcon: {
-    fontSize: 20,
     marginBottom: 5,
   },
   tabText: {
     fontSize: 12,
-    color: '#666',
     fontWeight: '600',
   },
   activeTabText: {
@@ -439,7 +441,6 @@ const styles = StyleSheet.create({
   profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
     borderRadius: 15,
     padding: 20,
     marginBottom: 20,
@@ -464,27 +465,22 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
     marginBottom: 5,
   },
   profileMembership: {
     fontSize: 14,
-    color: '#e74c3c',
     fontWeight: '600',
     marginBottom: 2,
   },
   profileSince: {
     fontSize: 12,
-    color: '#666',
   },
   editButton: {
-    backgroundColor: '#e74c3c',
     paddingHorizontal: 15,
     paddingVertical: 8,
     borderRadius: 8,
   },
   editButtonText: {
-    color: 'white',
     fontSize: 12,
     fontWeight: '600',
   },
@@ -494,7 +490,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   statCard: {
-    backgroundColor: 'white',
     borderRadius: 12,
     padding: 15,
     alignItems: 'center',
@@ -512,15 +507,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#e74c3c',
     marginBottom: 5,
   },
   statLabel: {
     fontSize: 12,
-    color: '#666',
   },
   detailsCard: {
-    backgroundColor: 'white',
     borderRadius: 15,
     padding: 20,
     marginBottom: 20,
@@ -536,7 +528,6 @@ const styles = StyleSheet.create({
   detailsTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
     marginBottom: 15,
   },
   detailItem: {
@@ -556,7 +547,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   actionsCard: {
-    backgroundColor: 'white',
     borderRadius: 15,
     padding: 20,
     marginBottom: 20,
@@ -572,7 +562,6 @@ const styles = StyleSheet.create({
   actionsTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
     marginBottom: 15,
   },
   actionButton: {
@@ -580,15 +569,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   actionIcon: {
-    fontSize: 20,
     marginRight: 15,
   },
   actionText: {
     fontSize: 16,
-    color: '#333',
   },
   createPostCard: {
     backgroundColor: 'white',
@@ -613,7 +599,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   createPostIcon: {
-    fontSize: 20,
     marginRight: 10,
   },
   createPostText: {
@@ -683,7 +668,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   postActionIcon: {
-    fontSize: 16,
     marginRight: 5,
   },
   postActionText: {
@@ -714,7 +698,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   settingIcon: {
-    fontSize: 20,
     marginRight: 15,
   },
   settingText: {
@@ -775,11 +758,11 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#e74c3c',
+    backgroundColor: '#2196F3',
     alignSelf: 'center',
   },
   signupButton: {
-    backgroundColor: '#e74c3c',
+    backgroundColor: '#2196F3',
     borderRadius: 10,
     marginTop: 10,
     paddingVertical: 15,
@@ -790,10 +773,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 10,
     borderWidth: 2,
-    borderColor: '#e74c3c',
+    borderColor: '#2196F3',
   },
   retryButton: {
-    backgroundColor: '#e74c3c',
+    backgroundColor: '#2196F3',
     paddingVertical: 12,
     paddingHorizontal: 25,
     borderRadius: 12,

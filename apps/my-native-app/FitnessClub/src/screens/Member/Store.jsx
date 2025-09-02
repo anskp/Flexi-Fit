@@ -1,366 +1,651 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Text, ScrollView, TouchableOpacity, Image, Modal, TextInput } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  TextInput,
+  Modal,
+  Dimensions,
+  StatusBar,
+  FlatList,
+} from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const CARD_WIDTH = (SCREEN_WIDTH - 60) / 2;
+
 const Store = () => {
+  const { colors } = useTheme();
   const [activeTab, setActiveTab] = useState('shop');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedSort, setSelectedSort] = useState('popular');
-  const [priceRange, setPriceRange] = useState({ min: 0, max: 5000 });
-  const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedSort, setSelectedSort] = useState('popular');
+  const [likedItems, setLikedItems] = useState(new Set());
   const [selectedEventCategory, setSelectedEventCategory] = useState('all');
-  const [selectedEventLocation, setSelectedEventLocation] = useState('all');
 
   const tabs = [
-    { id: 'shop', title: 'Shop', icon: '🛍️' },
-    { id: 'events', title: 'Events', icon: '🎫' },
+    { id: 'shop', title: 'Shop', icon: 'bag-handle', gradient: ['#8B5CF6', '#EC4899'] },
+    { id: 'events', title: 'Events', icon: 'calendar', gradient: ['#3B82F6', '#06B6D4'] },
   ];
 
   const products = [
     {
       id: 1,
-      name: "Premium Protein Powder",
+      name: "Premium Whey Protein",
+      brand: "NutriFit Pro",
       price: "₹1,299",
-      originalPrice: "₹1,599",
-      image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
+      originalPrice: "₹1,899",
+      image: "https://images.unsplash.com/photo-1593095948071-474c5cc2989d?w=400",
       category: "Supplements",
-      rating: 4.5,
-      reviews: 128,
-      discount: "20% OFF"
+      rating: 4.8,
+      reviews: 2847,
+      discount: 32,
+      badge: "Best Seller",
+      badgeColor: ['#F59E0B', '#F97316'],
+      isNew: false,
+      inStock: true
     },
     {
       id: 2,
-      name: "Fitness Tracker Watch",
-      price: "₹2,499",
-      originalPrice: "₹3,299",
-      image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
+      name: "Smart Fitness Watch Pro",
+      brand: "TechFit",
+      price: "₹4,999",
+      originalPrice: "₹7,999",
+      image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400",
       category: "Electronics",
-      rating: 4.3,
-      reviews: 89,
-      discount: "25% OFF"
+      rating: 4.6,
+      reviews: 1523,
+      discount: 37,
+      badge: "Premium",
+      badgeColor: ['#8B5CF6', '#4F46E5'],
+      isNew: true,
+      inStock: true
     },
     {
       id: 3,
-      name: "Yoga Mat Premium",
-      price: "₹899",
-      originalPrice: "₹1,199",
-      image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
+      name: "Eco Yoga Mat Deluxe",
+      brand: "ZenFlex",
+      price: "₹1,599",
+      originalPrice: "₹2,299",
+      image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400",
       category: "Equipment",
-      rating: 4.7,
-      reviews: 256,
-      discount: "30% OFF"
+      rating: 4.9,
+      reviews: 892,
+      discount: 30,
+      badge: "Eco",
+      badgeColor: ['#10B981', '#059669'],
+      isNew: false,
+      inStock: true
     },
     {
       id: 4,
-      name: "Resistance Bands Set",
-      price: "₹599",
-      originalPrice: "₹799",
+      name: "Resistance Band Set Pro",
+      brand: "FlexForce",
+      price: "₹899",
+      originalPrice: "₹1,399",
       image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
       category: "Equipment",
+      rating: 4.7,
+      reviews: 634,
+      discount: 36,
+      badge: "Popular",
+      badgeColor: ['#EC4899', '#BE185D'],
+      isNew: false,
+      inStock: false
+    },
+    {
+      id: 5,
+      name: "Creatine Monohydrate",
+      brand: "PowerMax",
+      price: "₹799",
+      originalPrice: "₹999",
+      image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
+      category: "Supplements",
+      rating: 4.5,
+      reviews: 1247,
+      discount: 20,
+      badge: "Value",
+      badgeColor: ['#3B82F6', '#06B6D4'],
+      isNew: true,
+      inStock: true
+    },
+    {
+      id: 6,
+      name: "Wireless Earbuds Sport",
+      brand: "AudioFit",
+      price: "₹2,499",
+      originalPrice: "₹3,999",
+      image: "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=400",
+      category: "Electronics",
       rating: 4.4,
-      reviews: 167,
-      discount: "15% OFF"
+      reviews: 756,
+      discount: 37,
+      badge: "Hot",
+      badgeColor: ['#2196F3', '#1976D2'],
+      isNew: false,
+      inStock: true
     }
   ];
 
   const events = [
     {
       id: 1,
-      name: "Fitness Expo 2024",
-      date: "March 15, 2024",
-      time: "10:00 AM - 6:00 PM",
-      location: "Delhi Convention Center",
-      price: "₹999",
-      image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
-      category: "Expo",
-      seats: "Limited seats available"
+      name: "Global Fitness Summit 2024",
+      description: "Join industry leaders and fitness enthusiasts",
+      date: "15 Mar 2024",
+      time: "9:00 AM",
+      duration: "8 hours",
+      location: "Pragati Maidan, Delhi",
+      city: "Delhi",
+      price: "₹2,499",
+      originalPrice: "₹3,999",
+      image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600",
+      category: "Conference",
+      attendees: 2500,
+      speakers: 15,
+      rating: 4.9,
+      isPopular: true,
+      gradient: ['#8B5CF6', '#EC4899'],
+      tags: ["Networking", "Workshops", "Certification"]
     },
     {
       id: 2,
-      name: "Yoga Workshop",
-      date: "March 20, 2024",
-      time: "9:00 AM - 12:00 PM",
-      location: "Zen Fitness Studio",
-      price: "₹1,499",
-      image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
-      category: "Workshop",
-      seats: "Only 15 seats left"
+      name: "Advanced Yoga Retreat",
+      description: "Transform your practice with expert guidance",
+      date: "22 Mar 2024",
+      time: "6:00 AM",
+      duration: "3 days",
+      location: "Rishikesh Wellness Center",
+      city: "Rishikesh",
+      price: "₹8,999",
+      originalPrice: "₹12,999",
+      image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600",
+      category: "Retreat",
+      attendees: 50,
+      speakers: 3,
+      rating: 4.8,
+      isPopular: false,
+      gradient: ['#10B981', '#059669'],
+      tags: ["Meditation", "Asanas", "Pranayama"]
     },
     {
       id: 3,
       name: "CrossFit Championship",
-      date: "April 5, 2024",
-      time: "8:00 AM - 5:00 PM",
-      location: "Sports Complex",
-      price: "₹2,999",
-      image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
+      description: "Compete with the best athletes nationwide",
+      date: "5 Apr 2024",
+      time: "7:00 AM",
+      duration: "2 days",
+      location: "Sports Authority Complex",
+      city: "Mumbai",
+      price: "₹1,999",
+      originalPrice: "₹2,999",
+      image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600",
       category: "Competition",
-      seats: "Early bird pricing"
+      attendees: 500,
+      speakers: 8,
+      rating: 4.7,
+      isPopular: true,
+      gradient: ['#2196F3', '#1976D2'],
+      tags: ["Competition", "Prizes", "Community"]
     }
   ];
 
   const categories = [
-    { id: 'all', name: 'All', icon: '🏪' },
-    { id: 'supplements', name: 'Supplements', icon: '💊' },
-    { id: 'equipment', name: 'Equipment', icon: '🏋️' },
-    { id: 'electronics', name: 'Electronics', icon: '📱' },
-    { id: 'clothing', name: 'Clothing', icon: '👕' },
-    { id: 'nutrition', name: 'Nutrition', icon: '🥗' },
-  ];
-
-  const sortOptions = [
-    { id: 'popular', name: 'Most Popular' },
-    { id: 'price-low', name: 'Price: Low to High' },
-    { id: 'price-high', name: 'Price: High to Low' },
-    { id: 'rating', name: 'Highest Rated' },
-    { id: 'newest', name: 'Newest First' },
+    { id: 'all', name: 'All', icon: 'storefront', gradient: ['#6B7280', '#4B5563'] },
+    { id: 'supplements', name: 'Supplements', icon: 'medical', gradient: ['#10B981', '#059669'] },
+    { id: 'equipment', name: 'Equipment', icon: 'barbell', gradient: ['#F97316', '#EA580C'] },
+    { id: 'electronics', name: 'Electronics', icon: 'phone-portrait', gradient: ['#3B82F6', '#1D4ED8'] },
+    { id: 'clothing', name: 'Clothing', icon: 'shirt', gradient: ['#EC4899', '#BE185D'] },
+    { id: 'nutrition', name: 'Nutrition', icon: 'leaf', gradient: ['#84CC16', '#65A30D'] },
   ];
 
   const eventCategories = [
-    { id: 'all', name: 'All Events' },
-    { id: 'workshop', name: 'Workshops' },
-    { id: 'competition', name: 'Competitions' },
-    { id: 'expo', name: 'Expos' },
-    { id: 'seminar', name: 'Seminars' },
+    { id: 'all', name: 'All Events', gradient: ['#8B5CF6', '#EC4899'] },
+    { id: 'conference', name: 'Conferences', gradient: ['#3B82F6', '#06B6D4'] },
+    { id: 'retreat', name: 'Retreats', gradient: ['#10B981', '#14B8A6'] },
+    { id: 'competition', name: 'Competitions', gradient: ['#2196F3', '#1976D2'] },
+    { id: 'workshop', name: 'Workshops', gradient: ['#F59E0B', '#F97316'] },
   ];
 
-    const eventLocations = [
-    { id: 'all', name: 'All Locations' },
-    { id: 'delhi', name: 'Delhi' },
-    { id: 'mumbai', name: 'Mumbai' },
-    { id: 'bangalore', name: 'Bangalore' },
-    { id: 'online', name: 'Online' },
-  ];
+  const toggleLike = (productId) => {
+    setLikedItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(productId)) {
+        newSet.delete(productId);
+      } else {
+        newSet.add(productId);
+      }
+      return newSet;
+    });
+  };
+
+  const renderProductCard = ({ item: product }) => (
+    <TouchableOpacity style={[styles.productCard, { width: CARD_WIDTH }]}>
+      <View style={styles.productImageContainer}>
+        <Image
+          source={{ uri: product.image }}
+          style={styles.productImage}
+          resizeMode="cover"
+        />
+        
+        {/* Gradient Overlay */}
+        <LinearGradient
+          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.3)']}
+          style={styles.imageOverlay}
+        />
+        
+        {/* Badges */}
+        <View style={styles.badgeContainer}>
+          {product.discount > 0 && (
+            <View style={styles.discountBadge}>
+              <Text style={styles.discountText}>-{product.discount}%</Text>
+            </View>
+          )}
+          {product.isNew && (
+            <View style={[styles.newBadge, { marginTop: product.discount > 0 ? 6 : 0 }]}>
+              <Text style={styles.newText}>NEW</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Product Badge */}
+        <LinearGradient
+          colors={product.badgeColor}
+          style={styles.productBadge}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <Text style={styles.productBadgeText}>{product.badge}</Text>
+        </LinearGradient>
+
+        {/* Like Button */}
+        <TouchableOpacity
+          style={styles.likeButton}
+          onPress={() => toggleLike(product.id)}
+        >
+          <Icon
+            name={likedItems.has(product.id) ? 'heart' : 'heart-outline'}
+            size={20}
+            color={likedItems.has(product.id) ? '#2196F3' : '#6B7280'}
+          />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.productInfo}>
+        <Text style={styles.brandText}>{product.brand}</Text>
+        <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
+        
+        <View style={styles.ratingContainer}>
+          <Icon name="star" size={14} color="#F59E0B" />
+          <Text style={styles.ratingText}>{product.rating}</Text>
+          <Text style={styles.reviewsText}>({product.reviews.toLocaleString()})</Text>
+        </View>
+
+        <View style={styles.priceContainer}>
+          <Text style={styles.currentPrice}>{product.price}</Text>
+          {product.originalPrice && (
+            <Text style={styles.originalPrice}>{product.originalPrice}</Text>
+          )}
+        </View>
+
+        <TouchableOpacity
+          style={[
+            styles.addToCartButton,
+            !product.inStock && styles.outOfStockButton
+          ]}
+          disabled={!product.inStock}
+        >
+          <LinearGradient
+            colors={product.inStock ? ['#8B5CF6', '#EC4899'] : ['#E5E7EB', '#E5E7EB']}
+            style={styles.buttonGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <Text style={[
+              styles.addToCartText,
+              !product.inStock && styles.outOfStockText
+            ]}>
+              {product.inStock ? 'Add to Cart' : 'Out of Stock'}
+            </Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const renderEventCard = ({ item: event }) => (
+    <TouchableOpacity style={styles.eventCard}>
+      <View style={styles.eventImageContainer}>
+        <Image
+          source={{ uri: event.image }}
+          style={styles.eventImage}
+          resizeMode="cover"
+        />
+        
+        <LinearGradient
+          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.7)']}
+          style={styles.eventImageOverlay}
+        />
+
+        {event.isPopular && (
+          <LinearGradient
+            colors={['#2196F3', '#1976D2']}
+            style={styles.popularBadge}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <Icon name="trending-up" size={12} color="white" />
+            <Text style={styles.popularText}>Popular</Text>
+          </LinearGradient>
+        )}
+
+        <LinearGradient
+          colors={event.gradient}
+          style={styles.eventCategoryBadge}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <Text style={styles.eventCategoryText}>{event.category}</Text>
+        </LinearGradient>
+      </View>
+
+      <View style={styles.eventInfo}>
+        <Text style={styles.eventName} numberOfLines={2}>{event.name}</Text>
+        <Text style={styles.eventDescription} numberOfLines={2}>{event.description}</Text>
+        
+        <View style={styles.eventDetails}>
+          <View style={styles.eventDetail}>
+            <Icon name="calendar-outline" size={16} color="#6B7280" />
+            <Text style={styles.eventDetailText}>{event.date}</Text>
+          </View>
+          <View style={styles.eventDetail}>
+            <Icon name="time-outline" size={16} color="#6B7280" />
+            <Text style={styles.eventDetailText}>{event.time}</Text>
+          </View>
+          <View style={styles.eventDetail}>
+            <Icon name="location-outline" size={16} color="#6B7280" />
+            <Text style={styles.eventDetailText}>{event.city}</Text>
+          </View>
+        </View>
+
+        <View style={styles.eventStats}>
+          <View style={styles.eventStat}>
+            <Icon name="people-outline" size={16} color="#6B7280" />
+            <Text style={styles.eventStatText}>{event.attendees}</Text>
+          </View>
+          <View style={styles.eventStat}>
+            <Icon name="mic-outline" size={16} color="#6B7280" />
+            <Text style={styles.eventStatText}>{event.speakers} speakers</Text>
+          </View>
+          <View style={styles.eventStat}>
+            <Icon name="star" size={16} color="#F59E0B" />
+            <Text style={styles.eventStatText}>{event.rating}</Text>
+          </View>
+        </View>
+
+        <View style={styles.eventFooter}>
+          <View style={styles.eventPricing}>
+            <Text style={styles.eventPrice}>{event.price}</Text>
+            {event.originalPrice && (
+              <Text style={styles.eventOriginalPrice}>{event.originalPrice}</Text>
+            )}
+          </View>
+          
+          <TouchableOpacity style={styles.bookButton}>
+            <LinearGradient
+              colors={event.gradient}
+              style={styles.bookButtonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <Text style={styles.bookButtonText}>Book Now</Text>
+              <Icon name="arrow-forward" size={16} color="white" />
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
 
   const renderShopTab = () => (
-    <View style={styles.tabContent}>
-      {/* Search and Filter Bar */}
-      <View style={styles.searchFilterBar}>
-        <TouchableOpacity style={styles.searchBar}>
-          <Icon name="search" size={20} color="#666" />
-          <Text style={styles.searchPlaceholder}>Search products...</Text>
-        </TouchableOpacity>
+    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+      {/* Hero Section */}
+      <LinearGradient
+        colors={['#8B5CF6', '#3B82F6', '#06B6D4']}
+        style={styles.heroSection}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={styles.heroContent}>
+          <Text style={styles.heroTitle}>Fitness Store</Text>
+          <Text style={styles.heroSubtitle}>Transform your fitness journey with premium products</Text>
+          
+          <View style={styles.heroFeatures}>
+            <View style={styles.heroFeature}>
+              <Icon name="shield-checkmark" size={16} color="white" />
+              <Text style={styles.heroFeatureText}>Premium Quality</Text>
+            </View>
+            <View style={styles.heroFeature}>
+              <Icon name="flash" size={16} color="white" />
+              <Text style={styles.heroFeatureText}>Fast Delivery</Text>
+            </View>
+            <View style={styles.heroFeature}>
+              <Icon name="trending-up" size={16} color="white" />
+              <Text style={styles.heroFeatureText}>Best Prices</Text>
+            </View>
+          </View>
+        </View>
         
-        <TouchableOpacity 
+        <View style={styles.heroEmoji}>
+          <Text style={styles.heroEmojiText}>🏋️‍♂️</Text>
+        </View>
+      </LinearGradient>
+
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchBar}>
+          <Icon name="search" size={20} color="#9CA3AF" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search products..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholderTextColor="#9CA3AF"
+          />
+        </View>
+        
+        <TouchableOpacity
           style={styles.filterButton}
           onPress={() => setShowFilters(true)}
         >
-          <Icon name="filter" size={20} color="white" />
+          <LinearGradient
+            colors={['#8B5CF6', '#EC4899']}
+            style={styles.filterButtonGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <Icon name="options" size={20} color="white" />
+          </LinearGradient>
         </TouchableOpacity>
       </View>
 
       {/* Categories */}
-      <View style={styles.categoriesContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      <View style={styles.categoriesSection}>
+        <Text style={styles.sectionTitle}>Categories</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll}>
           {categories.map((category) => (
             <TouchableOpacity
               key={category.id}
-              style={[
-                styles.categoryButton,
-                selectedCategory === category.id && styles.selectedCategoryButton
-              ]}
               onPress={() => setSelectedCategory(category.id)}
+              style={styles.categoryButton}
             >
-              <Text style={[
-                styles.categoryIcon,
-                selectedCategory === category.id && styles.selectedCategoryIcon
-              ]}>
-                {category.icon}
-              </Text>
-              <Text style={[
-                styles.categoryName,
-                selectedCategory === category.id && styles.selectedCategoryName
-              ]}>
-                {category.name}
-              </Text>
+              <LinearGradient
+                colors={selectedCategory === category.id ? category.gradient : ['#F9FAFB', '#F3F4F6']}
+                style={styles.categoryGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Icon
+                  name={category.icon}
+                  size={24}
+                  color={selectedCategory === category.id ? 'white' : '#6B7280'}
+                />
+                <Text style={[
+                  styles.categoryName,
+                  { color: selectedCategory === category.id ? 'white' : '#6B7280' }
+                ]}>
+                  {category.name}
+                </Text>
+              </LinearGradient>
             </TouchableOpacity>
           ))}
         </ScrollView>
       </View>
 
-      {/* Products Grid */}
-      <View style={styles.productsGrid}>
-        {products.map((product) => (
-          <TouchableOpacity
-            key={product.id}
-            style={styles.productCard}
-          >
-            <View style={styles.productImageContainer}>
-              <Image
-                source={{ uri: product.image }}
-                style={styles.productImage}
-                resizeMode="cover"
-              />
-              <View style={styles.discountBadge}>
-                <Text style={styles.discountText}>{product.discount}</Text>
-              </View>
-            </View>
-
-            <View style={styles.productInfo}>
-              <Text style={styles.productCategory}>{product.category}</Text>
-              <Text style={styles.productName}>{product.name}</Text>
-              
-              <View style={styles.productRating}>
-                <Text style={styles.ratingText}>⭐ {product.rating}</Text>
-                <Text style={styles.reviewsText}>({product.reviews})</Text>
-              </View>
-
-              <View style={styles.productPrice}>
-                <Text style={styles.currentPrice}>{product.price}</Text>
-                <Text style={styles.originalPrice}>{product.originalPrice}</Text>
-              </View>
-
-              <TouchableOpacity style={styles.addToCartButton}>
-                <Text style={styles.addToCartText}>Add to Cart</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        ))}
+      {/* Products */}
+      <View style={styles.productsSection}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Products</Text>
+          <Text style={styles.itemCount}>{products.length} items</Text>
+        </View>
+        
+        <FlatList
+          data={products}
+          renderItem={renderProductCard}
+          keyExtractor={(item) => item.id.toString()}
+          numColumns={2}
+          columnWrapperStyle={styles.productRow}
+          scrollEnabled={false}
+          showsVerticalScrollIndicator={false}
+        />
       </View>
-    </View>
+    </ScrollView>
   );
 
   const renderEventsTab = () => (
-    <View style={styles.tabContent}>
-      {/* Event Filters */}
-      <View style={styles.eventFilters}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.eventFilterScroll}>
-          <View style={styles.filterSection}>
-            <Text style={styles.filterLabel}>Category:</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {eventCategories.map((category) => (
-                <TouchableOpacity
-                  key={category.id}
-                  style={[
-                    styles.filterChip,
-                    selectedEventCategory === category.id && styles.selectedFilterChip
-                  ]}
-                  onPress={() => setSelectedEventCategory(category.id)}
-                >
-                  <Text style={[
-                    styles.filterChipText,
-                    selectedEventCategory === category.id && styles.selectedFilterChipText
-                  ]}>
-                    {category.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-          
-          <View style={styles.filterSection}>
-            <Text style={styles.filterLabel}>Location:</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {eventLocations.map((location) => (
-                <TouchableOpacity
-                  key={location.id}
-                  style={[
-                    styles.filterChip,
-                    selectedEventLocation === location.id && styles.selectedFilterChip
-                  ]}
-                  onPress={() => setSelectedEventLocation(location.id)}
-                >
-                  <Text style={[
-                    styles.filterChipText,
-                    selectedEventLocation === location.id && styles.selectedFilterChipText
-                  ]}>
-                    {location.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </ScrollView>
-      </View>
-
-      {/* Events List */}
-      <View style={styles.eventsList}>
-        {events.map((event) => (
-          <TouchableOpacity
-            key={event.id}
-            style={styles.eventCard}
-          >
-            <View style={styles.eventImageContainer}>
-              <Image
-                source={{ uri: event.image }}
-                style={styles.eventImage}
-                resizeMode="cover"
-              />
-              <View style={styles.eventCategory}>
-                <Text style={styles.eventCategoryText}>{event.category}</Text>
-              </View>
-            </View>
-
-            <View style={styles.eventInfo}>
-              <Text style={styles.eventName}>{event.name}</Text>
-              
-              <View style={styles.eventDetails}>
-                <View style={styles.eventDetail}>
-                  <Text style={styles.eventDetailIcon}>📅</Text>
-                  <Text style={styles.eventDetailText}>{event.date}</Text>
-                </View>
-                <View style={styles.eventDetail}>
-                  <Text style={styles.eventDetailIcon}>🕒</Text>
-                  <Text style={styles.eventDetailText}>{event.time}</Text>
-                </View>
-                <View style={styles.eventDetail}>
-                  <Text style={styles.eventDetailIcon}>📍</Text>
-                  <Text style={styles.eventDetailText}>{event.location}</Text>
-                </View>
-              </View>
-
-              <View style={styles.eventFooter}>
-                <View style={styles.eventPrice}>
-                  <Text style={styles.eventPriceText}>{event.price}</Text>
-                  <Text style={styles.eventSeats}>{event.seats}</Text>
-                </View>
-                <TouchableOpacity style={styles.bookEventButton}>
-                  <Text style={styles.bookEventText}>Book Now</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-  );
-
-  return (
-    <View style={styles.container}>
-      {/* Header */}
+    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+      {/* Hero Section */}
       <LinearGradient
-        colors={['#e74c3c', '#c0392b']}
-        style={styles.header}
+        colors={['#3B82F6', '#06B6D4']}
+        style={styles.heroSection}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
       >
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Store</Text>
-          <Text style={styles.headerSubtitle}>Shop & Book Events</Text>
+        <View style={styles.heroContent}>
+          <Text style={styles.heroTitle}>Fitness Events</Text>
+          <Text style={styles.heroSubtitle}>Join amazing fitness events and workshops</Text>
+          
+          <View style={styles.heroFeatures}>
+            <View style={styles.heroFeature}>
+              <Icon name="people" size={16} color="white" />
+              <Text style={styles.heroFeatureText}>Expert Speakers</Text>
+            </View>
+            <View style={styles.heroFeature}>
+              <Icon name="trophy" size={16} color="white" />
+              <Text style={styles.heroFeatureText}>Competitions</Text>
+            </View>
+            <View style={styles.heroFeature}>
+              <Icon name="heart" size={16} color="white" />
+              <Text style={styles.heroFeatureText}>Community</Text>
+            </View>
+          </View>
+        </View>
+        
+        <View style={styles.heroEmoji}>
+          <Text style={styles.heroEmojiText}>🎯</Text>
         </View>
       </LinearGradient>
 
+      {/* Event Categories */}
+      <View style={styles.categoriesSection}>
+        <Text style={styles.sectionTitle}>Event Categories</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll}>
+          {eventCategories.map((category) => (
+            <TouchableOpacity
+              key={category.id}
+              onPress={() => setSelectedEventCategory(category.id)}
+              style={styles.eventCategoryButton}
+            >
+              <LinearGradient
+                colors={selectedEventCategory === category.id ? category.gradient : ['#F9FAFB', '#F3F4F6']}
+                style={styles.eventCategoryGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Text style={[
+                  styles.eventCategoryName,
+                  { color: selectedEventCategory === category.id ? 'white' : '#6B7280' }
+                ]}>
+                  {category.name}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Events */}
+      <View style={styles.eventsSection}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Upcoming Events</Text>
+          <Text style={styles.itemCount}>{events.length} events</Text>
+        </View>
+        
+        <FlatList
+          data={events}
+          renderItem={renderEventCard}
+          keyExtractor={(item) => item.id.toString()}
+          scrollEnabled={false}
+          showsVerticalScrollIndicator={false}
+        />
+      </View>
+    </ScrollView>
+  );
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle="light-content" backgroundColor="#8B5CF6" />
+      
       {/* Tab Navigation */}
-      <View style={styles.tabContainer}>
+      <LinearGradient
+        colors={['#8B5CF6', '#EC4899']}
+        style={styles.tabContainer}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+      >
         {tabs.map((tab) => (
           <TouchableOpacity
             key={tab.id}
             style={[styles.tab, activeTab === tab.id && styles.activeTab]}
             onPress={() => setActiveTab(tab.id)}
           >
-            <Text style={styles.tabIcon}>{tab.icon}</Text>
-            <Text style={[styles.tabText, activeTab === tab.id && styles.activeTabText]}>
+            {activeTab === tab.id && (
+              <View style={styles.activeTabBackground} />
+            )}
+            <Icon
+              name={tab.icon}
+              size={20}
+              color={activeTab === tab.id ? '#8B5CF6' : 'rgba(255,255,255,0.7)'}
+              style={styles.tabIcon}
+            />
+            <Text style={[
+              styles.tabText,
+              { color: activeTab === tab.id ? '#8B5CF6' : 'rgba(255,255,255,0.7)' }
+            ]}>
               {tab.title}
             </Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </LinearGradient>
 
       {/* Tab Content */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {activeTab === 'shop' && renderShopTab()}
-        {activeTab === 'events' && renderEventsTab()}
-      </ScrollView>
+      {activeTab === 'shop' && renderShopTab()}
+      {activeTab === 'events' && renderEventsTab()}
 
       {/* Filter Modal */}
       <Modal
@@ -372,55 +657,48 @@ const Store = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.filterModal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Filter & Sort</Text>
+              <Text style={styles.modalTitle}>Filters & Sort</Text>
               <TouchableOpacity onPress={() => setShowFilters(false)}>
-                <Icon name="close" size={24} color="#333" />
+                <Icon name="close" size={24} color="#374151" />
               </TouchableOpacity>
             </View>
             
-            <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Sort By</Text>
-              <View style={styles.sortOptionsContainer}>
-                {sortOptions.map((option) => (
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>Sort By</Text>
+                {['Popular', 'Price: Low to High', 'Price: High to Low', 'Rating', 'Newest'].map((option, index) => (
                   <TouchableOpacity
-                    key={option.id}
+                    key={index}
                     style={[
                       styles.sortOption,
-                      selectedSort === option.id && styles.selectedSortOption
+                      selectedSort === option.toLowerCase().replace(/[:\s]/g, '-') && styles.selectedSortOption
                     ]}
-                    onPress={() => setSelectedSort(option.id)}
+                    onPress={() => setSelectedSort(option.toLowerCase().replace(/[:\s]/g, '-'))}
                   >
                     <Text style={[
                       styles.sortOptionText,
-                      selectedSort === option.id && styles.selectedSortOptionText
+                      selectedSort === option.toLowerCase().replace(/[:\s]/g, '-') && styles.selectedSortOptionText
                     ]}>
-                      {option.name}
+                      {option}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
-            </View>
-            
-            <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Price Range</Text>
-              <View style={styles.priceRangeContainer}>
-                <Text style={styles.priceRangeText}>
-                  ₹{priceRange.min} - ₹{priceRange.max}
-                </Text>
-                <View style={styles.priceSlider}>
-                  <View style={styles.priceTrack}>
-                    <View style={[styles.priceFill, { width: '60%' }]} />
-                  </View>
-                </View>
-              </View>
-            </View>
-            
-            <TouchableOpacity
-              style={styles.applyFilterButton}
-              onPress={() => setShowFilters(false)}
-            >
-              <Text style={styles.applyFilterButtonText}>Apply Filters</Text>
-            </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.applyButton}
+                onPress={() => setShowFilters(false)}
+              >
+                <LinearGradient
+                  colors={['#8B5CF6', '#EC4899']}
+                  style={styles.applyButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <Text style={styles.applyButtonText}>Apply Filters</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -428,378 +706,500 @@ const Store = () => {
   );
 };
 
-export default Store;
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F9FAFB',
   },
-  header: {
-    paddingTop: 50,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-  },
-  headerContent: {
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 5,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
+  
+  // Tab Navigation
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: 'white',
     paddingHorizontal: 20,
-    paddingVertical: 15,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
+    paddingVertical: 20,
+    paddingTop: 40,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingVertical: 12,
+    borderRadius: 16,
+    position: 'relative',
   },
   activeTab: {
-    backgroundColor: '#e74c3c',
+    // Active tab styling handled by background view
+  },
+  activeTabBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 16,
   },
   tabIcon: {
-    fontSize: 20,
-    marginBottom: 5,
+    marginBottom: 4,
+    zIndex: 1,
   },
   tabText: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 14,
     fontWeight: '600',
+    zIndex: 1,
   },
-  activeTabText: {
-    color: 'white',
-  },
-  content: {
+  
+  // Content
+  tabContent: {
     flex: 1,
     paddingHorizontal: 20,
   },
-  tabContent: {
-    paddingTop: 20,
-  },
-  categoriesContainer: {
-    marginBottom: 20,
-  },
-  categoryButton: {
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    marginRight: 15,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  categoryIcon: {
-    fontSize: 24,
-    marginBottom: 5,
-  },
-  categoryName: {
-    fontSize: 12,
-    color: '#666',
-    fontWeight: '600',
-  },
-  productsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  productCard: {
-    width: '48%',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+  
+  // Hero Section
+  heroSection: {
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 24,
+    marginTop: 20,
+    position: 'relative',
     overflow: 'hidden',
   },
-  productImageContainer: {
-    position: 'relative',
+  heroContent: {
+    flex: 1,
+    zIndex: 1,
   },
-  productImage: {
-    width: '100%',
-    height: 120,
-  },
-  discountBadge: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    backgroundColor: '#e74c3c',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
-  },
-  discountText: {
+  heroTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
     color: 'white',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  productInfo: {
-    padding: 12,
-  },
-  productCategory: {
-    fontSize: 10,
-    color: '#999',
-    marginBottom: 4,
-  },
-  productName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 6,
-  },
-  productRating: {
-    flexDirection: 'row',
-    alignItems: 'center',
     marginBottom: 8,
   },
-  ratingText: {
-    fontSize: 12,
-    color: '#f39c12',
-    marginRight: 4,
-  },
-  reviewsText: {
-    fontSize: 10,
-    color: '#999',
-  },
-  productPrice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  currentPrice: {
+  heroSubtitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#e74c3c',
-    marginRight: 8,
-  },
-  originalPrice: {
-    fontSize: 12,
-    color: '#999',
-    textDecorationLine: 'line-through',
-  },
-  addToCartButton: {
-    backgroundColor: '#e74c3c',
-    paddingVertical: 8,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  addToCartText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  eventsList: {
-    gap: 15,
-  },
-  eventCard: {
-    backgroundColor: 'white',
-    borderRadius: 15,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  eventImageContainer: {
-    position: 'relative',
-  },
-  eventImage: {
-    width: '100%',
-    height: 150,
-  },
-  eventCategory: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 15,
-  },
-  eventCategoryText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  eventInfo: {
-    padding: 15,
-  },
-  eventName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
-  },
-  eventDetails: {
-    marginBottom: 15,
-  },
-  eventDetail: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  eventDetailIcon: {
-    fontSize: 14,
-    marginRight: 8,
-  },
-  eventDetailText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  eventFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  eventPrice: {
-    flex: 1,
-  },
-  eventPriceText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#e74c3c',
-    marginBottom: 2,
-  },
-  eventSeats: {
-    fontSize: 12,
-    color: '#999',
-  },
-  bookEventButton: {
-    backgroundColor: '#e74c3c',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  bookEventText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-
-  // Enhanced Filter Styles
-  searchFilterBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    color: 'rgba(255, 255, 255, 0.9)',
     marginBottom: 20,
-    gap: 10,
+    lineHeight: 24,
+  },
+  heroFeatures: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  heroFeature: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 20,
+    marginBottom: 8,
+  },
+  heroFeatureText: {
+    color: 'white',
+    fontSize: 14,
+    marginLeft: 6,
+    fontWeight: '500',
+  },
+  heroEmoji: {
+    position: 'absolute',
+    right: 16,
+    top: 16,
+    opacity: 0.2,
+  },
+  heroEmojiText: {
+    fontSize: 48,
+  },
+  
+  // Search
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+    gap: 12,
   },
   searchBar: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'white',
-    borderRadius: 25,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 8,
     elevation: 3,
   },
-  searchPlaceholder: {
-    marginLeft: 10,
-    color: '#666',
+  searchInput: {
+    flex: 1,
+    marginLeft: 12,
     fontSize: 16,
+    color: '#374151',
   },
   filterButton: {
-    backgroundColor: '#e74c3c',
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  filterButtonGradient: {
+    width: 52,
+    height: 52,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
-  selectedCategoryButton: {
-    backgroundColor: '#e74c3c',
+  
+  // Categories
+  categoriesSection: {
+    marginBottom: 24,
   },
-  selectedCategoryIcon: {
-    color: 'white',
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 16,
   },
-  selectedCategoryName: {
-    color: 'white',
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  itemCount: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  categoriesScroll: {
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
+  },
+  categoryButton: {
+    marginRight: 12,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  categoryGradient: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    alignItems: 'center',
+    minWidth: 100,
+    borderRadius: 20,
+  },
+  categoryName: {
+    fontSize: 12,
     fontWeight: '600',
+    marginTop: 6,
+    textAlign: 'center',
   },
-
-  // Event Filter Styles
-  eventFilters: {
-    marginBottom: 20,
+  
+  // Event Categories
+  eventCategoryButton: {
+    marginRight: 12,
+    borderRadius: 16,
+    overflow: 'hidden',
   },
-  eventFilterScroll: {
-    maxHeight: 120,
+  eventCategoryGradient: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 16,
   },
-  filterSection: {
-    marginBottom: 15,
-  },
-  filterLabel: {
+  eventCategoryName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    textAlign: 'center',
+  },
+  
+  // Products
+  productsSection: {
+    marginBottom: 24,
+  },
+  productRow: {
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  productCard: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  productImageContainer: {
+    position: 'relative',
+    height: 160,
+  },
+  productImage: {
+    width: '100%',
+    height: '100%',
+  },
+  imageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 40,
+  },
+  badgeContainer: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+  },
+  discountBadge: {
+    backgroundColor: '#2196F3',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  discountText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  newBadge: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  newText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  productBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  productBadgeText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  likeButton: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  productInfo: {
+    padding: 16,
+  },
+  brandText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  productName: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 8,
   },
-  filterChip: {
-    backgroundColor: '#f5f5f5',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  selectedFilterChip: {
-    backgroundColor: '#e74c3c',
-    borderColor: '#e74c3c',
-  },
-  filterChipText: {
+  ratingText: {
     fontSize: 12,
-    color: '#666',
+    fontWeight: '600',
+    color: '#374151',
+    marginLeft: 4,
+    marginRight: 4,
   },
-  selectedFilterChipText: {
+  reviewsText: {
+    fontSize: 10,
+    color: '#9CA3AF',
+  },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  currentPrice: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginRight: 8,
+  },
+  originalPrice: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    textDecorationLine: 'line-through',
+  },
+  addToCartButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  buttonGradient: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  addToCartText: {
     color: 'white',
+    fontSize: 14,
     fontWeight: '600',
   },
-
-  // Modal Styles
+  outOfStockButton: {
+    opacity: 0.6,
+  },
+  outOfStockText: {
+    color: '#9CA3AF',
+  },
+  
+  // Events
+  eventsSection: {
+    marginBottom: 24,
+  },
+  eventCard: {
+    backgroundColor: 'white',
+    borderRadius: 24,
+    overflow: 'hidden',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  eventImageContainer: {
+    position: 'relative',
+    height: 200,
+  },
+  eventImage: {
+    width: '100%',
+    height: '100%',
+  },
+  eventImageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 80,
+  },
+  popularBadge: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  popularText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  eventCategoryBadge: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  eventCategoryText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  eventInfo: {
+    padding: 20,
+  },
+  eventName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 8,
+    lineHeight: 28,
+  },
+  eventDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  eventDetails: {
+    marginBottom: 16,
+  },
+  eventDetail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  eventDetailText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginLeft: 8,
+  },
+  eventStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+  },
+  eventStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  eventStatText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  eventFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  eventPricing: {
+    flex: 1,
+  },
+  eventPrice: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 2,
+  },
+  eventOriginalPrice: {
+    fontSize: 16,
+    color: '#9CA3AF',
+    textDecorationLine: 'line-through',
+  },
+  bookButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  bookButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+  },
+  bookButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+    marginRight: 8,
+  },
+  
+  // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -807,83 +1207,66 @@ const styles = StyleSheet.create({
   },
   filterModal: {
     backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
     maxHeight: '80%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#1F2937',
+  },
+  filterSection: {
+    marginBottom: 24,
   },
   filterSectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 15,
-  },
-  sortOptionsContainer: {
-    gap: 10,
+    color: '#374151',
+    marginBottom: 16,
   },
   sortOption: {
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    borderRadius: 10,
-    backgroundColor: '#f5f5f5',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#F9FAFB',
+    marginBottom: 8,
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
   selectedSortOption: {
-    backgroundColor: '#e74c3c',
-    borderColor: '#e74c3c',
+    backgroundColor: '#F3F4F6',
+    borderColor: '#8B5CF6',
   },
   sortOptionText: {
     fontSize: 16,
-    color: '#666',
+    color: '#6B7280',
   },
   selectedSortOptionText: {
-    color: 'white',
+    color: '#8B5CF6',
     fontWeight: '600',
   },
-  priceRangeContainer: {
-    marginBottom: 20,
+  applyButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginTop: 16,
   },
-  priceRangeText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 10,
-  },
-  priceSlider: {
-    marginBottom: 10,
-  },
-  priceTrack: {
-    height: 4,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 2,
-  },
-  priceFill: {
-    height: '100%',
-    backgroundColor: '#e74c3c',
-    borderRadius: 2,
-  },
-  applyFilterButton: {
-    backgroundColor: '#e74c3c',
-    paddingVertical: 15,
-    borderRadius: 12,
+  applyButtonGradient: {
+    paddingVertical: 16,
     alignItems: 'center',
-    marginTop: 20,
   },
-  applyFilterButtonText: {
+  applyButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
   },
 });
+
+export default Store;

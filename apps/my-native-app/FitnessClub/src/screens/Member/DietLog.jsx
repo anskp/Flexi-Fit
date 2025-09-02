@@ -18,64 +18,13 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+
 import { saveDietEntry } from '../../api/dietService';
 import { launchImageLibrary } from 'react-native-image-picker';
 
 const { width, height } = Dimensions.get('window');
 
-const FloatingParticle = ({ delay = 0, style }) => {
-  const translateY = useRef(new Animated.Value(0)).current;
-  const opacity = useRef(new Animated.Value(0.3)).current;
 
-  useEffect(() => {
-    const animateParticle = () => {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(translateY, {
-            toValue: -30,
-            duration: 3000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(translateY, {
-            toValue: 30,
-            duration: 3000,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
-
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(opacity, {
-            toValue: 0.8,
-            duration: 2000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(opacity, {
-            toValue: 0.2,
-            duration: 2000,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
-    };
-
-    setTimeout(animateParticle, delay);
-  }, [delay]);
-
-  return (
-    <Animated.View
-      style={[
-        styles.particle,
-        style,
-        {
-          transform: [{ translateY }],
-          opacity,
-        },
-      ]}
-    />
-  );
-};
 
 const QuickMealCard = ({ meal, onPress, style }) => {
   const scale = useRef(new Animated.Value(0)).current;
@@ -331,6 +280,7 @@ const PulsingButton = ({ onPress, children, style }) => {
 };
 
 const DietLog = () => {
+  const { colors } = useTheme();
   const [logs, setLogs] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -474,27 +424,44 @@ const DietLog = () => {
       return;
     }
     
+    console.log('Saving meal with data:', dietForm);
     setLoading(true);
     try {
       const response = await saveDietEntry(dietForm);
+      console.log('API response:', response);
 
+      // Always add the meal locally for immediate feedback
+      const newLog = {
+        ...dietForm,
+        id: Date.now().toString(),
+        timestamp: new Date().toLocaleTimeString(),
+        date: new Date().toLocaleDateString(),
+      };
+      console.log('Adding new log:', newLog);
+      setLogs([newLog, ...logs]);
+      
       if (response.success) {
-        const newLog = {
-          ...dietForm,
-          id: Date.now().toString(),
-          timestamp: new Date().toLocaleTimeString(),
-          date: new Date().toLocaleDateString(),
-        };
-        setLogs([newLog, ...logs]);
         closeModal();
         resetDietForm();
         Alert.alert('Success', 'Custom meal logged successfully! 🎉');
       } else {
-        Alert.alert('Error', response.message || 'Failed to save meal');
+        console.log('API call failed:', response.message);
+        Alert.alert('Warning', 'Meal added locally but failed to sync with server. ' + (response.message || 'Please try again later.'));
       }
     } catch (error) {
       console.error('Save diet error:', error);
-      Alert.alert('Error', 'Failed to save meal. Please try again.');
+      
+      // Add meal locally even if API fails
+      const newLog = {
+        ...dietForm,
+        id: Date.now().toString(),
+        timestamp: new Date().toLocaleTimeString(),
+        date: new Date().toLocaleDateString(),
+      };
+      console.log('Adding meal locally due to API error:', newLog);
+      setLogs([newLog, ...logs]);
+      
+      Alert.alert('Warning', 'Meal added locally but failed to sync with server. Please check your internet connection and try again later.');
     } finally {
       setLoading(false);
     }
@@ -529,7 +496,7 @@ const DietLog = () => {
 
     launchImageLibrary(options, (response) => {
       if (response.didCancel) {
-        console.log('User cancelled image picker');
+        // User cancelled image picker
       } else if (response.error) {
         Alert.alert('Error', 'Failed to pick image');
       } else if (response.assets && response.assets[0]) {
@@ -568,112 +535,91 @@ const DietLog = () => {
     setLogs(logs.filter(log => log.id !== id));
   };
 
-  const renderParticles = () => {
-    return [...Array(12)].map((_, i) => (
-      <FloatingParticle
-        key={i}
-        delay={i * 200}
-        style={{
-          left: Math.random() * width,
-          top: Math.random() * height,
-        }}
-      />
-    ));
-  };
 
-  // ---- NORMAL UI ----
+
+    // ---- NORMAL UI ----
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0f0f23" />
-
-      {/* Background Particles */}
-      <View style={styles.particleContainer}>
-        {renderParticles()}
-      </View>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={colors.background === '#0f0f23' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
 
       {/* Header */}
-      <Animated.View style={[styles.header, { transform: [{ scale: headerScale }] }]}>
-        <Text style={styles.headerTitle}>🍎 Diet Log</Text>
-        <Text style={styles.headerSubtitle}>Transform your nutrition journey</Text>
-
-        {/* Stats Row */}
-        <View style={styles.statsContainer}>
-          <StatCard
-            title="Calories"
-            value={stats.totalCalories}
-            subtitle="kcal today"
-            color="#ff6b6b"
-            delay={100}
-          />
-          <StatCard
-            title="Protein"
-            value={stats.totalProtein}
-            subtitle="grams"
-            color="#4ecdc4"
-            delay={200}
-          />
-          <StatCard
-            title="Meals"
-            value={stats.totalMeals}
-            subtitle="logged"
-            color="#45b7d1"
-            delay={300}
-          />
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Icon name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Nutrition Tracker</Text>
+          <TouchableOpacity style={styles.addButton} onPress={openModal}>
+            <Icon name="add" size={24} color={colors.primary} />
+          </TouchableOpacity>
         </View>
-      </Animated.View>
-
-      {/* Quick Meals Section */}
-      <View style={styles.quickMealsSection}>
-        <Text style={styles.sectionTitle}>Quick Add Meals</Text>
         
-        {/* Category Filter */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryFilter}>
+        {/* Stats Cards */}
+        <View style={styles.statsGrid}>
+          <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+            <View style={styles.statIconContainer}>
+              <Icon name="flame" size={24} color="#FF6B6B" />
+            </View>
+            <Text style={[styles.statValue, { color: colors.text }]}>{stats.totalCalories}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Calories</Text>
+          </View>
+          
+          <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+            <View style={styles.statIconContainer}>
+              <Icon name="fitness" size={24} color="#4ECDC4" />
+            </View>
+            <Text style={[styles.statValue, { color: colors.text }]}>{stats.totalProtein}g</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Protein</Text>
+          </View>
+          
+          <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
+            <View style={styles.statIconContainer}>
+              <Icon name="restaurant" size={24} color="#45B7D1" />
+            </View>
+            <Text style={[styles.statValue, { color: colors.text }]}>{stats.totalMeals}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Meals</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Quick Actions */}
+      <View style={styles.quickActionsSection}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Actions</Text>
+        <View style={styles.quickActionsGrid}>
           {mealCategories.map((category) => (
             <TouchableOpacity
               key={category.id}
-              style={[
-                styles.categoryButton,
-                selectedCategory === category.id && styles.selectedCategoryButton
-              ]}
+              style={[styles.quickActionCard, { backgroundColor: colors.surface }]}
               onPress={() => setSelectedCategory(category.id)}
             >
-              <Text style={styles.categoryIcon}>{category.icon}</Text>
-              <Text style={[
-                styles.categoryText,
-                selectedCategory === category.id && styles.selectedCategoryText
-              ]}>
-                {category.name}
-              </Text>
+              <Text style={styles.quickActionIcon}>{category.icon}</Text>
+              <Text style={[styles.quickActionText, { color: colors.text }]}>{category.name}</Text>
             </TouchableOpacity>
           ))}
-        </ScrollView>
-        
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickMealsScroll}>
-          {filteredMeals.map((meal, index) => (
-            <QuickMealCard
-              key={meal.name}
-              meal={meal}
-              onPress={() => handleQuickMeal(meal)}
-              style={{ marginLeft: index === 0 ? 16 : 12 }}
-            />
-          ))}
-        </ScrollView>
+        </View>
       </View>
 
-      {/* Meal List */}
-      <View style={styles.mealListSection}>
-        <Text style={styles.sectionTitle}>Today's Meals</Text>
+      {/* Today's Meals */}
+      <View style={styles.mealsSection}>
+        <View style={styles.mealsHeader}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Today's Meals</Text>
+          <TouchableOpacity style={styles.viewAllButton}>
+            <Text style={[styles.viewAllText, { color: colors.primary }]}>View All</Text>
+          </TouchableOpacity>
+        </View>
+        
         {logs.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyTitle}>🍽️ No meals logged yet</Text>
-            <Text style={styles.emptySubtitle}>Start tracking your nutrition by adding your first meal!</Text>
-            <TouchableOpacity style={styles.addFirstMealButton} onPress={openModal}>
-              <Text style={styles.addFirstMealButtonText}>➕ Add Your First Meal</Text>
+          <View style={[styles.emptyContainer, { backgroundColor: colors.surface }]}>
+            <Icon name="restaurant-outline" size={48} color={colors.textSecondary} />
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No meals logged yet</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>Start tracking your nutrition journey</Text>
+            <TouchableOpacity style={[styles.addFirstMealButton, { backgroundColor: colors.primary }]} onPress={openModal}>
+              <Text style={styles.addFirstMealButtonText}>Add Your First Meal</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <FlatList
-            data={logs}
+            data={logs.slice(0, 3)}
             keyExtractor={(item) => item.id}
             renderItem={({ item, index }) => (
               <MealCard item={item} index={index} onDelete={deleteMeal} />
@@ -850,21 +796,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0f0f23',
   },
-  particleContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 0,
-  },
-  particle: {
-    position: 'absolute',
-    width: 4,
-    height: 4,
-    backgroundColor: '#4ecdc4',
-    borderRadius: 2,
-  },
+
   header: {
     padding: 20,
     paddingTop: 40,
@@ -1202,7 +1134,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   addFirstMealButtonText: {
-    color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
     fontFamily: 'System',
@@ -1214,7 +1145,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    color: '#fff',
     fontWeight: 'bold',
     marginBottom: 15,
     fontFamily: 'System',
@@ -1273,24 +1203,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'transparent',
   },
-  selectedCategoryButton: {
-    borderColor: '#4ecdc4',
-    borderWidth: 1,
-  },
-  categoryIcon: {
-    fontSize: 20,
-    marginRight: 8,
-  },
-  categoryText: {
-    fontSize: 14,
-    color: '#bbb',
-    fontWeight: '500',
-    fontFamily: 'System',
-  },
-  selectedCategoryText: {
-    color: '#4ecdc4',
-    fontWeight: '600',
-  },
+
   
   // Modal Styles
   modalOverlay: {
@@ -1454,6 +1367,134 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   
+  // New UI Styles
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 30,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 25,
+  },
+  backButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    flex: 1,
+    textAlign: 'center',
+  },
+  addButton: {
+    padding: 8,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  statIconContainer: {
+    marginBottom: 8,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  quickActionsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 30,
+  },
+  quickActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 16,
+  },
+  quickActionCard: {
+    width: '48%',
+    padding: 20,
+    borderRadius: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  quickActionIcon: {
+    fontSize: 32,
+    marginBottom: 12,
+  },
+  quickActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  mealsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  mealsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  viewAllButton: {
+    padding: 8,
+  },
+  viewAllText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  emptyContainer: {
+    padding: 40,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  addFirstMealButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
+  addFirstMealButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
   // Action Buttons
   modalActions: {
     flexDirection: 'row',

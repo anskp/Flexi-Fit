@@ -8,6 +8,7 @@ import apiClient from '../api/apiClient';
 
 const MemberProfile = () => {
   const { userProfile, refreshUserProfile } = useAuth();
+  const { colors } = useTheme();
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
   const [currentStep, setCurrentStep] = useState(0);
@@ -358,44 +359,47 @@ const MemberProfile = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <Text style={styles.backIcon}>‹</Text>
+          <Text style={[styles.backIcon, { color: colors.text }]}>‹</Text>
         </TouchableOpacity>
         
-        <View style={styles.progressBar}>
+        <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
           <View 
             style={[
               styles.progressFill, 
-              { width: `${((currentStep + 1) / totalSteps) * 100}%` }
+              { 
+                width: `${((currentStep + 1) / totalSteps) * 100}%`,
+                backgroundColor: colors.primary
+              }
             ]} 
           />
         </View>
         
         <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-          <Text style={styles.skipText}>Skip</Text>
+          <Text style={[styles.skipText, { color: colors.text }]}>Skip</Text>
         </TouchableOpacity>
       </View>
 
       {/* Main Content */}
       <View style={styles.content}>
-        <Text style={styles.question}>{currentStepData.title}</Text>
+        <Text style={[styles.question, { color: colors.text }]}>{currentStepData.title}</Text>
         {renderInput()}
       </View>
 
       {/* Next Button */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity 
-          style={styles.nextButton} 
+          style={[styles.nextButton, { backgroundColor: colors.primary }]} 
           onPress={handleNext}
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.primaryText} />
           ) : (
-            <Text style={styles.nextButtonText}>Next</Text>
+            <Text style={[styles.nextButtonText, { color: colors.primaryText }]}>Next</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -406,7 +410,6 @@ const MemberProfile = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
@@ -424,19 +427,16 @@ const styles = StyleSheet.create({
   },
   backIcon: {
     fontSize: 24,
-    color: '#000',
     fontWeight: 'bold',
   },
   progressBar: {
     flex: 1,
     height: 4,
-    backgroundColor: '#E5E5E5',
     borderRadius: 2,
     marginHorizontal: 20,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#007AFF',
     borderRadius: 2,
   },
   skipButton: {
@@ -444,7 +444,6 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontSize: 16,
-    color: '#000',
     fontWeight: '500',
   },
   content: {

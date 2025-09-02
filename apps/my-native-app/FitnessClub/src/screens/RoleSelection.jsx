@@ -14,6 +14,7 @@ const roles = [
 const RoleSelection = () => {
   const navigation = useNavigation();
   const { userProfile, refreshUserProfile } = useAuth();
+  const { colors } = useTheme();
 
   // Function to handle role selection
   const handleRolePress = async (roleLabel) => {
@@ -73,18 +74,18 @@ const RoleSelection = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.header}>Choose User Type</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <Text style={[styles.header, { color: colors.text }]}>Choose User Type</Text>
       <View style={styles.rolesContainer}>
         {roles.map((role) => (
           <TouchableOpacity
             key={role.label}
-            style={styles.card}
+            style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
             activeOpacity={0.85}
             onPress={() => handleRolePress(role.label)}
           >
-            <Text style={styles.roleLabel}>{role.label}</Text>
-            <Text style={styles.roleDesc}>{role.description}</Text>
+            <Text style={[styles.roleLabel, { color: colors.text }]}>{role.label}</Text>
+            <Text style={[styles.roleDesc, { color: colors.textSecondary }]}>{role.description}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -95,7 +96,6 @@ const RoleSelection = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF', // White background
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -103,7 +103,6 @@ const styles = StyleSheet.create({
   header: {
     fontSize: 28,
     fontWeight: '600',
-    color: '#666666', // Changed to gray
     marginBottom: 30,
     letterSpacing: 0.5,
     fontFamily: 'System',
@@ -114,31 +113,27 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '90%',
-    backgroundColor: '#F8F9FB',
     borderRadius: 18,
     paddingVertical: 24,
     paddingHorizontal: 18,
     marginBottom: 22,
     alignItems: 'flex-start',
-    shadowColor: '#666666', // Changed shadow to gray
+    shadowColor: '#666666',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 8,
     elevation: 4,
     borderWidth: 1,
-    borderColor: '#E3E8F0',
   },
   roleLabel: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#555555', // Changed to darker gray
     marginBottom: 6,
     fontFamily: 'System',
     letterSpacing: 0.3,
   },
   roleDesc: {
     fontSize: 15,
-    color: '#777777', // Changed to medium gray
     opacity: 0.9,
     fontFamily: 'System',
     lineHeight: 20,

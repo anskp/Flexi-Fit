@@ -9,6 +9,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 const { width: screenWidth } = Dimensions.get('window');
 
 const Community = () => {
+  const { colors } = useTheme();
   const [activeTab, setActiveTab] = useState('groups');
 
   const tabs = [
@@ -138,8 +139,8 @@ const Community = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={colors.background === '#0f0f23' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       
       {/* Header */}
       <LinearGradient
@@ -151,7 +152,7 @@ const Community = () => {
       </LinearGradient>
 
       {/* Tab Navigation */}
-      <View style={styles.tabContainer}>
+      <View style={[styles.tabContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         {tabs.map((tab) => (
           <TouchableOpacity
             key={tab.id}
@@ -159,7 +160,7 @@ const Community = () => {
             onPress={() => setActiveTab(tab.id)}
           >
             <Text style={styles.tabIcon}>{tab.icon}</Text>
-            <Text style={[styles.tabText, activeTab === tab.id && styles.activeTabText]}>
+            <Text style={[styles.tabText, { color: colors.textSecondary }, activeTab === tab.id && [styles.activeTabText, { color: colors.primary }]]}>
               {tab.title}
             </Text>
           </TouchableOpacity>
@@ -167,7 +168,7 @@ const Community = () => {
       </View>
 
       {/* Tab Content */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={[styles.content, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
         {activeTab === 'groups' && renderGroupsTab()}
         {activeTab === 'challenges' && renderChallengesTab()}
       </ScrollView>
@@ -178,7 +179,6 @@ const Community = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   header: {
     paddingTop: 50,
@@ -199,11 +199,9 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: 'white',
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   tab: {
     flex: 1,
@@ -212,7 +210,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   activeTab: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
   },
   tabIcon: {
     fontSize: 20,
@@ -220,11 +218,10 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 12,
-    color: '#666',
     fontWeight: '600',
   },
   activeTabText: {
-    color: '#FF6B6B',
+    // color will be set dynamically
   },
   content: {
     flex: 1,

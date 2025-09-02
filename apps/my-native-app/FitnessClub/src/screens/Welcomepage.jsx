@@ -54,6 +54,7 @@ const WelcomeScreen = () => {
   const rotateAnim = useRef(new Animated.Value(0)).current;
 
   const navigation = useNavigation();
+  const { colors } = useTheme();
 
   useEffect(() => {
     Animated.parallel([
@@ -220,8 +221,8 @@ const WelcomeScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={colors.background === '#0f0f23' ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
       
       <FlatList
         data={slides}
@@ -248,7 +249,6 @@ const WelcomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
   },
   flatList: {
     flex: 1,

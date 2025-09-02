@@ -18,6 +18,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 const { width, height } = Dimensions.get('window');
 
 const FlexiFitAI = () => {
+  const { colors } = useTheme();
   const [activeTab, setActiveTab] = useState('chat');
   const [message, setMessage] = useState('');
   const [chatHistory, setChatHistory] = useState([
@@ -353,8 +354,8 @@ const FlexiFitAI = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#e74c3c" barStyle="light-content" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar backgroundColor={colors.primary} barStyle="light-content" />
       
       {/* Header */}
       <LinearGradient
@@ -371,7 +372,7 @@ const FlexiFitAI = () => {
       </LinearGradient>
 
       {/* Tab Navigation */}
-      <View style={styles.tabContainer}>
+      <View style={[styles.tabContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         {tabs.map((tab) => (
           <TouchableOpacity
             key={tab.id}
@@ -381,9 +382,9 @@ const FlexiFitAI = () => {
             <Icon 
               name={tab.icon} 
               size={20} 
-              color={activeTab === tab.id ? '#e74c3c' : '#666'} 
+              color={activeTab === tab.id ? colors.primary : colors.textSecondary} 
             />
-            <Text style={[styles.tabText, activeTab === tab.id && styles.activeTabText]}>
+            <Text style={[styles.tabText, { color: colors.textSecondary }, activeTab === tab.id && [styles.activeTabText, { color: colors.primary }]]}>
               {tab.title}
             </Text>
           </TouchableOpacity>
@@ -391,7 +392,7 @@ const FlexiFitAI = () => {
       </View>
 
       {/* Tab Content */}
-      <View style={styles.content}>
+      <View style={[styles.content, { backgroundColor: colors.background }]}>
         {activeTab === 'chat' && renderChatTab()}
         {activeTab === 'workouts' && renderWorkoutsTab()}
         {activeTab === 'nutrition' && renderNutritionTab()}
@@ -404,7 +405,6 @@ const FlexiFitAI = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   header: {
     paddingTop: 20,
@@ -429,7 +429,6 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: 'white',
     paddingHorizontal: 20,
     paddingVertical: 10,
     shadowColor: '#000',
@@ -449,12 +448,10 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 12,
-    color: '#666',
     marginTop: 5,
     fontWeight: '500',
   },
   activeTabText: {
-    color: '#e74c3c',
     fontWeight: '600',
   },
   content: {
