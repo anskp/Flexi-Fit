@@ -18,6 +18,7 @@ model User {
   password              String?
   provider              String
   providerId            String?
+  auth0_id  String?  @unique
   resetToken            String?
   resetTokenExpiry      DateTime?
   role                  String?

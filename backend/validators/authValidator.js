@@ -61,22 +61,28 @@ export const resetPasswordSchema = Joi.object({
 export const selectRoleSchema = Joi.object({
   role: Joi.string().uppercase().valid('MEMBER', 'GYM_OWNER', 'TRAINER', 'MULTI_GYM_MEMBER').required(),
 });
-
-export const createMemberProfileSchema = Joi.object({
-  name: Joi.string().min(2).max(100).required(),
-  age: Joi.number().integer().min(13).max(100).required(),
-  gender: Joi.string().valid('Male', 'Female', 'Other').required(),
-  weight: Joi.number().positive().required(),
-  height: Joi.number().positive().required(),
-  healthConditions: Joi.string().allow('').optional(),
-  fitnessGoal: Joi.string().allow('').optional(),
-});
-
 const planSchema = Joi.object({
   name: Joi.string().required(),
   price: Joi.number().positive().required(),
   duration: Joi.string().required(), // e.g., "monthly", "yearly"
 });
+
+export const createMemberProfileSchema = Joi.object({
+  name: Joi.string().min(2).max(100).required(),
+  age: Joi.number().integer().min(13).max(100).required(),
+  gender: Joi.string().valid('Male', 'Female', 'Other').required(),
+  weight: Joi.object({
+    value: Joi.number().positive().required(),
+    unit: Joi.string().valid('KG', 'LBS').required(),
+  }).required(),
+  height: Joi.object({
+    value: Joi.number().positive().required(),
+    unit: Joi.string().valid('CM', 'INCH').required(),
+  }).required(),
+  healthConditions: Joi.string().allow('').optional(),
+  fitnessGoal: Joi.string().allow('').optional(),
+});
+
 
 export const createTrainerProfileSchema = Joi.object({
   bio: Joi.string().required(),

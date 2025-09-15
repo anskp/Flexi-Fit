@@ -11,3 +11,5 @@ router.get('/stats', auth0Auth, userController.getUserStats);
 router.put('/profile', auth0Auth, userController.updateUserProfile);
 
 export default router;
+
+

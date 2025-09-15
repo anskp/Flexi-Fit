@@ -1,5 +1,157 @@
+// import dotenv from 'dotenv';
+// dotenv.config();
+// import express from 'express';
+// import passport from 'passport';
+// import cors from 'cors';
+// import { createServer } from 'http';
+// import { Server } from 'socket.io';
+// import jwt from 'jsonwebtoken';
+// import './config/passport.js';
+// // --- Import All Route Files ---
+// import authRoutes from './Routes/authRoutes.js';
+// import dashboardRoutes from './Routes/dashboardRoutes.js';
+// import gymRoutes from './Routes/gymRoutes.js';
+// import trainerRoutes from './Routes/trainerRoutes.js';
+// import subscriptionRoutes from './Routes/subscriptionRoutes.js';
+// import workoutRoutes from './Routes/workoutRoutes.js';
+// import dietRoutes from './Routes/dietRoutes.js';
+// import healthRoutes from './Routes/healthRoutes.js';
+// import chatRoutes from './Routes/chatRoutes.js';
+// import notificationRoutes from './Routes/notificationRoutes.js';
+// import transactionRoutes from './Routes/transactionRoutes.js';
+// import analyticsRoutes from './Routes/analyticsRoutes.js';
+// import userRoutes from './Routes/userRoutes.js';
+// import challengeRoutes from './Routes/challengeRoutes.js';
+// import communityRoutes from './Routes/communityRoutes.js';
+// import productRoutes from './Routes/productRoutes.js';
+// import bookingRoutes from './Routes/bookingRoutes.js';
+// import multiGymRoutes from './Routes/multiGymRoutes.js';
+// import adminRoutes from './Routes/adminRoutes.js';
+// import errorHandler from './middlewares/errorHandler.js';
+// import cartRoutes from './Routes/cartRoutes.js';
+// import trainingRoutes from './Routes/trainingRoutes.js';
+// import auth0Routes from './Routes/auth0Routes.js';
+// // --- Import Socket.io Handlers ---
+// import { handleSendMessage } from './controllers/chatController.js';
+
+// const app = express();
+// const httpServer = createServer(app);
+// const io = new Server(httpServer, {
+//   cors: {
+//     origin: "*", // In production, restrict this to your app's domain
+//     methods: ["GET", "POST"]
+//   }
+// });
+
+
+
+// // --- Socket.IO Authentication Middleware ---
+// // This middleware runs for every new socket connection.
+// io.use((socket, next) => {
+//   // The token is sent by the client in the `auth` object
+//   const token = socket.handshake.auth?.token;
+//   if (!token) {
+//     return next(new Error('Authentication Error: Token not provided.'));
+//   }
+
+//   // Verify the JWT
+//   jwt.verify(token, process.env.JWT_SECRET, (err, userPayload) => {
+//     if (err) {
+//       return next(new Error('Authentication Error: Invalid token.'));
+//     }
+//     // Attach the decoded user payload to the socket object for use in event handlers
+//     socket.user = userPayload;
+//     next();
+//   });
+// });
+
+// // --- Centralized Socket.IO Connection Logic ---
+// io.on('connection', (socket) => {
+//   console.log(`User connected: ${socket.user.email} (Socket ID: ${socket.id})`);
+
+//   // --- Socket Event Listeners ---
+
+//   // User joins a room for a specific conversation
+//   socket.on('joinRoom', (conversationId) => {
+//     socket.join(conversationId);
+//     console.log(`User ${socket.user.email} joined room ${conversationId}`);
+//   });
+
+//   // User sends a message
+//   socket.on('sendMessage', (data) => {
+//     // Pass the authenticated socket and the message data to the handler
+//     handleSendMessage(socket, data);
+//   });
+
+//   // Handle disconnection
+//   socket.on('disconnect', () => {
+//     console.log(`User disconnected: ${socket.user.email}`);
+//   });
+// });
+
+// // --- Standard Express Middleware ---
+// app.use(cors());
+// app.use(express.json());
+// app.use(express.urlencoded({ extended: true }));
+// app.use(passport.initialize());
+// // ✅ ADD THIS SPY MIDDLEWARE RIGHT HERE
+// app.use((req, res, next) => {
+//   console.log('---------------------------------');
+//   console.log('Request Received by Express App:');
+//   console.log(`METHOD: ${req.method}`);
+//   console.log(`URL: ${req.originalUrl}`);
+//   console.log(`BODY:`, req.body);
+//   console.log('---------------------------------');
+//   next(); // IMPORTANT: Pass control to the next middleware
+// });
+// // --- Register All API Routes ---
+// app.use('/api/auth', authRoutes);
+// app.use('/api/dashboard', dashboardRoutes);
+// app.use('/api/gyms', gymRoutes);
+// app.use('/api/trainers', trainerRoutes);
+// app.use('/api/subscriptions', subscriptionRoutes);
+// app.use('/api/workouts', workoutRoutes);
+// app.use('/api/diet', dietRoutes);
+// app.use('/api/health', healthRoutes);
+// app.use('/api/chat', chatRoutes);
+// app.use('/api/notifications', notificationRoutes);
+// app.use('/api/transactions', transactionRoutes);
+// app.use('/api/analytics', analyticsRoutes);
+// app.use('/api/users', userRoutes);
+// app.use('/api/challenges', challengeRoutes);
+// app.use('/api/community', communityRoutes);
+// app.use('/api/products', productRoutes);
+// app.use('/api/bookings', bookingRoutes);
+// app.use('/api/multi-gym', multiGymRoutes);
+// app.use('/api/admin', adminRoutes);
+// app.use('/api/cart', cartRoutes);
+// app.use('/api/training', trainingRoutes);
+// app.use('/api/auth0', auth0Routes);
+
+// // --- Global Error Handler ---
+// app.use(errorHandler);
+
+// // --- Root Endpoint and Server Initialization ---
+// app.get('/', (req, res) => {
+//   res.send('API is running and WebSocket server is active...');
+// });
+
+// const PORT = process.env.PORT || 5000;
+// httpServer.listen(PORT, '0.0.0.0', () => {
+//   console.log(`Server running on port ${PORT}`);
+// });
+
+// // --- Export `io` for Broadcasting ---
+// export { io };
+
+
+// server.js (or your main server entry file)
+
 import dotenv from 'dotenv';
+// ✅✅✅ STEP 1: Load environment variables at the VERY TOP of your application ✅✅✅
+// This MUST be the first line to ensure all other files can access the variables.
 dotenv.config();
+
 import express from 'express';
 import passport from 'passport';
 import cors from 'cors';
@@ -31,59 +183,44 @@ import adminRoutes from './Routes/adminRoutes.js';
 import errorHandler from './middlewares/errorHandler.js';
 import cartRoutes from './Routes/cartRoutes.js';
 import trainingRoutes from './Routes/trainingRoutes.js';
+import auth0Routes from './Routes/auth0Routes.js'; // This is your file for /create-member-profile
 // --- Import Socket.io Handlers ---
 import { handleSendMessage } from './controllers/chatController.js';
+;
 
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: "*", // In production, restrict this to your app's domain
+    origin: "*",
     methods: ["GET", "POST"]
   }
 });
 
-
-
-// --- Socket.IO Authentication Middleware ---
-// This middleware runs for every new socket connection.
+// --- Your Socket.IO logic remains the same ---
 io.use((socket, next) => {
-  // The token is sent by the client in the `auth` object
   const token = socket.handshake.auth?.token;
   if (!token) {
     return next(new Error('Authentication Error: Token not provided.'));
   }
-
-  // Verify the JWT
   jwt.verify(token, process.env.JWT_SECRET, (err, userPayload) => {
     if (err) {
       return next(new Error('Authentication Error: Invalid token.'));
     }
-    // Attach the decoded user payload to the socket object for use in event handlers
     socket.user = userPayload;
     next();
   });
 });
 
-// --- Centralized Socket.IO Connection Logic ---
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.user.email} (Socket ID: ${socket.id})`);
-
-  // --- Socket Event Listeners ---
-
-  // User joins a room for a specific conversation
   socket.on('joinRoom', (conversationId) => {
     socket.join(conversationId);
     console.log(`User ${socket.user.email} joined room ${conversationId}`);
   });
-
-  // User sends a message
   socket.on('sendMessage', (data) => {
-    // Pass the authenticated socket and the message data to the handler
     handleSendMessage(socket, data);
   });
-
-  // Handle disconnection
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${socket.user.email}`);
   });
@@ -94,7 +231,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
-// ✅ ADD THIS SPY MIDDLEWARE RIGHT HERE
 app.use((req, res, next) => {
   console.log('---------------------------------');
   console.log('Request Received by Express App:');
@@ -102,10 +238,12 @@ app.use((req, res, next) => {
   console.log(`URL: ${req.originalUrl}`);
   console.log(`BODY:`, req.body);
   console.log('---------------------------------');
-  next(); // IMPORTANT: Pass control to the next middleware
+  next();
 });
+
 // --- Register All API Routes ---
 app.use('/api/auth', authRoutes);
+app.use('/api/auth0', auth0Routes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/gyms', gymRoutes);
 app.use('/api/trainers', trainerRoutes);
@@ -126,6 +264,10 @@ app.use('/api/multi-gym', multiGymRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/training', trainingRoutes);
+// ✅✅✅ THIS IS THE CRITICAL CHANGE ✅✅✅
+// The `auth0Routes` file will now handle all requests to `/api/auth0`
+
+
 // --- Global Error Handler ---
 app.use(errorHandler);
 
@@ -135,7 +277,8 @@ app.get('/', (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-httpServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+httpServer.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
-// --- Export `io` for Broadcasting ---
 export { io };
