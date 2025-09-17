@@ -57,3 +57,52 @@ export const updateUserProfile = catchAsync(async (req, res) => {
     res.status(200).json({ success: true, message: 'Profile updated successfully.', data: updatedProfile });
 });
 
+
+// import * as userService from '../services/userService.js';
+// import * as authService from '../services/authService.js';
+// import catchAsync from '../utils/catchAsync.js';
+
+// // Helper function to get user ID from either JWT or Auth0
+// const getUserId = async (req) => {
+//   if (req.auth?.payload) {
+//     const user = await authService.getUserByAuth0Id(req.auth.payload.sub);
+//     return user.id;
+//   }
+//   return req.user?.id;
+// };
+
+// export const changePassword = catchAsync(async (req, res) => {
+//   const { currentPassword, newPassword } = req.body;
+//   await userService.changeUserPassword(req.user.id, currentPassword, newPassword);
+//   res.status(200).json({ success: true, message: 'Password changed successfully.' });
+// });
+
+// // Profile update: service method handles the logic
+// export const updateMyProfile = catchAsync(async (req, res) => {
+//   const updatedProfile = await userService.updateUserProfile(req.user, req.body);
+//   res.status(200).json({ success: true, message: 'Profile updated successfully.', data: updatedProfile });
+// });
+
+// export const getMyProfile = catchAsync(async (req, res) => {
+//   const { password, ...userProfile } = await userService.getUserProfile(req.user.id);
+//   res.status(200).json({ success: true, data: userProfile });
+// });
+
+
+// export const getUserProfile = catchAsync(async (req, res) => {
+//   const userId = await getUserId(req);
+//   const { password, ...userProfile } = await userService.getUserProfile(userId);
+//   res.status(200).json({ success: true, data: userProfile });
+// });
+
+// export const getUserStats = catchAsync(async (req, res) => {
+//   const userId = await getUserId(req);
+//   const stats = await userService.getUserStats(userId);
+//   res.status(200).json({ success: true, data: stats });
+// });
+
+// export const updateUserProfile = catchAsync(async (req, res) => {
+//   const userId = await getUserId(req);
+//   const updatedProfile = await userService.updateUserProfile({ id: userId }, req.body);
+//   res.status(200).json({ success: true, message: 'Profile updated successfully.', data: updatedProfile });
+// });

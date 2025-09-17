@@ -183,7 +183,9 @@ import adminRoutes from './Routes/adminRoutes.js';
 import errorHandler from './middlewares/errorHandler.js';
 import cartRoutes from './Routes/cartRoutes.js';
 import trainingRoutes from './Routes/trainingRoutes.js';
-import auth0Routes from './Routes/auth0Routes.js'; // This is your file for /create-member-profile
+import auth0Routes from './Routes/auth0Routes.js'; 
+import auth0DietRoutes from './Routes/auth0DietRoutes.js';
+// This is your file for /create-member-profile
 // --- Import Socket.io Handlers ---
 import { handleSendMessage } from './controllers/chatController.js';
 ;
@@ -249,6 +251,7 @@ app.use('/api/gyms', gymRoutes);
 app.use('/api/trainers', trainerRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/workouts', workoutRoutes);
+app.use('/api/diet/auth0', auth0DietRoutes);
 app.use('/api/diet', dietRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/chat', chatRoutes);

@@ -251,6 +251,7 @@ model DietLog {
   // --- NEW FIELDS ---
   fiber     Int?     @default(0) // To match the UI form
   sugar     Int?     @default(0) // To match the UI form
+  notes     String? 
 
   createdAt DateTime @default(now())
 
