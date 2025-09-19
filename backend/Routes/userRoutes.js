@@ -2,7 +2,6 @@
 import express from 'express';
 import * as userController from '../controllers/userController.js';
 import jwtAuth from '../middlewares/jwtAuth.js';
-import auth0UserRoutes from './auth0UserRoutes.js';
 import validate, {
   changePasswordSchema,
   updateMemberProfileSchema,
@@ -12,8 +11,6 @@ import validate, {
 
 const router = express.Router();
 
-// Add Auth0 user routes
-router.use('/auth0', auth0UserRoutes);
 
 // All routes in this file are for the currently authenticated user
 router.use(jwtAuth);

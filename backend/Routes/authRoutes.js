@@ -1,87 +1,84 @@
 // Routes/authRoutes.js
-
 import express from 'express';
-import passport from 'passport';
+import { auth } from 'express-oauth2-jwt-bearer';
 import * as authController from '../controllers/authController.js';
 import jwtAuth from '../middlewares/jwtAuth.js';
-import auth0Auth from '../middlewares/auth0Auth.js';
-import auth0Routes from './auth0Routes.js';
 
-// Import the validation middleware and all schemas
+// ✅ Import all the specific schemas needed
 import validate, {
-  signupSchema,
-  loginSchema,
-  forgotPasswordSchema,
-  resetPasswordSchema,
-  adminRegisterSchema,
   selectRoleSchema,
-  createMemberProfileSchema,
-  createTrainerProfileSchema,
   createGymProfileSchema,
-  createMultiGymProfileSchema
+  createTrainerProfileSchema,
+  createMerchantProfileSchema,
+  createMemberProfileSchema
 } from '../validators/authValidator.js';
 
 const router = express.Router();
 
-// --- Public Authentication Routes with Validation ---
-router.post(
-  "/signup",
-  (req, res, next) => {
-    console.log("➡️ /signup route hit, before validate");
-    next();
-  },
-  authController.signup
-);
+// --- Auth0 Middleware Configuration ---
+const auth0Auth = auth({
+  audience: 'https://api.fitnessclub.com',
+  issuerBaseURL:'https://dev-1de0bowjvfbbcx7q.us.auth0.com/',
+  // Add error handling for debugging
+  tokenSigningAlg: 'RS256',
+});
 
-router.post(
-  "/login",
-  (req, res, next) => {
-    console.log("➡️ /login route hit, before validate");
-    next();
-  },
-  validate(loginSchema),
-  (req, res, next) => {
-    console.log("✅ Passed validate, going to authController.login");
-    next();
-  },
-  authController.login
-);
-router.post('/logout', authController.logout); // No body to validate
+// --- Public Route for Auth0 Token Exchange ---
+router.post('/verify-user', auth0Auth, (req, res, next) => {
+  console.log('[Auth0 Middleware] Token validation successful. User payload:', req.auth?.payload);
+  next();
+}, authController.verifyUser);
 
-// --- Password Reset Routes with Validation ---
-router.post('/forgot-password', validate(forgotPasswordSchema), authController.forgotPassword);
-router.post('/reset-password', validate(resetPasswordSchema), authController.resetPassword);
+// --- All Subsequent Routes are Protected by our INTERNAL JWT ---
+router.use(jwtAuth);
 
-// --- Admin Registration Route with Validation ---
-router.post('/register/admin', validate(adminRegisterSchema), authController.registerAdmin);
+// --- Onboarding Flow Routes ---
 
-
-// --- Google OAuth Routes (No request body to validate) ---
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-
-router.get('/google/callback', 
-    passport.authenticate('google', { failureRedirect: '/login', session: false }), 
-    authController.googleCallback
-);
-
-// --- Auth0 Routes ---
-router.post('/auth0/verify-user', auth0Auth, authController.verifyAuth0User);
-
-// Add Auth0 router for profile operations
-router.use('/auth0', auth0Routes);
-
-
-// --- Protected Routes (Require a valid JWT) ---
-// The jwtAuth middleware will run for all routes defined below this line.
-router.use(jwtAuth); 
-
-// Role and Profile Creation Routes with Validation
+// Step 1: User selects their role
 router.post('/select-role', validate(selectRoleSchema), authController.selectRole);
-router.post('/create-member-profile', validate(createMemberProfileSchema), authController.createMemberProfile);
-router.post('/create-trainer-profile', validate(createTrainerProfileSchema), authController.createTrainerProfile);
-router.post('/create-gym-profile', validate(createGymProfileSchema), authController.createGymProfile);
-router.post('/create-multi-gym-profile', validate(createMultiGymProfileSchema), authController.createMultiGymMemberProfile);
 
+// Step 2: ✅ Use SEPARATE, SPECIFIC endpoints for profile creation
+// Unwrap incoming payload if wrapped in { profileType, data }
+router.post(
+    '/create-gym-profile',
+    (req, res, next) => {
+      if (req.body?.data) {
+        req.body = req.body.data; // replace body with inner data object for validation & controller
+      }
+      next();
+    },
+    validate(createGymProfileSchema),
+    authController.createGymProfile
+);
+
+router.post(
+    '/create-trainer-profile',
+    (req, res, next) => {
+      if (req.body?.data) {
+        req.body = req.body.data; // replace body with inner data object for validation & controller
+      }
+      next();
+    },
+    validate(createTrainerProfileSchema),
+    authController.createTrainerProfile
+);
+
+router.post(
+    '/create-merchant-profile',
+    (req, res, next) => {
+      if (req.body && req.body.data) {
+        req.body = req.body.data;
+      }
+      next();
+    },
+    validate(createMerchantProfileSchema),
+    authController.createMerchantProfile
+);
+
+router.post(
+    '/create-member-profile',
+    validate(createMemberProfileSchema),
+    authController.createMemberProfile
+);
 
 export default router;
-

@@ -4,108 +4,68 @@ import Joi from 'joi';
 import AppError from '../utils/AppError.js';
 
 // --- Reusable Validation Middleware ---
-// This function takes a Joi schema and returns a middleware
 const validate = (schema) => (req, res, next) => {
   const { error } = schema.validate(req.body, {
-    abortEarly: false, // Report all errors at once
-    stripUnknown: true, // Remove unknown properties from req.body
+    abortEarly: false,
+    stripUnknown: true,
   });
 
   if (error) {
-    // Collect all validation error messages
     const errorMessage = error.details.map((detail) => detail.message).join('; ');
-    // Pass a structured error to the global error handler
-    return next(new AppError(errorMessage, 400)); // 400 for Bad Request
+    return next(new AppError(errorMessage, 400));
   }
-
   return next();
 };
 
 
-// --- Schemas for Authentication Routes ---
+// --- Schemas for Individual Profile Data Objects ---
 
-export const signupSchema = Joi.object({
-  email: Joi.string().email().required(),
-  password: Joi.string().min(6).required()
-    .messages({
-      'string.min': 'Password must be at least 6 characters long.',
-      'any.required': 'Password is required.',
-    }),
-});
-
-export const loginSchema = Joi.object({
-  email: Joi.string().email().required(),
-  password: Joi.string().required(),
-});
-
-export const adminRegisterSchema = Joi.object({
-  email: Joi.string().email().required(),
-  password: Joi.string().min(6).required(),
-  secretKey: Joi.string().required(),
-});
-
-// --- Schemas for Password Reset ---
-
-export const forgotPasswordSchema = Joi.object({
-  email: Joi.string().email().required(),
-});
-
-export const resetPasswordSchema = Joi.object({
-  token: Joi.string().required(),
-  newPassword: Joi.string().min(6).required(),
-});
-
-
-// --- Schemas for Role and Profile Creation (Protected Routes) ---
-
-export const selectRoleSchema = Joi.object({
-  role: Joi.string().uppercase().valid('MEMBER', 'GYM_OWNER', 'TRAINER', 'MULTI_GYM_MEMBER').required(),
-});
 const planSchema = Joi.object({
   name: Joi.string().required(),
   price: Joi.number().positive().required(),
-  duration: Joi.string().required(), // e.g., "monthly", "yearly"
-});
-
-export const createMemberProfileSchema = Joi.object({
-  name: Joi.string().min(2).max(100).required(),
-  age: Joi.number().integer().min(13).max(100).required(),
-  gender: Joi.string().valid('Male', 'Female', 'Other').required(),
-  weight: Joi.object({
-    value: Joi.number().positive().required(),
-    unit: Joi.string().valid('KG', 'LBS').required(),
-  }).required(),
-  height: Joi.object({
-    value: Joi.number().positive().required(),
-    unit: Joi.string().valid('CM', 'INCH').required(),
-  }).required(),
-  healthConditions: Joi.string().allow('').optional(),
-  fitnessGoal: Joi.string().allow('').optional(),
-});
-
-
-export const createTrainerProfileSchema = Joi.object({
-  bio: Joi.string().required(),
-  experience: Joi.number().integer().min(0).required(),
-  gallery: Joi.array().items(Joi.string().uri()).optional(),
-  plans: Joi.array().items(planSchema).min(1).required(),
+  duration: Joi.string().required(),
 });
 
 export const createGymProfileSchema = Joi.object({
   name: Joi.string().required(),
-  address: Joi.string().optional(),
+  address: Joi.string().required(),
   latitude: Joi.number().required(),
   longitude: Joi.number().required(),
-  photos: Joi.array().items(Joi.string().uri()).optional(),
-  facilities: Joi.array().items(Joi.string()).optional(),
+  photos: Joi.array().items(Joi.string().uri()).min(1).required(),
+  facilities: Joi.array().items(Joi.string()).min(1).required(),
   plans: Joi.array().items(planSchema).min(1).required(),
 });
 
-export const createMultiGymProfileSchema = Joi.object({
-  // Assuming these are your tiers, adjust as needed
-  tier: Joi.string().uppercase().valid('GOLD', 'PLATINUM', 'DIAMOND').required(),
+export const createTrainerProfileSchema = Joi.object({
+  bio: Joi.string().min(50).required(),
+  experience: Joi.number().integer().min(0).required(),
+  gallery: Joi.array().items(Joi.string().uri()).min(1).required(),
+  plans: Joi.array().items(planSchema).min(1).required(),
+});
+
+export const createMerchantProfileSchema = Joi.object({
+  storeName: Joi.string().required(),
+  description: Joi.string().allow('').optional(),
+  address: Joi.string().allow('').optional(),
+  phone: Joi.string().allow('').optional(),
+});
+
+export const createMemberProfileSchema = Joi.object({
+    name: Joi.string().min(2).max(100).required(),
+    age: Joi.number().integer().min(13).max(100).required(),
+    gender: Joi.string().valid('Male', 'Female', 'Other').required(),
+    weight: Joi.number().positive().required(),
+    height: Joi.number().positive().required(),
+    healthConditions: Joi.string().allow('').optional(),
+    fitnessGoal: Joi.string().allow('').optional(),
 });
 
 
-// Export the middleware itself
+// --- Other Schemas ---
+export const selectRoleSchema = Joi.object({
+  role: Joi.string().uppercase().valid('MEMBER', 'GYM_OWNER', 'TRAINER', 'MERCHANT').required(),
+});
+
+// ... (schemas for signup, login, password reset, etc., can be here if you have them)
+
 export default validate;

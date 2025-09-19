@@ -105,3 +105,5 @@ Thumbs.db
 android/app/build/
 ios/build/
 *.hprof
+
+/generated/prisma

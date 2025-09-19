@@ -6,30 +6,51 @@ export default function Sidebar() {
   const location = useLocation();
   const { user, logout } = useAuth();
 
-  const userRole = user?.role === 'GYM_OWNER' ? 'gym' : 'trainer';
-  
-  const menuItems = userRole === 'gym'
-    ? [
-        { name: 'Dashboard', icon: '📊', path: '/dashboard' },
-        { name: 'Members', icon: '👥', path: '/members' }, // Changed from Clients
-        { name: 'Trainers', icon: '🏋️‍♂️', path: '/trainers' },
-        { name: 'Schedule', icon: '📅', path: '/schedule' },
-        { name: 'Payments', icon: '💰', path: '/payments' },
-        { name: 'Profile', icon: '👤', path: '/gym-profile' }, // Gym Profile
-      ]
-    : [
-        { name: 'Dashboard', icon: '📊', path: '/dashboard' },
-        { name: 'Clients', icon: '👥', path: '/clients' },
-        { name: 'Schedule', icon: '📅', path: '/schedule' },
-        { name: 'Payments', icon: '💰', path: '/payments' },
-        { name: 'Profile', icon: '👤', path: '/profile' }, // Trainer Profile
-      ];
+  // ✅ Use a function to determine menu items based on the user's role
+  const getMenuItems = () => {
+    const role = user?.role;
+
+    switch (role) {
+      case 'GYM_OWNER':
+        return [
+          { name: 'Dashboard', icon: '📊', path: '/dashboard' },
+          { name: 'Members', icon: '👥', path: '/members' },
+          { name: 'Schedule', icon: '📅', path: '/schedule' },
+          { name: 'Payments', icon: '💰', path: '/payments' },
+          { name: 'Gym Profile', icon: '👤', path: '/gym-profile' },
+        ];
+      
+      case 'TRAINER':
+        return [
+          { name: 'Dashboard', icon: '📊', path: '/dashboard' },
+          { name: 'Clients', icon: '👥', path: '/clients' },
+          { name: 'Schedule', icon: '📅', path: '/schedule' },
+          { name: 'Payments', icon: '💰', path: '/payments' },
+          { name: 'My Profile', icon: '👤', path: '/profile' },
+        ];
+
+      // ✅ NEW: Menu items specifically for the Merchant role
+      case 'MERCHANT':
+        return [
+          { name: 'Dashboard', icon: '📊', path: '/dashboard' },
+          { name: 'Products', icon: '🏷️', path: '/merchant/products' },
+          { name: 'Orders', icon: '📦', path: '/merchant/orders' },
+        ];
+
+      default:
+        // Fallback for users with no role or an unknown role
+        return [{ name: 'Dashboard', icon: '📊', path: '/dashboard' }];
+    }
+  };
+
+  const menuItems = getMenuItems();
+  const portalName = user?.role ? `${user.role.replace('_', ' ')} Portal` : 'User Portal';
 
   return (
     <div className="fixed inset-y-0 left-0 w-64 bg-white shadow-lg border-r border-gray-200 flex flex-col">
       <div className="p-6 border-b border-gray-100">
         <h1 className="text-xl font-bold text-indigo-600">FitFlex Pro</h1>
-        <p className="text-sm text-gray-600 capitalize">{userRole} Portal</p>
+        <p className="text-sm text-gray-600 capitalize">{portalName}</p>
       </div>
 
       <nav className="flex-1 p-4 space-y-2">
