@@ -188,6 +188,7 @@ import auth0DietRoutes from './Routes/auth0DietRoutes.js';
 // This is your file for /create-member-profile
 // --- Import Socket.io Handlers ---
 import { handleSendMessage } from './controllers/chatController.js';
+import auth0WorkoutRoutes from './Routes/auth0WorkoutRoutes.js'
 ;
 
 const app = express();
@@ -250,6 +251,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/gyms', gymRoutes);
 app.use('/api/trainers', trainerRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/workouts/auth0', auth0WorkoutRoutes );
 app.use('/api/workouts', workoutRoutes);
 app.use('/api/diet/auth0', auth0DietRoutes);
 app.use('/api/diet', dietRoutes);
