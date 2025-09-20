@@ -1,5 +1,5 @@
 // src/pages/MerchantProfileForm.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as authService from '../api/authService'; // Import the updated service
 import parseApiError from '../utils/parseApiError';
@@ -39,7 +39,7 @@ const MerchantProfileForm = () => {
       // The `formData` object directly matches the expected `data` payload for this role.
       const response = await authService.createMerchantProfile(formData);
 
-      if (response.success) {
+      if (response.status === 'success') {
         // Assuming the backend response includes the updated user object and token
         setAuthData(response.data.token, response.data.user); 
         alert('✅ Merchant profile created! You can now access your dashboard.');
