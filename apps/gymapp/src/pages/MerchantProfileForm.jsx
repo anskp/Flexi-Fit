@@ -1,12 +1,14 @@
 // src/pages/MerchantProfileForm.jsx
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as authService from '../api/authService';
+import * as authService from '../api/authService'; // Import the updated service
 import parseApiError from '../utils/parseApiError';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext'; // Import useAuth
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const MerchantProfileForm = () => {
-  const { user, setAuthData } = useAuth(); // ✅ Get setAuthData from context
+  const { user, setAuthData } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     storeName: '',
@@ -33,23 +35,15 @@ const MerchantProfileForm = () => {
     setError('');
 
     try {
+      // ✅ Call the new, specific service function for creating a merchant profile.
+      // The `formData` object directly matches the expected `data` payload for this role.
       const response = await authService.createMerchantProfile(formData);
 
-      // ✅ --- THE FIX ---
-      // 1. Check for `response.status === 'success'` instead of `response.success`.
-      if (response && response.status === 'success') {
-        
-        // 2. Update the Auth Context with the fresh user and token from the API response.
-        // This ensures the user object now contains the new merchantProfile.
-        setAuthData(response.data.token, response.data.user);
-
-        alert('✅ Merchant profile created! You will now be redirected.');
-
-        // 3. Navigate to the dashboard.
-        navigate('/dashboard');
-
-      } else {
-        setError("An unexpected server response was received. Please try again.");
+      if (response.success) {
+        // Assuming the backend response includes the updated user object and token
+        setAuthData(response.data.token, response.data.user); 
+        alert('✅ Merchant profile created! You can now access your dashboard.');
+        navigate('/dashboard'); 
       }
     } catch (err) {
       setError(parseApiError(err));
@@ -58,7 +52,6 @@ const MerchantProfileForm = () => {
     }
   };
 
-  // This effect correctly redirects users who already have a profile.
   useEffect(() => {
     if (user && user.merchantProfile) {
       navigate('/dashboard');
@@ -84,7 +77,7 @@ const MerchantProfileForm = () => {
 
           <div>
             <label htmlFor="description" className="block text-sm font-medium text-gray-700">Store Description (Optional)</label>
-            <textarea id="description" name="description" value={formData.description} onChange={handleChange} rows="3" className="mt-1 w-full border-gray-300 rounded-lg shadow-sm" placeholder="Tell customers about your store..." />
+            <textarea id="description" name="description" type="text" value={formData.description} onChange={handleChange} rows="3" className="mt-1 w-full border-gray-300 rounded-lg shadow-sm" placeholder="Tell customers about your store..." />
           </div>
 
           <div>

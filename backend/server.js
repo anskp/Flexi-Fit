@@ -35,7 +35,6 @@ import cartRoutes from './Routes/cartRoutes.js';
 import trainingRoutes from './Routes/trainingRoutes.js';
 import merchantRoutes from './Routes/merchantRoutes.js';
 import { handleSendMessage } from './controllers/chatController.js';
-;
 
 const app = express();
 const httpServer = createServer(app);

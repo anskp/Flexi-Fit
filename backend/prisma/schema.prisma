@@ -18,7 +18,7 @@ model User {
   password              String?
   provider              String
   providerId            String?
-  auth0_id  String?  @unique
+  auth0_id              String?                  @unique
   resetToken            String?
   resetTokenExpiry      DateTime?
   role                  String?
@@ -262,6 +262,7 @@ model DietLog {
   // --- NEW FIELDS ---
   fiber     Int?     @default(0) // To match the UI form
   sugar     Int?     @default(0) // To match the UI form
+  notes     String? 
 
   createdAt DateTime @default(now())
 
