@@ -1,107 +1,110 @@
 // src/context/AuthContext.js
-import { createContext, useState, useEffect, useContext } from 'react';
+import { createContext, useEffect, useContext, useState } from 'react';
+import { useAuth0 } from '@auth0/auth0-react';
 import apiClient from '../api/apiClient';
-import * as userService from '../api/userService';
 import * as authService from '../api/authService';
-import * as gymService from '../api/gymService'; // ✅ Import gymService
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [gymProfile, setGymProfile] = useState(null); // ✅ State for the gym profile
-  const [token, setToken] = useState(() => localStorage.getItem('authToken'));
+  const {
+    isAuthenticated: isAuth0Authenticated,
+    user: auth0User,
+    getAccessTokenSilently,
+    loginWithRedirect,
+    logout: auth0Logout,
+    isLoading: isAuth0Loading,
+  } = useAuth0();
+
+  // Persisted JWT from our backend
+  const [internalToken, setInternalToken] = useState(() => localStorage.getItem('authToken'));
+
+  // Persisted user object from our backend
+  const [user, setUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem('authUser');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const [loading, setLoading] = useState(true);
 
+  // Sync Auth0 login with our backend and obtain internal JWT
   useEffect(() => {
-    const initializeAuth = async () => {
-      if (token) {
-        apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    const syncUser = async () => {
+      if (isAuth0Authenticated && auth0User) {
         try {
-          // Verify token by fetching the user's core profile
-          const profileResponse = await userService.getMyProfile();
-          if (profileResponse.success) {
-            const fetchedUser = profileResponse.data;
-            setUser(fetchedUser);
+          const auth0Token = await getAccessTokenSilently();
+          const response = await authService.verifyAuth0User(auth0Token);
 
-            // ✅ If the logged-in user is a Gym Owner, automatically fetch their managed gym profile
-            if (fetchedUser.role === 'GYM_OWNER') {
-              try {
-                const gymResponse = await gymService.getMyGymProfile();
-                if (gymResponse.success) {
-                  setGymProfile(gymResponse.data);
-                }
-              } catch (gymError) {
-                // This can happen if the owner hasn't created their gym profile yet.
-                // It's not a critical error, so we just log it.
-                console.warn("Could not fetch gym profile for owner:", gymError);
-                setGymProfile(null);
-              }
-            }
+          if (response.success) {
+            const { token, user: backendUser } = response.data;
+            localStorage.setItem('authToken', token);
+            localStorage.setItem('authUser', JSON.stringify(backendUser));
+            setInternalToken(token);
+            setUser(backendUser);
           }
         } catch (error) {
-          console.error("Auth initialization failed (token might be invalid). Logging out.", error);
-          logout(); // If the main profile fetch fails, the token is bad.
+          console.error('Error during token exchange:', error);
+          logout();
         }
       }
       setLoading(false);
     };
 
-    initializeAuth();
-  }, [token]);
+    syncUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuth0Authenticated, auth0User, getAccessTokenSilently]);
 
-  const setAuthData = (newToken, newUser = null) => {
-    setToken(newToken);
-    if (newUser) {
-      setUser(newUser);
-      // If the new user is not a gym owner, clear any old gym profile data
-      if (newUser.role !== 'GYM_OWNER') {
-          setGymProfile(null);
-      }
+  // Attach or detach the JWT on Axios instance when it changes
+  useEffect(() => {
+    if (internalToken) {
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${internalToken}`;
+    } else {
+      delete apiClient.defaults.headers.common['Authorization'];
     }
-    localStorage.setItem('authToken', newToken);
-    apiClient.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-  };
+  }, [internalToken]);
 
-  const login = async (email, password) => {
-    try {
-      const response = await authService.login(email, password);
-      if (response.success) {
-        // After login, the user object is available. The useEffect will handle fetching the gym profile.
-        setAuthData(response.data.token, response.data.user);
-      }
-      return response;
-    } catch (error) {
-      throw error;
-    }
-  };
-  
   const logout = () => {
-    setUser(null);
-    setGymProfile(null); // ✅ Clear gym profile on logout
-    setToken(null);
     localStorage.removeItem('authToken');
+    localStorage.removeItem('authUser');
+    setInternalToken(null);
+    setUser(null);
     delete apiClient.defaults.headers.common['Authorization'];
+    auth0Logout({ logoutParams: { returnTo: window.location.origin } });
+  };
+
+  /**
+   * Helper to set token & user from other components (e.g., onboarding steps)
+   */
+  const setAuthData = (token, userData) => {
+    if (token) {
+      localStorage.setItem('authToken', token);
+      setInternalToken(token);
+    }
+    if (userData) {
+      localStorage.setItem('authUser', JSON.stringify(userData));
+      setUser(userData);
+    }
   };
 
   const value = {
     user,
-    gymProfile, // ✅ Expose the gym profile to the app
-    token,
-    setAuthData,
-    login,
+    isAuthenticated: !!internalToken && !!user,
+    loading: loading || isAuth0Loading,
+    isLoading: loading || isAuth0Loading, // alias for existing usages
+    login: loginWithRedirect,
     logout,
-    isAuthenticated: !!token,
-    loading,
+    setAuthData,
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {!value.loading && children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => {
-  return useContext(AuthContext);
-};
+export const useAuth = () => useContext(AuthContext);

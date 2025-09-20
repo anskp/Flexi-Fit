@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as authService from '../api/authService';
 import parseApiError from '../utils/parseApiError';
+import { useAuth } from '../context/AuthContext';
 
 export default function TrainerProfileForm() {
   // ✅ STATE ALIGNED WITH BACKEND SCHEMA
@@ -13,6 +14,7 @@ export default function TrainerProfileForm() {
     plans: [{ name: 'Monthly Coaching', price: '', duration: 'monthly' }],
   });
 
+  const { setAuthData } = useAuth();
   const navigate = useNavigate();
   const [photoPreviews, setPhotoPreviews] = useState([]);
   const [errors, setErrors] = useState({});
@@ -34,19 +36,17 @@ export default function TrainerProfileForm() {
     setPhotoPreviews(previews);
   };
 
+  const addPlan = () => {
+    setFormData((prev) => ({ ...prev, plans: [...prev.plans, { name: 'Monthly Coaching', price: '', duration: 'monthly' }] }));
+  };
+
   const handlePlanChange = (index, field, value) => {
-    const newPlans = [...formData.plans];
-    newPlans[index][field] = value;
+    const newPlans = formData.plans.map((plan, i) =>
+      i === index ? { ...plan, [field]: value } : plan
+    );
     setFormData((prev) => ({ ...prev, plans: newPlans }));
   };
 
-  const addPlan = () => {
-    setFormData((prev) => ({
-      ...prev,
-      plans: [...prev.plans, { name: '3-Month Package', price: '', duration: 'quarterly' }]
-    }));
-  };
-  
   const removePlan = (index) => {
     const newPlans = formData.plans.filter((_, i) => i !== index);
     setFormData((prev) => ({ ...prev, plans: newPlans }));

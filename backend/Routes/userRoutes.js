@@ -1,145 +1,15 @@
-
-// import express from 'express';
-// import * as userController from '../controllers/userController.js';
-// import jwtAuth from '../middlewares/jwtAuth.js';
-// import auth0UserRoutes from './auth0UserRoutes.js';
-// import validate, {
-//   changePasswordSchema,
-//   updateMemberProfileSchema,
-//   updateTrainerProfileSchema,
-//   updateGymProfileSchema
-// } from '../validators/userValidator.js';
-
-// const router = express.Router();
-
-// // Add Auth0 user routes
-// router.use('/auth0', auth0UserRoutes);
-
-// // All routes in this file are for the currently authenticated user
-// router.use(jwtAuth);
-
-// /**
-//  * @route   PATCH /api/users/me/password
-//  * @desc    Change the logged-in user's password.
-//  * @access  Private
-//  */
-// router.patch(
-//     '/me/password',
-//     validate(changePasswordSchema),
-//     userController.changePassword
-// );
-
-// /**
-//  * @route   PATCH /api/users/me/profile
-//  * @desc    Update the logged-in user's role-specific profile (Member, Trainer, or Gym).
-//  * @access  Private
-//  */
-// router.patch(
-//     '/me/profile',
-//     (req, res, next) => {
-//         // This is a dynamic validation middleware.
-//         // It checks the user's role and applies the correct validation schema.
-//         const role = req.user.role;
-//         let schema;
-//         switch (role) {
-//             case 'MEMBER':
-//                 schema = updateMemberProfileSchema;
-//                 break;
-//             case 'TRAINER':
-//                 schema = updateTrainerProfileSchema;
-//                 break;
-//             case 'GYM_OWNER':
-//                 schema = updateGymProfileSchema;
-//                 break;
-//             default:
-//                 return res.status(400).json({ success: false, message: "No profile to update for this role." });
-//         }
-//         // Run the validation
-//         validate(schema)(req, res, next);
-//     },
-//     userController.updateMyProfile
-    
-// );
-// /**
-//  * @route   GET /api/users/me/profile
-//  * @desc    Get the logged-in user's complete profile.
-//  * @access  Private
-//  */
-// router.get(
-//     '/me/profile',
-//     userController.getMyProfile
-// );
-// export default router;
-
-
+// Routes/auth0UserRoutes.js
 import express from 'express';
 import * as userController from '../controllers/userController.js';
-import jwtAuth from '../middlewares/jwtAuth.js';
-import auth0UserRoutes from './auth0UserRoutes.js';
-import validate, {
-  changePasswordSchema,
-  updateMemberProfileSchema,
-  updateTrainerProfileSchema,
-  updateGymProfileSchema
-} from '../validators/userValidator.js';
+import { auth0Middleware } from '../middlewares/auth0Middleware.js';
 
 const router = express.Router();
 
-// Add Auth0 user routes
-router.use('/auth0', auth0UserRoutes);
-
-// All routes in this file are for the currently authenticated user
-router.use(jwtAuth);
-
-/**
- * @route   PATCH /api/users/me/password
- * @desc    Change the logged-in user's password.
- * @access  Private
- */
-router.patch(
-  '/me/password',
-  validate(changePasswordSchema),
-  userController.changePassword
-);
-
-/**
- * @route   PATCH /api/users/me/profile
- * @desc    Update logged-in user's role profile
- * @access  Private
- */
-router.patch(
-  '/me/profile',
-  (req, res, next) => {
-    const role = req.user.role;
-    let schema;
-    switch (role) {
-      case 'MEMBER':
-        schema = updateMemberProfileSchema;
-        break;
-      case 'TRAINER':
-        schema = updateTrainerProfileSchema;
-        break;
-      case 'GYM_OWNER':
-        schema = updateGymProfileSchema;
-        break;
-      default:
-        return res.status(400).json({ success: false, message: "No profile to update for this role." });
-    }
-    // **IMPORTANT**: Use 'return' to link Express middleware chain!
-    return validate(schema)(req, res, next);
-  },
-  userController.updateMyProfile
-);
-
-/**
- * @route   GET /api/users/me/profile
- * @desc    Get logged-in user's complete profile.
- * @access  Private
- */
-router.get(
-  '/me/profile',
-  userController.getMyProfile
-);
+// Auth0 protected user routes
+router.get('/profile', auth0Middleware, userController.getUserProfile);
+router.get('/stats', auth0Middleware, userController.getUserStats);
+router.put('/profile', auth0Middleware, userController.updateUserProfile);
 
 export default router;
+
 

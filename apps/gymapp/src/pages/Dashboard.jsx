@@ -90,7 +90,7 @@ export default function Dashboard() {
       try {
         setLoading(true);
         const response = await dashboardService.getDashboardData();
-        if (response.success && response.data) {
+        if (response.success) {
           console.log("Fetched Dashboard Data:", response.data);
           setDashboardData(response.data);
         } else {
@@ -118,193 +118,85 @@ export default function Dashboard() {
   if (error) {
     return <div className="p-4 bg-red-800 text-red-200 rounded-lg">{error}</div>;
   }
-
+  
   if (!dashboardData) {
-    return <div className="p-8 text-gray-300">No dashboard data available.</div>;
+    return <div>No dashboard data available. Please ensure your profile is complete.</div>
   }
 
-  // ✅ TOP STATS — Beautiful, meaningful notifications
-  const topStats = [
-    { label: 'Active Sessions Today', value: dashboardData.upcomingSessions?.length || 3, color: 'bg-teal-500' },
-    { label: 'Pending Messages', value: '2', color: 'bg-emerald-500' },
-    { label: 'Action Required', value: '1', color: 'bg-amber-500' },
-  ];
+  // --- Main Render Logic ---
+  
+  const getDashboardTitle = () => {
+      if (dashboardData.userStats) return "Admin Overview";
+      if (dashboardData.totalRevenue !== undefined) return "Gym Dashboard";
+      if (dashboardData.monthlyEarnings !== undefined) return "Trainer Dashboard";
+      // ✅ ADDED: A check for a unique merchant data key
+      if (dashboardData.totalOrders !== undefined) return "Merchant Dashboard";
+      return "Dashboard";
+  }
 
-  // ✅ Helper: Get initials from name (e.g., "Sarah K" → "SK")
-  const getInitials = (name) => {
-    return name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
-      .toUpperCase();
-  };
+  const getDashboardWelcomeMessage = () => {
+    // Customize welcome message based on role for a better UX
+    if (dashboardData.totalOrders !== undefined) return "Here's what's happening in your store. 👋";
+    if (dashboardData.totalRevenue !== undefined) return "Here's an overview of your gym's activity. 👋";
+    if (dashboardData.monthlyEarnings !== undefined) return "Here's a summary of your coaching business. 👋";
+    return `Welcome back, ${user?.email || 'User'} 👋`;
+  }
 
   return (
     <div className="w-full animate-fade-in">
-      <main className="space-y-6">
-        {/* Welcome Section — No background, no border */}
-        <div className="bg-transparent p-6 rounded-xl border-none">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h2 className="text-2xl font-bold text-white">
-                Welcome back, {user?.email?.split('@')[0] || 'Coach'}!
-              </h2>
-              <p className="text-gray-300 text-sm mt-1">
-                {formattedDate}, {formattedTime}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              {topStats.map((stat, index) => (
-                <div
-                  key={index}
-                  className={`px-4 py-2 rounded-xl text-sm font-semibold text-white ${stat.color} shadow-md hover:scale-105 transition-transform duration-200`}
-                >
-                  {stat.value} {stat.label}
-                </div>
-              ))}
-            </div>
-          </div>
+      <Header
+        title={getDashboardTitle()}
+        subtitle={getDashboardWelcomeMessage()}
+      />
+      <main className="pt-6 space-y-8">
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* --- Render TRAINER stats IF monthlyEarnings exists --- */}
+            {dashboardData.monthlyEarnings !== undefined && (
+                <>
+                    <StatsCard title="Total Subscribers" value={dashboardData.totalSubscribers} icon="👥" />
+                    <StatsCard title="Monthly Earnings" value={`$${dashboardData.monthlyEarnings.toFixed(2)}`} icon="💰" />
+                    <StatsCard title="Profile Completeness" value={`${dashboardData.profileCompleteness}%`} icon="👤" />
+                </>
+            )}
+
+            {/* --- Render GYM OWNER stats IF totalRevenue exists --- */}
+            {dashboardData.totalRevenue !== undefined && (
+                <>
+                    <StatsCard title="Total Members" value={dashboardData.totalMembers} icon="👥" color="from-green-500 to-cyan-500"/>
+                    <StatsCard title="Total Revenue (Est. Monthly)" value={`$${dashboardData.totalRevenue.toFixed(2)}`} icon="💵" color="from-sky-500 to-blue-600"/>
+                    <StatsCard title="Check-ins Today" value={dashboardData.todaysCheckIns} icon="✅" color="from-amber-500 to-orange-500"/>
+                    <StatsCard title="Upcoming Renewals" value={dashboardData.upcomingRenewals} icon="🔄" color="from-purple-500 to-indigo-500"/>
+                </>
+            )}
+
+            {/* ✅ ADDED: Render MERCHANT stats IF totalOrders exists --- */}
+            {dashboardData.totalOrders !== undefined && (
+                <>
+                    <StatsCard title="Total Orders" value={dashboardData.totalOrders} icon="📦" color="from-red-500 to-orange-500"/>
+                    <StatsCard title="Total Sales" value={`$${(dashboardData.totalSales || 0).toFixed(2)}`} icon="💳" color="from-rose-500 to-pink-500"/>
+                    <StatsCard title="Active Products" value={dashboardData.activeProducts} icon="🏷️" color="from-lime-500 to-green-500"/>
+                    <StatsCard title="New Orders Today" value={dashboardData.newOrdersToday} icon="🔔" color="from-violet-500 to-purple-500"/>
+                </>
+            )}
         </div>
 
-        {/* Two-Column Layout — Left: My Clients, Right: Chart + Sessions + Tasks */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Column: My Clients */}
-          <div className="space-y-6">
-            <div className="bg-gray-800 p-6 rounded-xl shadow-xl border border-gray-700">
-              <h3 className="text-xl font-bold text-white mb-4">
-                My Clients
-              </h3>
-              <div className="space-y-4">
-                {(dashboardData.recentClients || MOCK_DASHBOARD_DATA.recentClients)?.map((client, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between bg-gray-700 p-4 rounded-lg hover:bg-gray-650 transition-all duration-200 group"
-                  >
-                    <div className="flex items-center gap-4">
-                      {/* 👤 Initials Instead of Image */}
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-r from-teal-500 to-teal-600 flex items-center justify-center text-white font-bold text-lg">
-                        {getInitials(client.name)}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-white text-lg">{client.name}</p>
-                        <p className="text-gray-300 text-sm">Last: {client.lastSession}</p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-20 bg-gray-600 rounded-full h-3 overflow-hidden">
-                          <div
-                            className="bg-gradient-to-r from-teal-400 to-teal-600 h-full rounded-full transition-all duration-1000 ease-out"
-                            style={{ width: `${client.goalAchieved}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-sm font-bold text-white min-w-[40px] text-right">
-                          {client.goalAchieved}%
-                        </span>
-                      </div>
-                      <button className="bg-teal-600 hover:bg-teal-500 text-white text-xs px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 shadow-md">
-                        View Profile
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+        {/* --- Dynamic content based on user role --- */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 bg-white/90 p-6 rounded-3xl shadow-lg border">
+                <h3 className="text-xl font-bold text-gray-800 mb-4">
+                    {dashboardData.totalOrders !== undefined ? 'Recent Orders' : 
+                     dashboardData.totalRevenue !== undefined ? 'Recent Members' : 'Recent Clients'}
+                </h3>
+                <p className="text-gray-500">A list of recent activity will appear here.</p>
             </div>
-          </div>
-
-          {/* Right Column: Chart + Upcoming Sessions + Tasks & Reminders */}
-          <div className="space-y-6">
-         {/* Overall Client Progress — Beautiful Bar Chart */}
-<div className="bg-gray-800 p-6 rounded-xl shadow-xl border border-gray-700">
-  <h3 className="text-xl font-bold text-white mb-4">
-    Overall Client Progress
-  </h3>
-  <div className="h-64">
-    <ResponsiveContainer width="100%" height="100%">
-      <BarChart
-        data={dashboardData.clientProgress || MOCK_DASHBOARD_DATA.clientProgress}
-        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-        cursor="default"
-      >
-        <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-        <XAxis dataKey="name" stroke="#999" />
-        <YAxis stroke="#999" />
-        <Tooltip
-          contentStyle={{
-            backgroundColor: '#111827',
-            border: '1px solid #374151',
-            borderRadius: '8px',
-            color: '#fff',
-            fontSize: '12px',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
-          }}
-          itemStyle={{ color: '#fff' }}
-          labelStyle={{ color: '#fff' }}
-          cursor={false}
-        />
-        <Bar
-          dataKey="progress"
-          fill="#0d9488"
-          radius={[4, 4, 0, 0]}
-          className="hover:fill-teal-400 transition-colors duration-300"
-          isAnimationActive={false}
-          activeBar={{ fill: '#0d9488', stroke: 'none' }}
-        />
-      </BarChart>
-    </ResponsiveContainer>
-  </div>
-</div>
-
-            {/* Upcoming Sessions */}
-            <div className="bg-gray-800 p-6 rounded-xl shadow-xl border border-gray-700">
-              <h3 className="text-xl font-bold text-white mb-4">
-                Upcoming Sessions
-              </h3>
-              <div className="space-y-4">
-                {(dashboardData.upcomingSessions || MOCK_DASHBOARD_DATA.upcomingSessions)?.map((session, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between bg-gray-700 p-4 rounded-lg hover:bg-gray-650 transition-all duration-200"
-                  >
-                    <div className="flex-1">
-                      <p className="font-semibold text-white text-lg">{session.clientName}</p>
-                      <p className="text-gray-300 text-sm">
-                        {session.time} • {session.type}
-                      </p>
-                    </div>
-                    <button className="ml-4 bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white text-sm px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 shadow-md whitespace-nowrap">
-                      View Details
-                    </button>
-                  </div>
-                ))}
-              </div>
+            <div className="bg-white/90 p-6 rounded-3xl shadow-lg border">
+                <h3 className="text-xl font-bold text-gray-800 mb-4">
+                    {dashboardData.totalOrders !== undefined ? 'Top Selling Products' : 
+                     dashboardData.totalRevenue !== undefined ? 'Gym Activity' : 'Upcoming Sessions'}
+                </h3>
+                <p className="text-gray-500">Relevant analytics and events will be shown here.</p>
             </div>
-
-            {/* Tasks & Reminders */}
-            <div className="bg-gray-800 p-6 rounded-xl shadow-xl border border-gray-700">
-              <h3 className="text-xl font-bold text-white mb-4">
-                Tasks & Reminders
-              </h3>
-              <ul className="space-y-3">
-                {(dashboardData.tasksAndReminders || MOCK_DASHBOARD_DATA.tasksAndReminders)?.map((task, index) => (
-                  <li
-                    key={index}
-                    className="flex items-start p-3 bg-gray-700 rounded-lg hover:bg-gray-650 transition-all duration-200 group"
-                  >
-                    <div className="mt-1 w-5 h-5 rounded-full bg-teal-500 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <div className="ml-3 flex-1">
-                      <p className="text-white font-medium">{task.description}</p>
-                      <p className="text-gray-400 text-sm mt-1">Due: {task.dueDate}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
         </div>
       </main>
     </div>

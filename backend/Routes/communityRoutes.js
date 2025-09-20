@@ -2,7 +2,6 @@
 import express from 'express';
 import * as communityController from '../controllers/communityController.js';
 import jwtAuth from '../middlewares/jwtAuth.js';
-import auth0CommunityRoutes from './auth0CommunityRoutes.js';
 import validate, {
   postContentSchema,
   commentContentSchema,
@@ -13,8 +12,7 @@ import validate, {
 
 const router = express.Router();
 
-// Add Auth0 community routes
-router.use('/auth0', auth0CommunityRoutes);
+
 
 // --- Post Routes ---
 

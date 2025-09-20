@@ -1,4 +1,3 @@
-// src/services/trainerService.js
 
 import { PrismaClient } from '@prisma/client';
 import AppError from '../utils/AppError.js';
@@ -16,20 +15,60 @@ const getTrainerProfileByUserId = async (userId) => {
 
 // --- Public Services ---
 export const getAll = async (queryParams) => {
-  const { page, limit } = queryParams;
+  // ✅ LOG to confirm this function is being called
+  console.log('[Trainer Service] The getAll function was successfully called.');
+
+  // --- 1. Robust Pagination & Query Parameter Handling ---
+  // Provide default values and ensure page/limit are numbers
+  const page = parseInt(queryParams.page || '1', 10);
+  const limit = parseInt(queryParams.limit || '10', 10);
   const skip = (page - 1) * limit;
 
-  const [trainers, total] = await prisma.$transaction([
-    prisma.trainerProfile.findMany({
-      skip,
-      take: limit,
-      orderBy: { user: { id: 'asc' } },
-      include: { user: { select: { id: true, email: true } } }, // Include public user info
-    }),
-    prisma.trainerProfile.count(),
-  ]);
+  // --- 2. Live Database Query ---
+  try {
+    console.log(`[Trainer Service] Attempting to query the database with page: ${page}, limit: ${limit}...`);
+    
+    // Use a transaction to efficiently fetch trainers and the total count in one database roundtrip
+    const [trainers, total] = await prisma.$transaction([
+      prisma.trainerProfile.findMany({
+        skip,
+        take: limit,
+        orderBy: {
+          // You can make this more complex later if needed
+          user: { id: 'asc' } 
+        },
+        include: {
+          // Only include the necessary fields from the related user table for performance
+          user: {
+            select: {
+              id: true,
+              email: true,
+            }
+          }
+        },
+      }),
+      // Get the total count of all trainer profiles in the database
+      prisma.trainerProfile.count(),
+    ]);
 
-  return { trainers, total, page, limit, totalPages: Math.ceil(total / limit) };
+    console.log(`[Trainer Service] Database query successful. Found ${trainers.length} trainers out of a total of ${total}.`);
+
+    // --- 3. Return Structured Response ---
+    // Return data in the exact format the frontend expects
+    return {
+      trainers,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    };
+
+  } catch (dbError) {
+    // --- 4. Robust Error Handling ---
+    // If the database fails for any reason, log the detailed error and send a generic error to the client
+    console.error("[Trainer Service] CRITICAL: Database connection or query failed!", dbError);
+    throw new AppError('The database could not be reached or the query failed.', 500);
+  }
 };
 
 export const getById = async (userId) => {
@@ -37,7 +76,7 @@ export const getById = async (userId) => {
     where: { userId },
     include: {
       user: { select: { id: true, email: true } },
-      plans: { orderBy: { price: 'asc' } }, // Subscription plans
+      plans: { orderBy: { price: 'asc' } },
       gyms: { select: { id: true, name: true } },
     },
   });
@@ -47,7 +86,7 @@ export const getById = async (userId) => {
 
 // --- Trainer-Specific Services ---
 export const updateProfile = async (userId, updateData) => {
-  await getTrainerProfileByUserId(userId); // Verifies the user is a trainer
+  await getTrainerProfileByUserId(userId);
   return await prisma.trainerProfile.update({ where: { userId }, data: updateData });
 };
 
@@ -61,7 +100,6 @@ export const getDashboard = async (userId) => {
   const totalSubscribers = await prisma.subscription.count({
       where: { trainerPlanId: { in: planIds }, status: 'active' }
   });
-  // More complex earning logic would go here
   return { totalSubscribers, monthlyEarnings: 0, profileCompleteness: 85 };
 };
 
@@ -104,13 +142,11 @@ export const updateTrainingPlan = async (userId, planId, updateData) => {
 export const assignPlanToMember = async (userId, planId, memberId) => {
   const trainerProfile = await getTrainerProfileByUserId(userId);
 
-  // Security: Verify the plan exists and belongs to the trainer
   const plan = await prisma.trainingPlan.findFirst({
     where: { id: planId, trainerProfileId: trainerProfile.id },
   });
   if (!plan) throw new AppError('Training plan not found or does not belong to you.', 404);
 
-  // Security: Verify the member is an active subscriber to this trainer
   const activeSub = await prisma.subscription.findFirst({
     where: {
       userId: memberId,
@@ -144,9 +180,7 @@ export const updatePlanTrial = async (userId, planId, trialData) => {
         }
     });
 };
-/**
- * @description Fetches aggregated data for the Trainer's dashboard.
- */
+
 export const getTrainerDashboardStats = async (userId) => {
   const trainerProfile = await prisma.trainerProfile.findUnique({ where: { userId } });
   if (!trainerProfile) throw new AppError('Trainer profile not found.', 404);
@@ -171,4 +205,3 @@ export const getTrainerDashboardStats = async (userId) => {
     profileCompleteness: 85, // Placeholder
   };
 };
-

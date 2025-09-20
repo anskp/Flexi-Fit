@@ -18,7 +18,7 @@ model User {
   password              String?
   provider              String
   providerId            String?
-  auth0_id  String?  @unique
+  auth0_id              String?                  @unique
   resetToken            String?
   resetTokenExpiry      DateTime?
   role                  String?
@@ -27,6 +27,7 @@ model User {
   memberProfile         MemberProfile?
   trainerProfile        TrainerProfile?
   multiGymProfile       MultiGymMemberProfile?
+  merchantProfile       MerchantProfile?
   managedGyms           Gym[]                    @relation("GymManager")
   subscriptions         Subscription[]
   checkIns              CheckIn[]
@@ -84,6 +85,16 @@ model MultiGymMemberProfile {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String @unique
   tier   String
+}
+model MerchantProfile {
+  id          String    @id @default(cuid())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String    @unique
+  storeName   String
+  description String?
+  address     String?
+  phone       String?
+  products    Product[] // A merchant can have many products
 }
 
 // --- Gym & Tier Models ---
@@ -409,6 +420,8 @@ model Product {
   price       Float
   images      Json
   category    String
+  seller      MerchantProfile @relation(fields: [sellerId], references: [id])
+  sellerId    String
   stock       Int        @default(0)
   cartItems   CartItem[]
   createdAt   DateTime   @default(now())
