@@ -1,18 +1,20 @@
-// src/components/layout/MainLayout.jsx
 import { Outlet } from 'react-router-dom';
+import Header from '../Header'; // 👈 Import Header
 import Sidebar from '../Sidebar';
 
 export default function MainLayout() {
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* The Sidebar is a permanent part of this layout */}
-      <Sidebar />
+    <div className="flex flex-col h-screen bg-gray-950 text-white overflow-hidden">
+      {/* 👇 Fixed Header — renders on EVERY page */}
+      <Header title="Dashboard" subtitle="Welcome back!" />
 
-      {/* The main content area where the routed pages will be rendered */}
-      <main className="flex-1 ml-64 p-6 sm:p-8">
-        {/* The Outlet component from react-router-dom renders the current child route */}
-        <Outlet />
-      </main>
+      {/* Sidebar + Scrollable Content */}
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar />
+        <main className="flex-1 pt-[96px] ml-64 p-6 overflow-y-auto scrollbar-hide">
+          <Outlet /> {/* This renders Dashboard, Clients, etc. */}
+        </main>
+      </div>
     </div>
   );
 }

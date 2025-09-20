@@ -47,7 +47,7 @@ export default function Profile() {
     };
 
     fetchProfile();
-  }, [user]); // This effect re-runs whenever the `user` object changes.
+  }, [user]); // This effect re-runs whenever the user object changes.
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -113,7 +113,7 @@ export default function Profile() {
       <div className="bg-white/90 rounded-3xl shadow-2xl border mb-8">
         <div className="h-40 bg-gradient-to-r from-blue-500 to-emerald-600 relative rounded-t-3xl">
           <button onClick={handleEdit} className="absolute top-4 right-4 bg-white/90 hover:bg-white text-gray-700 px-4 py-2 rounded-xl text-sm font-medium shadow-lg">
-            ✏️ Edit Profile
+            ✏ Edit Profile
           </button>
         </div>
         <div className="px-8 pb-8 relative -mt-16">
@@ -135,7 +135,7 @@ export default function Profile() {
       {isEditing && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white/95 rounded-3xl p-8 max-w-2xl w-full shadow-2xl border">
-            <h3 className="text-2xl font-bold text-gray-800 mb-6">✏️ Edit Profile</h3>
+            <h3 className="text-2xl font-bold text-gray-800 mb-6">✏ Edit Profile</h3>
             <form onSubmit={handleSave} className="space-y-6">
               {error && <div className="p-3 bg-red-100 text-red-800 rounded-lg text-sm">{error}</div>}
               <div>

@@ -1,97 +1,375 @@
-// src/pages/Schedule.jsx
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from "react";
 
 export default function Schedule() {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [events, setEvents] = useState([
-    { id: 1, title: 'Strength Training', client: 'Sarah Johnson', day: 1, time: '6:00 PM', duration: '60 min', type: 'session', color: 'from-blue-500 to-emerald-600', notes: 'Focus on back & shoulders' },
-    { id: 2, title: 'HIIT Class', client: 'Group (8 people)', day: 2, time: '7:30 AM', duration: '45 min', type: 'class', color: 'from-indigo-500 to-violet-600', notes: 'Burn 500+ calories' },
-    { id: 3, title: 'Yoga & Mobility', client: 'Lisa Wong', day: 4, time: '6:00 PM', duration: '60 min', type: 'session', color: 'from-emerald-500 to-teal-600', notes: 'Hip mobility focus' },
-    { id: 4, title: 'Available', client: 'Open Slot', day: 0, time: '10:00 AM', duration: '60 min', type: 'availability', color: 'from-gray-400 to-gray-600' },
-  ]);
-
-  const [showModal, setShowModal] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState(null);
-  const [newEvent, setNewEvent] = useState({ title: '', client: '', day: '', time: '', duration: '60 min', type: 'session', notes: '' });
-  const [loading, setLoading] = useState(false);
-
-  const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const hours = Array.from({ length: 24 }, (_, i) => {
-    const hour = i % 12 || 12;
-    const period = i < 12 ? 'AM' : 'PM';
-    return `${hour}:00 ${period}`;
+  const [currentDate] = useState(new Date());
+  const [showScheduleForm, setShowScheduleForm] = useState(false);
+  const [formData, setFormData] = useState({
+    client: "",
+    title: "",
+    date: "",
+    time: "",
+    duration: "60",
+    location: "Studio 1",
+    notes: ""
   });
+  const [formError, setFormError] = useState("");
+  const [formSuccess, setFormSuccess] = useState("");
 
-  const startOfWeek = new Date(currentDate);
-  startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
-  const weekDates = useMemo(() => Array.from({ length: 7 }, (_, i) => { const d = new Date(startOfWeek); d.setDate(startOfWeek.getDate() + i); return d; }), [currentDate]);
+  const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-  const isToday = (date) => {
-    const today = new Date();
-    return date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
+  // Mock events (Agenda below calendar)
+  const events = [
+    {
+      id: 1,
+      client: "Sarah K",
+      title: "Leg Day (Gym Floor)",
+      time: "6:00 PM",
+      location: "Studio 2",
+      action: "Reschedule",
+    },
+    {
+      id: 2,
+      client: "Jessica T",
+      title: "Cardio & Core",
+      time: "7:00 AM",
+      location: "Studio 1",
+      action: "Message",
+    },
+  ];
+
+  // ✅ Helper: Get initials from name (e.g., "Sarah K" → "SK")
+  const getInitials = (name) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase();
   };
 
-  const goToPreviousWeek = () => { const newDate = new Date(currentDate); newDate.setDate(newDate.getDate() - 7); setCurrentDate(newDate); };
-  const goToNextWeek = () => { const newDate = new Date(currentDate); newDate.setDate(newDate.getDate() + 7); setCurrentDate(newDate); };
-  const goToToday = () => setCurrentDate(new Date());
+  const daysInMonth = (date) => {
+    const d = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+    return d.getDate();
+  };
 
-  const openModal = (event = null) => {
-    if (event) {
-      setIsEditing(true);
-      setNewEvent({ id: event.id, title: event.title, client: event.client, day: event.day, time: event.time, duration: event.duration, type: event.type, notes: event.notes });
-      setSelectedEvent(event);
-    } else {
-      setIsEditing(false);
-      setNewEvent({ title: '', client: '', day: '', time: '', duration: '60 min', type: 'session', notes: '' });
+  const today = new Date();
+
+  const dates = useMemo(() => {
+    const numDays = daysInMonth(currentDate);
+    return Array.from({ length: numDays }, (_, i) => i + 1);
+  }, [currentDate]);
+
+  // Handle form input changes
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    // Clear any previous errors when typing
+    if (formError) setFormError("");
+  };
+
+  // Handle form submission
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    // Basic validation
+    if (!formData.client.trim()) {
+      setFormError("Client name is required");
+      return;
     }
-    setShowModal(true);
-  };
+    if (!formData.title.trim()) {
+      setFormError("Session title is required");
+      return;
+    }
+    if (!formData.date) {
+      setFormError("Date is required");
+      return;
+    }
+    if (!formData.time) {
+      setFormError("Time is required");
+      return;
+    }
 
-  const handleEventChange = (e) => { const { name, value } = e.target; setNewEvent({ ...newEvent, [name]: value }); };
-  const handleSaveEvent = () => {
-    if (!newEvent.title || !newEvent.time || newEvent.day === '') { alert('Please fill in title, time, and day.'); return; }
-    setLoading(true);
+    // Simulate form submission
+    setFormError("");
+    setFormSuccess("Session scheduled successfully!");
+    
+    // Reset form after 2 seconds
     setTimeout(() => {
-      if (isEditing && selectedEvent) {
-        setEvents((prev) => prev.map((e) => (e.id === selectedEvent.id ? { ...e, ...newEvent } : e)));
-      } else {
-        const newId = Math.max(...events.map((e) => e.id), 0) + 1;
-        setEvents((prev) => [...prev, { ...newEvent, id: newId, color: newEvent.type === 'session' ? 'from-blue-500 to-emerald-600' : newEvent.type === 'class' ? 'from-indigo-500 to-violet-600' : 'from-gray-400 to-gray-600' }]);
-      }
-      setLoading(false);
-      setShowModal(false);
-    }, 500);
+      setFormData({
+        client: "",
+        title: "",
+        date: "",
+        time: "",
+        duration: "60",
+        location: "Studio 1",
+        notes: ""
+      });
+      setFormSuccess("");
+      setShowScheduleForm(false);
+    }, 2000);
+    
+    console.log("Form submitted:", formData);
   };
-  const deleteEvent = () => { setEvents((prev) => prev.filter((e) => e.id !== selectedEvent.id)); setShowModal(false); setSelectedEvent(null); };
 
-  const renderEventCell = (dayIndex, time) => {
-    const dayEvents = events.filter((e) => e.day === dayIndex && e.time === time);
-    return dayEvents.map((event) => (
-      <div key={event.id} className={`text-xs text-white p-2 rounded-lg mb-1 cursor-pointer shadow-md transform hover:scale-105 transition-all duration-200 bg-gradient-to-r ${event.color} transform-hover glow-hover`} onClick={(e) => { e.stopPropagation(); openModal(event); }} title={`${event.title} with ${event.client}`}>
-        <div className="font-semibold">{event.title}</div><div className="opacity-90 text-xs">{event.client}</div><div className="opacity-75 text-xs mt-0.5">{event.duration}</div>
-      </div>
-    ));
+  // Close form
+  const closeForm = () => {
+    setShowScheduleForm(false);
+    setFormError("");
+    setFormSuccess("");
   };
-  
-  useEffect(() => {
-    const handleEsc = (e) => { if (e.key === 'Escape') { setShowModal(false); setSelectedEvent(null); } };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
-  }, []);
 
   return (
-    <div className="animate-fade-in">
-      <div className="mb-8"><h1 className="text-3xl font-bold text-gray-800">📅 Weekly Schedule</h1><p className="text-gray-600 mt-2">Manage your sessions, classes, and availability</p></div>
-      <div className="bg-white/90 backdrop-blur-sm p-6 rounded-3xl shadow-xl border border-white/30 mb-8 transform-hover">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4"><div className="flex items-center gap-4"><button onClick={goToPreviousWeek} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition">← Prev</button><h2 className="text-lg font-semibold text-gray-800 text-center min-w-48">Week of {weekDates[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {weekDates[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</h2><button onClick={goToNextWeek} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition">Next →</button></div><div className="flex gap-3"><button onClick={goToToday} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition font-medium">Today</button><button onClick={() => openModal()} className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-emerald-600 hover:from-emerald-600 hover:to-green-600 text-white rounded-xl font-medium transform-hover shadow-md hover:shadow-lg">➕ Add Session</button></div></div>
+    <div className="min-h-screen bg-gray-900 text-white p-6">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Session Schedule</h1>
+        <button 
+          onClick={() => setShowScheduleForm(true)}
+          className="bg-gradient-to-r from-teal-500 to-teal-600 px-4 py-2 rounded-lg font-medium shadow-md hover:from-teal-600 hover:to-teal-700 transition-all duration-200 transform hover:scale-105"
+        >
+          + Schedule New Session
+        </button>
       </div>
-      <div className="bg-white/90 backdrop-blur-sm p-6 rounded-3xl shadow-xl border border-white/30 overflow-hidden">
-        <div className="grid grid-cols-8 border-b border-white/20 bg-white/30"><div className="p-4 font-semibold text-gray-700"></div>{weekDates.map((date, i) => (<div key={i} className={`p-4 text-center font-medium ${isToday(date) ? 'bg-gradient-to-br from-blue-500 to-emerald-600 text-white rounded-t-xl shadow-md' : 'text-gray-700'}`}><div className="text-sm font-medium">{weekDays[i]}</div><div className={`mt-1 w-10 h-10 mx-auto rounded-full flex items-center justify-center text-sm font-bold transition-all ${isToday(date) ? 'bg-white/30' : 'bg-gradient-to-br from-gray-100 to-gray-200 text-gray-800 hover:from-blue-500/20'}`}>{date.getDate()}</div></div>))}</div>
-        <div className="divide-y divide-white/10">{hours.slice(6, 22).map((time) => (<div key={time} className="grid grid-cols-8 text-sm"><div className="p-3 text-right text-gray-500 border-r border-white/20 bg-white/20 font-medium">{time}</div>{weekDates.map((date, dayIndex) => (<div key={dayIndex} className={`p-2 min-h-16 border-r border-white/20 ${isToday(date) ? 'bg-blue-50' : 'hover:bg-white/30'} transition-all duration-200 relative group`} onClick={() => { setNewEvent({ ...newEvent, day: dayIndex, time }); openModal(); }}><div className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none flex items-center justify-center"><span className="text-xs text-gray-400 bg-black/20 px-2 py-1 rounded">+ Add</span></div>{renderEventCell(dayIndex, time)}</div>))}</div>))}</div>
+
+      {/* Schedule Form Modal */}
+      {showScheduleForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-gray-800 rounded-xl shadow-2xl border border-gray-700 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold">Schedule New Session</h2>
+                <button 
+                  onClick={closeForm}
+                  className="text-gray-400 hover:text-white text-2xl font-bold"
+                >
+                  ×
+                </button>
+              </div>
+              
+              {formError && (
+                <div className="mb-4 p-3 bg-red-600 text-white rounded-lg">
+                  {formError}
+                </div>
+              )}
+              
+              {formSuccess && (
+                <div className="mb-4 p-3 bg-green-600 text-white rounded-lg">
+                  {formSuccess}
+                </div>
+              )}
+              
+              <form onSubmit={handleSubmit}>
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Client Name *
+                    </label>
+                    <input
+                      type="text"
+                      name="client"
+                      value={formData.client}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 text-white focus:border-teal-500 focus:outline-none"
+                      placeholder="Enter client name"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Session Title *
+                    </label>
+                    <input
+                      type="text"
+                      name="title"
+                      value={formData.title}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 text-white focus:border-teal-500 focus:outline-none"
+                      placeholder="e.g., Upper Body Strength"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Date *
+                      </label>
+                      <input
+                        type="date"
+                        name="date"
+                        value={formData.date}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 text-white focus:border-teal-500 focus:outline-none"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Time *
+                      </label>
+                      <input
+                        type="time"
+                        name="time"
+                        value={formData.time}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 text-white focus:border-teal-500 focus:outline-none"
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Duration (minutes)
+                      </label>
+                      <select
+                        name="duration"
+                        value={formData.duration}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 text-white focus:border-teal-500 focus:outline-none"
+                      >
+                        <option value="30">30 minutes</option>
+                        <option value="45">45 minutes</option>
+                        <option value="60">60 minutes</option>
+                        <option value="75">75 minutes</option>
+                        <option value="90">90 minutes</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Location
+                      </label>
+                      <select
+                        name="location"
+                        value={formData.location}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 text-white focus:border-teal-500 focus:outline-none"
+                      >
+                        <option value="Studio 1">Studio 1</option>
+                        <option value="Studio 2">Studio 2</option>
+                        <option value="Gym Floor">Gym Floor</option>
+                        <option value="Outdoor">Outdoor</option>
+                        <option value="Online">Online</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Notes
+                    </label>
+                    <textarea
+                      name="notes"
+                      value={formData.notes}
+                      onChange={handleInputChange}
+                      rows="3"
+                      className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 text-white focus:border-teal-500 focus:outline-none"
+                      placeholder="Add any special instructions or notes..."
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex gap-4 mt-8">
+                  <button
+                    type="button"
+                    onClick={closeForm}
+                    className="flex-1 px-4 py-3 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-medium transition-all duration-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-medium transition-all duration-200 transform hover:scale-105"
+                  >
+                    Schedule Session
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Calendar */}
+      <div className="bg-gray-800 p-6 rounded-xl shadow-xl border border-gray-700 mb-8">
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white font-bold">
+              {getInitials("Coach")}
+            </div>
+            <span className="font-medium">
+              {currentDate.toLocaleString("default", { month: "long" })}{" "}
+              {currentDate.getFullYear()}
+            </span>
+          </div>
+        </div>
+        <div className="grid grid-cols-7 gap-2 text-center text-gray-300 mb-2">
+          {weekDays.map((day) => (
+            <div key={day} className="font-medium text-sm">
+              {day}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-2">
+          {dates.map((day) => (
+            <div
+              key={day}
+              className={`p-3 rounded-lg flex items-center justify-center cursor-pointer text-sm font-medium transition-all duration-200 ${
+                today.getDate() === day &&
+                today.getMonth() === currentDate.getMonth()
+                  ? "bg-teal-500 text-black font-bold shadow-md"
+                  : "bg-gray-700 hover:bg-gray-650"
+              }`}
+            >
+              {day}
+            </div>
+          ))}
+        </div>
       </div>
-      <div className="mt-8 bg-white/90 backdrop-blur-sm p-6 rounded-3xl shadow-xl border border-white/30 text-sm text-gray-600"><div className="flex flex-wrap items-center gap-6"><p><span className="font-bold text-gray-800">{events.length}</span> scheduled items</p>{[{ type: 'Session', color: 'from-blue-500 to-emerald-600' }, { type: 'Class', color: 'from-indigo-500 to-violet-600' }, { type: 'Available', color: 'from-gray-400 to-gray-600' }].map((item) => (<div key={item.type} className="flex items-center gap-2"><span className={`w-3 h-3 rounded-full bg-gradient-to-r ${item.color}`}></span><span>{item.type}</span></div>))}</div></div>
-      {showModal && (<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fade-in"><div className="bg-white/95 backdrop-blur-sm rounded-3xl p-8 max-w-md w-full shadow-2xl border border-white/30 max-h-screen overflow-y-auto transform hover:scale-[1.01] transition"><h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">{isEditing ? '✏️ Edit Session' : '➕ Add New Session'}</h3>{loading ? (<div className="py-8 text-center"><div className="inline-block animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"></div><p className="mt-4 text-gray-600">Saving...</p></div>) : (<form className="space-y-5"><div><label className="block text-sm font-medium text-gray-700 mb-1">Title</label><input type="text" name="title" value={newEvent.title} onChange={handleEventChange} placeholder="e.g. Strength Training" className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-3 focus:ring-blue-500/50" /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Client / Group</label><input type="text" name="client" value={newEvent.client} onChange={handleEventChange} placeholder="e.g. Sarah Johnson" className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-3 focus:ring-blue-500/50" /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Day</label><select name="day" value={newEvent.day} onChange={handleEventChange} className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-3 focus:ring-blue-500/50"><option value="">Select a day</option>{weekDays.map((day, i) => (<option key={i} value={i}>{day} ({weekDates[i].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})</option>))}</select></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Time</label><input type="text" name="time" value={newEvent.time} onChange={handleEventChange} placeholder="e.g. 6:00 PM" className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-3 focus:ring-blue-500/50" /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Duration</label><select name="duration" value={newEvent.duration} onChange={handleEventChange} className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-3 focus:ring-blue-500/50"><option value="30 min">30 minutes</option><option value="45 min">45 minutes</option><option value="60 min">60 minutes</option><option value="90 min">90 minutes</option></select></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Type</label><select name="type" value={newEvent.type} onChange={handleEventChange} className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-3 focus:ring-blue-500/50"><option value="session">One-on-One Session</option><option value="class">Group Class</option><option value="availability">Available Slot</option></select></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label><textarea name="notes" value={newEvent.notes} onChange={handleEventChange} rows="2" placeholder="E.g. Focus on back & shoulders" className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-3 focus:ring-blue-500/50"></textarea></div><div className="flex gap-3 pt-4">{isEditing && (<button type="button" onClick={deleteEvent} className="flex-1 bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-semibold transition">Delete</button>)}<button type="button" onClick={() => setShowModal(false)} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 rounded-xl font-semibold transition">Cancel</button><button type="button" onClick={handleSaveEvent} className="flex-1 bg-gradient-to-r from-blue-500 to-emerald-600 hover:from-emerald-600 hover:to-green-600 text-white py-3 rounded-xl font-semibold transition shadow-md">{isEditing ? 'Update' : 'Add'} Session</button></div></form>)}</div></div>)}
+
+      {/* Daily Agenda */}
+      <div className="bg-gray-800 p-6 rounded-xl shadow-xl border border-gray-700">
+        <h2 className="text-xl font-bold text-white mb-4">Daily Agenda</h2>
+        <p className="text-sm text-gray-400 mb-4">Upcoming Week View</p>
+        <div className="space-y-4">
+          {events.map((event) => (
+            <div
+              key={event.id}
+              className="flex items-center justify-between bg-gray-700 p-4 rounded-lg hover:bg-gray-650 transition-all duration-200"
+            >
+              {/* Left */}
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white font-bold text-lg">
+                  {getInitials(event.client)}
+                </div>
+                <div>
+                  <p className="font-semibold text-white">{event.client}</p>
+                  <p className="text-sm text-gray-300">{event.title}</p>
+                  <p className="text-xs text-gray-400">
+                    {event.time} · {event.location}
+                  </p>
+                </div>
+              </div>
+              {/* Right */}
+              <button
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 shadow-md ${
+                  event.action === "Message"
+                    ? "bg-teal-600 hover:bg-teal-500"
+                    : "bg-teal-600 hover:bg-teal-500"
+                }`}
+              >
+                {event.action}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
