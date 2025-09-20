@@ -18,54 +18,57 @@ export const getAll = async (queryParams) => {
   // ✅ LOG to confirm this function is being called
   console.log('[Trainer Service] The getAll function was successfully called.');
 
-  // ---  diagnosing with mock data to test the request-response cycle. ---
-  // If your app displays this data, it means your routes and controllers are working
-  // and the problem is 100% your database connection string or the database itself.
-  try {
-    const mockTrainers = [
-      {
-        experience: 5,
-        bio: "This is a mock trainer. If you see this, your API route is working correctly!",
-        user: { id: 'clxka12340000mock12345', email: 'mock.trainer.one@test.com' }
-      },
-      {
-        experience: 10,
-        bio: "This is a second mock trainer to confirm the API is responding with a list.",
-        user: { id: 'clxka56780000mock67890', email: 'mock.trainer.two@test.com' }
-      }
-    ];
-    // Return data in the exact same format as the real function would.
-    return { trainers: mockTrainers, total: 2, page: 1, limit: 10, totalPages: 1 };
-  } catch(e) {
-    console.error("This mock function should not fail, but if it does:", e);
-  }
-  // --- END OF MOCK DATA TEST ---
-
-  /*
-  // --- YOUR ORIGINAL DATABASE CODE (Keep this commented out for the test) ---
-  const { page, limit } = queryParams;
+  // --- 1. Robust Pagination & Query Parameter Handling ---
+  // Provide default values and ensure page/limit are numbers
+  const page = parseInt(queryParams.page || '1', 10);
+  const limit = parseInt(queryParams.limit || '10', 10);
   const skip = (page - 1) * limit;
 
+  // --- 2. Live Database Query ---
   try {
-    console.log(`[Trainer Service] Attempting to query the database...`);
+    console.log(`[Trainer Service] Attempting to query the database with page: ${page}, limit: ${limit}...`);
+    
+    // Use a transaction to efficiently fetch trainers and the total count in one database roundtrip
     const [trainers, total] = await prisma.$transaction([
       prisma.trainerProfile.findMany({
         skip,
         take: limit,
-        orderBy: { user: { id: 'asc' } },
-        include: { user: { select: { id: true, email: true } } },
+        orderBy: {
+          // You can make this more complex later if needed
+          user: { id: 'asc' } 
+        },
+        include: {
+          // Only include the necessary fields from the related user table for performance
+          user: {
+            select: {
+              id: true,
+              email: true,
+            }
+          }
+        },
       }),
+      // Get the total count of all trainer profiles in the database
       prisma.trainerProfile.count(),
     ]);
 
-    console.log(`[Trainer Service] Database query successful. Found ${total} trainers.`);
-    return { trainers, total, page, limit, totalPages: Math.ceil(total / limit) };
+    console.log(`[Trainer Service] Database query successful. Found ${trainers.length} trainers out of a total of ${total}.`);
+
+    // --- 3. Return Structured Response ---
+    // Return data in the exact format the frontend expects
+    return {
+      trainers,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    };
 
   } catch (dbError) {
+    // --- 4. Robust Error Handling ---
+    // If the database fails for any reason, log the detailed error and send a generic error to the client
     console.error("[Trainer Service] CRITICAL: Database connection or query failed!", dbError);
-    throw new AppError('The database could not be reached.', 500);
+    throw new AppError('The database could not be reached or the query failed.', 500);
   }
-  */
 };
 
 export const getById = async (userId) => {

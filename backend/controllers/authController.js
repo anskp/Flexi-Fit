@@ -45,6 +45,25 @@ export const verifyUser = catchAsync(async (req, res, next) => {
   });
 });
 
+export const verifyMember = catchAsync(async (req, res, next) => {
+  console.log('[AuthController] verifyMember endpoint hit');
+  const auth0Payload = req.auth.payload;
+
+  if (!auth0Payload) {
+    throw new AppError('Auth0 token payload is missing.', 401);
+  }
+
+  const user = await authService.verifyMember(auth0Payload);
+
+  // Return the user data. The mobile client will not use an internal token.
+  res.status(200).json({
+    success: true,
+    message: 'Member verified successfully.',
+    data: {
+      user: user,
+    },
+  });
+});
 // --- Profile & Role Management (Protected by internal JWT) ---
 export const selectRole = catchAsync(async (req, res, next) => {
   const { role } = req.body;
@@ -67,15 +86,24 @@ export const selectRole = catchAsync(async (req, res, next) => {
 });
 
 export const createMemberProfile = catchAsync(async (req, res, next) => {
-  const userId = req.user.id; // Provided by jwtAuth middleware
+  console.log('[AuthController] createMemberProfile endpoint hit.');
+
+  // Get the token payload directly from the request, populated by the gatekeeper.
+  const authPayload = req.auth?.payload;
+  if (!authPayload) {
+    throw new AppError('Authentication payload not found. Middleware has failed.', 401);
+  }
+
+  // Pass the raw token payload and the body data to the service layer.
+  // The service layer will handle the rest.
   const profile = await authService.createProfile({
-    userId,
+    authPayload: authPayload, // Pass the entire payload
     profileType: 'MEMBER',
     data: req.body,
   });
-  res.status(201).json({ success: true, message: 'Member profile created successfully.', data: profile });
-});
 
+  res.status(201).json({ success: true, message: "Member profile created successfully.", data: profile });
+});
 export const createTrainerProfile = catchAsync(async (req, res, next) => {
   const userId = req.user.id; // Provided by jwtAuth middleware
   const profile = await authService.createProfile({

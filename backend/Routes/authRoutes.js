@@ -1,84 +1,87 @@
-// Routes/authRoutes.js
-import express from 'express';
-import { auth } from 'express-oauth2-jwt-bearer';
-import * as authController from '../controllers/authController.js';
-import jwtAuth from '../middlewares/jwtAuth.js';
+// src/routes/authRoutes.js
 
-// ✅ Import all the specific schemas needed
+import express from 'express';
+import * as authController from '../controllers/authController.js';
+import authGatekeeper from '../middlewares/authGatekeeper.js';
+import { auth0Middleware } from '../middlewares/auth0Middleware.js';
+
 import validate, {
   selectRoleSchema,
-  createGymProfileSchema,
+  createMemberProfileSchema,
   createTrainerProfileSchema,
-  createMerchantProfileSchema,
-  createMemberProfileSchema
+  createGymProfileSchema,
+  createMerchantProfileSchema
 } from '../validators/authValidator.js';
 
 const router = express.Router();
 
-// --- Auth0 Middleware Configuration ---
-const auth0Auth = auth({
-  audience: 'https://api.fitnessclub.com',
-  issuerBaseURL:'https://dev-1de0bowjvfbbcx7q.us.auth0.com/',
-  // Add error handling for debugging
-  tokenSigningAlg: 'RS256',
-});
+// --- Client-Specific Verification Endpoints ---
+router.post('/verify-user', auth0Middleware, authController.verifyUser);
+router.post('/verify-member', auth0Middleware, authController.verifyMember);
 
-// --- Public Route for Auth0 Token Exchange ---
-router.post('/verify-user', auth0Auth, (req, res, next) => {
-  console.log('[Auth0 Middleware] Token validation successful. User payload:', req.auth?.payload);
+const flattenMemberProfileData = (req, res, next) => {
+  const { body } = req;
+  if (body.weight && typeof body.weight === 'object') {
+    body.weight = body.weight.value;
+  }
+  if (body.height && typeof body.height === 'object') {
+    body.height = body.height.value;
+  }
   next();
-}, authController.verifyUser);
+};
+// --- All Subsequent Onboarding and Profile Routes ---
 
-// --- All Subsequent Routes are Protected by our INTERNAL JWT ---
-router.use(jwtAuth);
-
-// --- Onboarding Flow Routes ---
-
-// Step 1: User selects their role
-router.post('/select-role', validate(selectRoleSchema), authController.selectRole);
-
-// Step 2: ✅ Use SEPARATE, SPECIFIC endpoints for profile creation
-// Unwrap incoming payload if wrapped in { profileType, data }
 router.post(
-    '/create-gym-profile',
-    (req, res, next) => {
-      if (req.body?.data) {
-        req.body = req.body.data; // replace body with inner data object for validation & controller
-      }
-      next();
-    },
-    validate(createGymProfileSchema),
-    authController.createGymProfile
+    '/select-role',
+    authGatekeeper,
+    validate(selectRoleSchema),
+    authController.selectRole
 );
+
+// This route does not need the unwrapper as the data is sent flat
+router.post(
+    '/create-member-profile',
+    authGatekeeper,
+    flattenMemberProfileData,
+    validate(createMemberProfileSchema),
+    authController.createMemberProfile
+);
+
+
+// ✅✅✅ THE FIX IS HERE: Re-introducing the unwrapper middleware ✅✅✅
+
+// This small middleware checks if the data is nested. If so, it replaces
+// req.body with the nested data object, so the validator receives the
+// correct structure.
+const unwrapData = (req, res, next) => {
+  if (req.body && req.body.data) {
+    req.body = req.body.data;
+  }
+  next();
+};
 
 router.post(
     '/create-trainer-profile',
-    (req, res, next) => {
-      if (req.body?.data) {
-        req.body = req.body.data; // replace body with inner data object for validation & controller
-      }
-      next();
-    },
+    authGatekeeper,
+    unwrapData, // <-- Unwraps req.body.data before validation
     validate(createTrainerProfileSchema),
     authController.createTrainerProfile
 );
 
 router.post(
-    '/create-merchant-profile',
-    (req, res, next) => {
-      if (req.body && req.body.data) {
-        req.body = req.body.data;
-      }
-      next();
-    },
-    validate(createMerchantProfileSchema),
-    authController.createMerchantProfile
+    '/create-gym-profile',
+    authGatekeeper,
+    unwrapData, // <-- Unwraps req.body.data before validation
+    validate(createGymProfileSchema),
+    authController.createGymProfile
 );
 
 router.post(
-    '/create-member-profile',
-    validate(createMemberProfileSchema),
-    authController.createMemberProfile
+    '/create-merchant-profile',
+    authGatekeeper,
+    unwrapData, // <-- Unwraps req.body.data before validation
+    validate(createMerchantProfileSchema),
+    authController.createMerchantProfile
 );
 
 export default router;

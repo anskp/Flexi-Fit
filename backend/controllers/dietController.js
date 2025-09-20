@@ -1,3 +1,4 @@
+// src/controllers/dietController.// src/controllers/dietController.js
 import * as dietService from '../services/dietService.js';
 import * as authService from '../services/authService.js';
 import catchAsync from '../utils/catchAsync.js';
