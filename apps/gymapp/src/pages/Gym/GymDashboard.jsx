@@ -1,5 +1,5 @@
-// src/pages/Gym/GymDashboard.jsx
-import React from 'react';
+// src/pages/Gym/GymDashboard.jsx 
+import React, { useEffect, useState } from 'react';
 
 // Recharts for charts (still needed for rendering)
 import {
@@ -48,9 +48,27 @@ export default function GymDashboard() {
   // ✅ Hardcoded user for UI preview
   const user = { email: "owner@flexfit.com" };
 
-  // ✅ Hardcoded date/time
-  const formattedDate = "Monday, April 22, 2024";
-  const formattedTime = "09:42 AM";
+  // ✅ Real date/time state
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  useEffect(() => {
+    const interval = setInterval(() => setCurrentDate(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const formattedDate = currentDate.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  const formattedTime = currentDate.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
 
   // ✅ Helper: Get initials from name
   const getInitials = (name) => {
