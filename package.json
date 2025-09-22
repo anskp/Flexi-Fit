@@ -24,13 +24,16 @@
   },
   "devDependencies": {
     "@turbo/gen": "^1.12.4",
-    "turbo": "^1.12.4",
+    "@types/node": "^20.10.5",
     "prettier": "^3.1.1",
-    "@types/node": "^20.10.5"
+    "turbo": "^1.12.4"
   },
   "packageManager": "pnpm@8.15.4",
   "engines": {
     "node": ">=18.0.0",
     "pnpm": ">=8.0.0"
+  },
+  "dependencies": {
+    "recharts": "^3.2.1"
   }
 }

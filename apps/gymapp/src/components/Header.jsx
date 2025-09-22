@@ -1,3 +1,4 @@
+// src/components/Header.jsx
 import { useState } from 'react'; 
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -15,15 +16,33 @@ export default function Header() {
     { id: 2, name: "Jane Smith", email: "jane@example.com", phone: "+0987654321", plan: "Basic" },
   ]);
 
+  // ✅ FIXED: Support all roles and paths
   const getTitle = () => {
     const path = location.pathname;
-    if (path === '/dashboard') return "Dashboard";
-    if (path === '/members') return "Members";
-    if (path === '/trainers') return "Trainers";
-    if (path === '/clients') return "Clients";
-    if (path === '/schedule') return "Schedule";
-    if (path === '/payments') return "Payments";
-    if (path === '/profile' || path === '/gym-profile') return "Profile";
+
+    // Gym Owner
+    if (path === '/gym/dashboard') return "Dashboard";
+    if (path === '/gym/members') return "Members";
+    if (path === '/gym/trainers') return "Trainers";
+    if (path === '/gym/schedule') return "Schedule";
+    if (path === '/gym/payments') return "Payments";
+    if (path === '/gym/gym-profile') return "Gym Profile";
+
+    // Trainer
+    if (path === '/trainer/dashboard') return "Dashboard";
+    if (path === '/trainer/clients') return "Clients";
+    if (path === '/trainer/schedule') return "Schedule";
+    if (path === '/trainer/payments') return "Payments";
+    if (path === '/trainer/profile') return "My Profile";
+
+    // Merchant
+    if (path === '/merchant/dashboard') return "Dashboard";
+    if (path === '/merchant/products') return "Products";
+    if (path === '/merchant/orders') return "Orders";
+    if (path === '/merchant/profile') return "My Profile";
+
+
+    // Fallback
     return "Dashboard";
   };
 
@@ -42,11 +61,12 @@ export default function Header() {
     setShowNewForm(true);
   };
 
-  // ✅ Updated: Form type based on user role
+  // ✅ FIXED: Support Merchant role
   const getCurrentFormType = () => {
-    if (user?.role === 'GYM_OWNER') return 'trainer'; // Gym Owner adds Trainer
-    if (user?.role === 'TRAINER') return 'client';    // Trainer adds Client
-    return 'client'; // fallback
+    if (user?.role === 'GYM_OWNER') return 'trainer';
+    if (user?.role === 'TRAINER') return 'client';
+    if (user?.role === 'MERCHANT') return 'product';
+    return 'client';
   };
 
   const handleSaveNewItem = (e) => {
@@ -71,6 +91,13 @@ export default function Header() {
         specialization: form.get('specialization'),
         email: form.get('email'),
       };
+    } else if (formType === 'product') {
+      newItem = {
+        ...newItem,
+        name: form.get('name'),
+        price: form.get('price'),
+        category: form.get('category'),
+      };
     }
 
     console.log(`New ${formType} added:`, newItem);
@@ -79,21 +106,29 @@ export default function Header() {
 
   const handleCancel = () => setShowNewForm(false);
 
-  const handleProfileClick = () => {
-    if (user?.role === 'GYM_OWNER') navigate('/gym-profile');
-    else navigate('/profile');
-  };
+ const handleProfileClick = () => {
+  if (user?.role === 'GYM_OWNER') navigate('/gym/gym-profile');
+  else if (user?.role === 'TRAINER') navigate('/trainer/profile');
+  else if (user?.role === 'MERCHANT') navigate('/merchant/profile'); 
+  else navigate('/profile');
+};
 
   const handleNotificationClick = () => navigate('/notifications');
 
-  const portalType = user?.role === 'GYM_OWNER' ? 'Gym Portal' : 'Trainer Portal';
+  // ✅ FIXED: Show correct portal name
+  const portalType = 
+    user?.role === 'GYM_OWNER' ? 'Gym Portal' :
+    user?.role === 'TRAINER' ? 'Trainer Portal' :
+    user?.role === 'MERCHANT' ? 'Merchant Portal' :
+    'User Portal';
+
   const formType = getCurrentFormType();
 
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-40 bg-gray-900 border-b border-gray-800 px-6 py-4 h-[96px] flex items-center justify-between shadow-sm">
         <div>
-          <h1 className="text-2xl font-extrabold text-teal-400">Flexifit Pro</h1>
+          <h1 className="text-2xl font-extrabold text-teal-400">Flexi-fit Pro</h1>
           <div className="flex items-baseline gap-4 mt-1">
             <p className="text-gray-400 text-sm">{portalType}</p>
             <p className="text-white font-medium">/ {getTitle()}</p>
@@ -166,6 +201,7 @@ export default function Header() {
             <h2 className="text-xl font-bold text-white mb-4">
               {formType === 'client' && "Add New Client"}
               {formType === 'trainer' && "Add New Trainer"}
+              {formType === 'product' && "Add New Product"}
             </h2>
 
             <form onSubmit={handleSaveNewItem} className="space-y-4">
@@ -208,6 +244,23 @@ export default function Header() {
                   <div>
                     <label className="block text-gray-300 text-sm font-medium mb-1">Email</label>
                     <input type="email" name="email" required className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 border border-gray-600"/>
+                  </div>
+                </>
+              )}
+
+              {formType === 'product' && (
+                <>
+                  <div>
+                    <label className="block text-gray-300 text-sm font-medium mb-1">Product Name</label>
+                    <input type="text" name="name" required className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 border border-gray-600"/>
+                  </div>
+                  <div>
+                    <label className="block text-gray-300 text-sm font-medium mb-1">Price ($)</label>
+                    <input type="number" step="0.01" name="price" required className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 border border-gray-600"/>
+                  </div>
+                  <div>
+                    <label className="block text-gray-300 text-sm font-medium mb-1">Category</label>
+                    <input type="text" name="category" required className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 border border-gray-600"/>
                   </div>
                 </>
               )}
