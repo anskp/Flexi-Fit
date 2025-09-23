@@ -3,25 +3,26 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as authService from '../api/authService';
 import parseApiError from '../utils/parseApiError';
+import { useAuth } from '../context/AuthContext';
 
 export default function GymProfileForm() {
   const [formData, setFormData] = useState({
-    name: '', // Maps to backend `name`
-    address: '', // Maps to backend `address`
-    latitude: '', // Maps to backend `latitude`
-    longitude: '', // Maps to backend `longitude`
-    photos: [], // Maps to backend `photos` (URLs)
-    facilities: [], // Maps to backend `facilities`
-    plans: [{ name: 'Monthly', price: '', duration: 'monthly' }], // Maps to backend `plans`
+    name: '',
+    address: '',
+    latitude: '',
+    longitude: '',
+    photos: [],
+    facilities: [],
+    plans: [{ name: 'Monthly', price: '', duration: 'monthly' }],
   });
 
   const navigate = useNavigate();
-  const [photoPreviews, setPhotoPreviews] = useState([]); // For local UI previews
-  const [errors, setErrors] = useState({}); // For form validation errors
-  const [submitError, setSubmitError] = useState(''); // For API submission errors
+  const { setAuthData } = useAuth();
+  const [photoPreviews, setPhotoPreviews] = useState([]);
+  const [errors, setErrors] = useState({});
+  const [submitError, setSubmitError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Consolidated options for facilities (your original code had amenities too, combining them for backend)
   const facilitiesOptions = ['Free Weights', 'Cardio Machines', 'Functional Training Area', 'Swimming Pool', 'Sauna & Steam Room', 'Locker Rooms', 'Parking', 'Wi-Fi'];
 
   const handleChange = (e) => {
@@ -41,13 +42,11 @@ export default function GymProfileForm() {
 
   const handlePhotoChange = (e) => {
     const files = Array.from(e.target.files);
-    // Limit to 5 photos as per UI/backend expectation
     if (files.length > 5) {
         alert("You can only upload a maximum of 5 photos.");
         return;
     }
     setFormData((prev) => ({ ...prev, photos: files }));
-    // Create local URL previews for display
     const previews = files.map(file => URL.createObjectURL(file));
     setPhotoPreviews(previews);
   };
@@ -61,7 +60,7 @@ export default function GymProfileForm() {
   const addPlan = () => {
     setFormData((prev) => ({
       ...prev,
-      plans: [...prev.plans, { name: '', price: '', duration: '' }] // Allow custom plans
+      plans: [...prev.plans, { name: '', price: '', duration: '' }]
     }));
   };
   
@@ -72,7 +71,7 @@ export default function GymProfileForm() {
 
   const handleGetLocation = () => {
     if (navigator.geolocation) {
-      setLoading(true); // Show loading while fetching location
+      setLoading(true);
       navigator.geolocation.getCurrentPosition(
         (position) => {
           setFormData(prev => ({
@@ -81,7 +80,7 @@ export default function GymProfileForm() {
             longitude: position.coords.longitude
           }));
           setLoading(false);
-          setSubmitError(''); // Clear any location errors
+          setSubmitError('');
         },
         (error) => {
           console.error("Geolocation error:", error);
@@ -94,7 +93,6 @@ export default function GymProfileForm() {
     }
   };
 
-  // ✅ --- ENHANCED FORM VALIDATION ---
   const validateForm = () => {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = 'Gym name is required.';
@@ -105,14 +103,12 @@ export default function GymProfileForm() {
     if (formData.photos.length === 0) newErrors.photos = 'Upload at least one photo of your gym.';
     if (formData.facilities.length === 0) newErrors.facilities = 'Select at least one facility/amenity.';
     
-    // Validate plans
     const hasValidPlan = formData.plans.some(plan => 
         plan.name.trim() && plan.duration.trim() && plan.price && parseFloat(plan.price) > 0
     );
     if (formData.plans.length === 0 || !hasValidPlan) {
         newErrors.plans = 'You must add at least one valid membership plan with a name, duration, and price.';
     } else {
-        // Check individual plan validity
         formData.plans.forEach((plan, index) => {
             if (!plan.name.trim()) newErrors[`planName-${index}`] = 'Plan name is required.';
             if (!plan.duration.trim()) newErrors[`planDuration-${index}`] = 'Plan duration is required.';
@@ -126,24 +122,21 @@ export default function GymProfileForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitError(''); // Clear previous API submission errors
+    setSubmitError('');
 
-    if (!validateForm()) { // Run frontend validation
-      return; // Stop if validation fails
+    if (!validateForm()) {
+      return;
     }
 
     setLoading(true);
 
     try {
-      // ✅ --- DATA TRANSFORMATION FOR BACKEND ---
-      // photos: map File objects to placeholder URLs (in a real app, upload first)
-      // plans: ensure prices are numbers and filter out incomplete ones
       const apiPayload = {
         name: formData.name,
         address: formData.address,
         latitude: parseFloat(formData.latitude),
         longitude: parseFloat(formData.longitude),
-        photos: formData.photos.map(file => `https://placehold.co/600x400?text=${encodeURIComponent(file.name || 'Image')}`), // Ensure name for placeholder
+        photos: formData.photos.map(file => `https://placehold.co/600x400?text=${encodeURIComponent(file.name || 'Image')}`),
         facilities: formData.facilities,
         plans: formData.plans
           .filter(plan => plan.name.trim() && plan.duration.trim() && plan.price && parseFloat(plan.price) > 0)
@@ -154,11 +147,10 @@ export default function GymProfileForm() {
           }))
       };
         
-      console.log("Submitting Gym Profile to backend:", apiPayload);
-
       const response = await authService.createGymProfile(apiPayload);
 
       if (response.success) {
+        setAuthData(response.data.token, response.data.user);
         alert('✅ Gym profile submitted successfully! It is now pending review by our team.');
         navigate('/dashboard'); 
       } else {
@@ -166,7 +158,7 @@ export default function GymProfileForm() {
       }
 
     } catch (err) {
-      setSubmitError(parseApiError(err)); // Use the API error parser
+      setSubmitError(parseApiError(err));
       console.error("Gym profile creation failed:", err);
     } finally {
       setLoading(false);
@@ -251,7 +243,7 @@ export default function GymProfileForm() {
             {errors.photos && <p className="text-red-500 text-xs mt-1">{errors.photos}</p>}
             {photoPreviews.length > 0 && (
               <div className="mt-4 grid grid-cols-3 sm:grid-cols-5 gap-3">
-                {photoPreviews.map((src, i) => <img key={i} src={src} alt="" className="w-full h-24 object-cover rounded-lg"/>)}
+                {photoPreviews.map((src, i) => <img key={i} src={src} alt={`Gym preview ${i+1}`} className="w-full h-24 object-cover rounded-lg"/>)}
               </div>
             )}
           </div>

@@ -26,7 +26,7 @@ import GymProfile from '../pages/Gym/GymProfile';
 import TrainerDashboard from '../pages/Trainer/TrainerDashboard';
 import TrainerClients from '../pages/Trainer/TrainerClients';
 import TrainerSchedule from '../pages/Trainer/TrainerSchedule';
-import TrainerPayments from '../pages/Trainer/TrainerPayments';
+import TrainerPayments from '../pages/Trainer/TrainerPayment';
 import TrainerProfile from '../pages/Trainer/TrainerProfile';
 
 // ===== MERCHANT =====

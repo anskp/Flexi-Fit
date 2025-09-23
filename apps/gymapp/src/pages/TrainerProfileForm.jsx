@@ -6,7 +6,6 @@ import parseApiError from '../utils/parseApiError';
 import { useAuth } from '../context/AuthContext';
 
 export default function TrainerProfileForm() {
-  // ✅ STATE ALIGNED WITH BACKEND SCHEMA
   const [formData, setFormData] = useState({
     bio: '',
     experience: '',
@@ -70,23 +69,19 @@ export default function TrainerProfileForm() {
       setErrors({});
 
       try {
-        // Prepare the payload for the backend
         const apiPayload = {
           ...formData,
           experience: parseInt(formData.experience, 10),
-          // Simulate photo upload by creating placeholder URLs
           gallery: formData.gallery.map(file => `https://placehold.co/600x400?text=${encodeURIComponent(file.name)}`),
-          // Filter out any plans without a price and parse the price to a number
           plans: formData.plans
             .filter(p => p.price && parseFloat(p.price) > 0)
             .map(p => ({ ...p, price: parseFloat(p.price) }))
         };
 
-        console.log("Submitting to backend:", apiPayload);
-
         const response = await authService.createTrainerProfile(apiPayload);
 
         if (response.success) {
+          setAuthData(response.data.token, response.data.user);
           alert('✅ Trainer profile submitted successfully!');
           navigate('/dashboard'); 
         }
@@ -98,7 +93,7 @@ export default function TrainerProfileForm() {
       }
     }
   };
-
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-teal-50 py-12 px-4">
       <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-xl">

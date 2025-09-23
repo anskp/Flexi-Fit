@@ -1,11 +1,9 @@
-// src/pages/MerchantProfileForm.jsx
+// src/pages/Merchant/MerchantProfileForm.jsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as authService from '../api/authService'; // Import the updated service
+import * as authService from '../api/authService';
 import parseApiError from '../utils/parseApiError';
-import { useAuth } from '../context/AuthContext'; // Import useAuth
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { useAuth } from '../context/AuthContext';
 
 const MerchantProfileForm = () => {
   const { user, setAuthData } = useAuth();
@@ -35,15 +33,17 @@ const MerchantProfileForm = () => {
     setError('');
 
     try {
-      // ✅ Call the new, specific service function for creating a merchant profile.
-      // The `formData` object directly matches the expected `data` payload for this role.
       const response = await authService.createMerchantProfile(formData);
 
-      if (response.status === 'success') {
-        // Assuming the backend response includes the updated user object and token
+      // ✅✅✅ THE FIX IS HERE ✅✅✅
+      // We now check for `response.success` (boolean) to match the updated backend.
+      if (response.success) {
         setAuthData(response.data.token, response.data.user); 
         alert('✅ Merchant profile created! You can now access your dashboard.');
         navigate('/dashboard'); 
+      } else {
+        // This handles cases where the API returns success: false
+        throw new Error(response.message || "Failed to create merchant profile.");
       }
     } catch (err) {
       setError(parseApiError(err));
@@ -53,6 +53,7 @@ const MerchantProfileForm = () => {
   };
 
   useEffect(() => {
+    // This logic is still good, it prevents users with a profile from seeing this form.
     if (user && user.merchantProfile) {
       navigate('/dashboard');
     }
@@ -77,7 +78,7 @@ const MerchantProfileForm = () => {
 
           <div>
             <label htmlFor="description" className="block text-sm font-medium text-gray-700">Store Description (Optional)</label>
-            <textarea id="description" name="description" type="text" value={formData.description} onChange={handleChange} rows="3" className="mt-1 w-full border-gray-300 rounded-lg shadow-sm" placeholder="Tell customers about your store..." />
+            <textarea id="description" name="description" value={formData.description} onChange={handleChange} rows="3" className="mt-1 w-full border-gray-300 rounded-lg shadow-sm" placeholder="Tell customers about your store..." />
           </div>
 
           <div>
