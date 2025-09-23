@@ -1,137 +1,184 @@
 // src/pages/Trainer/TrainerProfile.jsx
-import React from 'react';
+import React, { useState } from 'react';
+
+// Mock Data
+const MOCK_TRAINER = {
+  name: "Alex T",
+  avatar: "https://via.placeholder.com/120/4ade80/FFFFFF?text=AT",
+  experience: "8 Years",
+  specialties: ["Personal Training", "Group Fitness", "Nutrition Coaching"],
+  certifications: [
+    "CrossFit Level 1",
+    "CPSA Certified",
+    "Open Water Diver",
+    "Certified Strength & Conditioning Specialist",
+  ],
+  bio: "I’ve been training clients for over 8 years, helping them achieve their fitness goals through science-backed methods and personalized coaching. I specialize in strength, endurance, and mobility, and I love seeing people transform their lives.",
+  contact: {
+    email: "alex@flexifit.com",
+    phone: "+1 (212) 555-1234",
+    paymentMethods: true,
+  },
+};
 
 export default function TrainerProfile() {
+  const [showEditModal, setShowEditModal] = useState(false);
+
   return (
-    <div className="w-full animate-fade-in max-w-4xl mx-auto">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-8 rounded-xl shadow-xl border border-gray-700 mb-8">
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-8">
-          {/* Avatar */}
-          <div className="w-32 h-32 rounded-2xl bg-gradient-to-br from-teal-500 to-blue-600 flex items-center justify-center text-white font-bold text-3xl shadow-lg">
-            AM
+    <div className="w-full animate-fade-in max-w-5xl mx-auto px-4 py-6">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-white">Coach Profile</h1>
+        <button
+          onClick={() => setShowEditModal(true)}
+          className="bg-teal-600 hover:bg-teal-500 text-white py-2 px-5 rounded-lg font-medium transition transform hover:scale-105 shadow-md"
+        >
+          Edit Profile
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Left Column: Profile Card */}
+        <div className="bg-gray-800 p-6 rounded-xl shadow-xl border border-gray-700">
+          <div className="flex flex-col items-center mb-6">
+            <img
+              src={MOCK_TRAINER.avatar}
+              alt={MOCK_TRAINER.name}
+              className="w-32 h-32 rounded-full object-cover border-4 border-teal-500 mb-4"
+            />
+            <h2 className="text-xl font-bold text-white">{MOCK_TRAINER.name}</h2>
+            <p className="text-gray-400 text-sm">{MOCK_TRAINER.experience} Experience</p>
           </div>
 
-          {/* Info */}
-          <div className="flex-1">
-            <h1 className="text-3xl md:text-4xl font-bold text-white">Alex Morgan</h1>
-            <p className="text-teal-400 text-xl mt-2">Strength & Conditioning Coach</p>
-            <p className="text-gray-300 mt-3 max-w-2xl leading-relaxed">
-              Certified trainer with 8+ years experience helping clients build strength, confidence, and sustainable habits.
-            </p>
-
-            <div className="flex flex-wrap gap-4 mt-6">
-              <div className="bg-gray-700 px-4 py-2 rounded-lg">
-                <div className="text-green-400 font-bold text-lg">4.9 ⭐</div>
-                <div className="text-gray-400 text-xs">Avg. Rating</div>
-              </div>
-              <div className="bg-gray-700 px-4 py-2 rounded-lg">
-                <div className="text-blue-400 font-bold text-lg">120+</div>
-                <div className="text-gray-400 text-xs">Clients Trained</div>
-              </div>
-              <div className="bg-gray-700 px-4 py-2 rounded-lg">
-                <div className="text-purple-400 font-bold text-lg">92%</div>
-                <div className="text-gray-400 text-xs">Goal Success Rate</div>
-              </div>
+          {/* Specialties */}
+          <div className="mb-6">
+            <h3 className="text-lg font-bold text-white mb-3">Specialties</h3>
+            <div className="flex flex-wrap gap-2">
+              {MOCK_TRAINER.specialties.map((spec, i) => (
+                <span
+                  key={i}
+                  className="px-3 py-1 bg-gray-700 text-teal-300 rounded-lg text-sm font-medium"
+                >
+                  {spec}
+                </span>
+              ))}
             </div>
           </div>
 
-          {/* Action Button */}
-          <div className="mt-6 md:mt-0">
-            <button className="bg-teal-600 hover:bg-teal-500 text-white py-3 px-6 rounded-lg font-medium transition transform hover:scale-105 shadow-md">
-              Edit Profile
-            </button>
+          {/* Certifications */}
+          <div>
+            <h3 className="text-lg font-bold text-white mb-3">Certifications</h3>
+            <div className="space-y-2">
+              {MOCK_TRAINER.certifications.map((cert, i) => (
+                <div key={i} className="flex items-center gap-2 text-gray-300 text-sm">
+                  <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  {cert}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Bio Section */}
-      <div className="bg-gray-800 p-8 rounded-xl shadow-xl border border-gray-700 mb-8">
-        <h2 className="text-2xl font-bold text-white mb-4">About Me</h2>
-        <p className="text-gray-300 leading-relaxed text-lg">
-          I believe fitness should be fun, functional, and personalized. Whether you’re just starting out or looking to break through a plateau, I’ll create a plan that fits your lifestyle and goals.
-        </p>
-        <p className="text-gray-300 leading-relaxed text-lg mt-4">
-          My approach combines science-backed training with real-world flexibility — because life happens, and your fitness should adapt with it.
-        </p>
-      </div>
-
-      {/* Specialties */}
-      <div className="bg-gray-800 p-8 rounded-xl shadow-xl border border-gray-700 mb-8">
-        <h2 className="text-2xl font-bold text-white mb-6">My Specialties</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[
-            {
-              title: "Strength Training",
-              desc: "Build lean muscle and functional power",
-              icon: "🏋️",
-            },
-            {
-              title: "Fat Loss Coaching",
-              desc: "Sustainable nutrition + training for lasting results",
-              icon: "🔥",
-            },
-            {
-              title: "Mobility & Recovery",
-              desc: "Move better, feel better, prevent injury",
-              icon: "🧘",
-            },
-            {
-              title: "Beginner Programs",
-              desc: "Start strong with confidence and clarity",
-              icon: "🆕",
-            },
-            {
-              title: "Online Coaching",
-              desc: "Train from anywhere with personalized support",
-              icon: "💻",
-            },
-            {
-              title: "Accountability Plans",
-              desc: "Weekly check-ins and progress tracking",
-              icon: "📅",
-            },
-          ].map((spec, i) => (
-            <div key={i} className="bg-gray-700 p-6 rounded-xl hover:bg-gray-650 transition">
-              <div className="text-4xl mb-3">{spec.icon}</div>
-              <h3 className="text-white font-bold text-lg mb-2">{spec.title}</h3>
-              <p className="text-gray-400 text-sm">{spec.desc}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Contact Info */}
-      <div className="bg-gray-800 p-8 rounded-xl shadow-xl border border-gray-700">
-        <h2 className="text-2xl font-bold text-white mb-6">Contact & Availability</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h3 className="text-lg font-bold text-white mb-3">📞 Contact Info</h3>
-            <div className="space-y-3 text-gray-300">
+        {/* Right Column: Contact & Bio */}
+        <div className="space-y-6">
+          {/* Contact Information */}
+          <div className="bg-gray-800 p-6 rounded-xl shadow-xl border border-gray-700">
+            <h3 className="text-xl font-bold text-white mb-4">Contact Information</h3>
+            <div className="space-y-4">
               <div>
-                <span className="text-teal-400 font-medium">Email:</span> alex@flexfit.com
+                <label className="block text-gray-400 text-sm mb-1">Email</label>
+                <input
+                  type="email"
+                  value={MOCK_TRAINER.contact.email}
+                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  readOnly
+                />
               </div>
               <div>
-                <span className="text-teal-400 font-medium">Phone:</span> (555) 123-4567
+                <label className="block text-gray-400 text-sm mb-1">Phone</label>
+                <input
+                  type="tel"
+                  value={MOCK_TRAINER.contact.phone}
+                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  readOnly
+                />
               </div>
-              <div>
-                <span className="text-teal-400 font-medium">Location:</span> FlexFit Pro Downtown
+              <div className="flex items-center justify-between">
+                <label className="block text-gray-400 text-sm">Payment Methods</label>
+                <button
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                    MOCK_TRAINER.contact.paymentMethods
+                      ? 'bg-teal-600 text-white'
+                      : 'bg-gray-600 text-gray-300'
+                  }`}
+                >
+                  {MOCK_TRAINER.contact.paymentMethods ? 'Enabled' : 'Disabled'}
+                </button>
               </div>
             </div>
           </div>
-          <div>
-            <h3 className="text-lg font-bold text-white mb-3">🕒 Typical Availability</h3>
-            <div className="space-y-2 text-gray-300">
-              <div>Mon, Wed, Fri: 7AM – 12PM, 4PM – 8PM</div>
-              <div>Sat: 9AM – 2PM</div>
-              <div>Sun: Off</div>
-            </div>
-            <p className="text-sm text-gray-400 mt-4 italic">
-              *Subject to change — check schedule for real-time openings
+
+          {/* Bio */}
+          <div className="bg-gray-800 p-6 rounded-xl shadow-xl border border-gray-700">
+            <h3 className="text-xl font-bold text-white mb-4">Bio</h3>
+            <p className="text-gray-300 leading-relaxed whitespace-pre-line">
+              {MOCK_TRAINER.bio}
             </p>
           </div>
         </div>
       </div>
+
+      {/* Edit Modal (Mock) */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-gray-800 rounded-xl p-6 w-full max-w-2xl max-h-screen overflow-y-auto shadow-2xl border border-gray-700">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-white">Edit Profile</h3>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="text-gray-400 hover:text-white text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            <p className="text-gray-400 mb-6">This is a mock modal. In real app, you’d see form fields here.</p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Name</label>
+                <input
+                  type="text"
+                  defaultValue={MOCK_TRAINER.name}
+                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Bio</label>
+                <textarea
+                  rows="4"
+                  defaultValue={MOCK_TRAINER.bio}
+                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                ></textarea>
+              </div>
+            </div>
+            <div className="flex gap-3 pt-4">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="flex-1 bg-teal-600 hover:bg-teal-500 text-white py-3 px-4 rounded-lg font-medium transition"
+              >
+                Save Changes
+              </button>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-3 px-4 rounded-lg font-medium transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
