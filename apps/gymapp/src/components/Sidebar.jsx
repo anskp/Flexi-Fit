@@ -1,5 +1,5 @@
 // src/components/Sidebar.jsx
-import { Link, useLocation } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 // ====== SVG ICONS ======
@@ -142,7 +142,7 @@ const OrdersIcon = () => (
 export default function Sidebar() {
   const location = useLocation();
   const { user, logout } = useAuth();
-
+ console.log("USER IN SIDEBAR:", user);
   const getMenuItems = () => {
     const role =
       user?.role?.toUpperCase() ||
@@ -197,7 +197,7 @@ export default function Sidebar() {
         {menuItems.map((item) => {
           const isActive = location.pathname.startsWith(item.path);
           return (
-            <Link
+            <NavLink
               key={item.path}
               to={item.path}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition text-sm font-medium ${
@@ -208,7 +208,7 @@ export default function Sidebar() {
             >
               {item.icon}
               <span>{item.name}</span>
-            </Link>
+            </NavLink>
           );
         })}
       </nav>

@@ -1,147 +1,159 @@
 // src/controllers/authController.js
+
 import * as authService from '../services/authService.js';
 import jwt from 'jsonwebtoken';
 import catchAsync from '../utils/catchAsync.js';
 import AppError from '../utils/AppError.js';
+import { generateInternalToken } from '../utils/tokenUtils.js';
 
-// --- Token Generation ---
-const generateInternalToken = (user) => {
-  const payload = { id: user.id, email: user.email, role: user.role };
-  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
-};
 
 // --- Auth0 Verification & Token Exchange ---
 export const verifyUser = catchAsync(async (req, res, next) => {
-  console.log('[AuthController] verifyUser called. Auth0 payload:', req.auth?.payload);
-  
   const auth0Payload = req.auth?.payload;
   if (!auth0Payload) {
-    console.error('[AuthController] Auth0 token is missing or invalid. Auth object:', req.auth);
-    throw new AppError('Auth0 token is missing or invalid. Please check the Authorization header.', 401);
+    throw new AppError('Auth0 token is missing or invalid.', 401);
   }
-
-  console.log('[AuthController] Auth0 payload received:', {
-    sub: auth0Payload.sub,
-    email: auth0Payload.email,
-    iss: auth0Payload.iss
-  });
-
-  // Find or create a user in our database based on the Auth0 ID
   const user = await authService.verifyAuth0User(auth0Payload);
-
-  // Generate our own internal JWT
   const internalToken = generateInternalToken(user);
-
-  console.log('[AuthController] User verification successful. Generated token for user:', user.id);
-
-  // Return our token and the user's profile from our database
   res.status(200).json({
     success: true,
     message: 'User verified successfully.',
-    data: {
-      token: internalToken,
-      user: user,
-    },
+    data: { token: internalToken, user: user },
   });
 });
 
 export const verifyMember = catchAsync(async (req, res, next) => {
-  console.log('[AuthController] verifyMember endpoint hit');
   const auth0Payload = req.auth.payload;
-
   if (!auth0Payload) {
     throw new AppError('Auth0 token payload is missing.', 401);
   }
-
   const user = await authService.verifyMember(auth0Payload);
-
-  // Return the user data. The mobile client will not use an internal token.
   res.status(200).json({
     success: true,
     message: 'Member verified successfully.',
-    data: {
-      user: user,
-    },
+    data: { user: user },
   });
 });
-// --- Profile & Role Management (Protected by internal JWT) ---
+
+// --- Profile & Role Management ---
 export const selectRole = catchAsync(async (req, res, next) => {
   const { role } = req.body;
-  const userId = req.user.id; // Provided by jwtAuth middleware
+  const userId = req.user.id;
   
+  // --- DEBUG STEP 1: Confirming the function starts ---
+  console.log(`[selectRole Controller] User ${userId} selected role ${role}.`);
+
   const result = await authService.selectRole({ userId, role });
 
-  // Re-issue a token with the new role included
-  const updatedUser = { ...req.user, role: result.role };
-  const newToken = generateInternalToken(updatedUser);
+  // --- DEBUG STEP 2: Confirming the role was updated in the service ---
+  console.log(`[selectRole Controller] Role updated. Redirecting to: ${result.redirectTo}`);
+  
+  try {
+    const updatedUser = await authService.getFullUserById(userId);
 
-  res.status(200).json({
-    success: true,
-    message: 'Role selected successfully.',
-    data: {
-      token: newToken,
-      redirectTo: result.redirectTo,
-    },
-  });
+    // --- DEBUG STEP 3: LOG THE OBJECT THAT IS CAUSING THE PROBLEM ---
+    console.log('[selectRole Controller] Fetched full user object. It looks like this:');
+    console.dir(updatedUser, { depth: null }); // This prints the full object
+
+    const newToken = generateInternalToken(updatedUser);
+    
+    // --- DEBUG STEP 4: Confirming we are about to send the response ---
+    console.log('[selectRole Controller] Token generated. Sending success response to client.');
+
+    res.status(200).json({
+      success: true,
+      message: 'Role selected successfully.',
+      data: { token: newToken, user: updatedUser, redirectTo: result.redirectTo },
+    });
+
+  } catch (error) {
+    // --- DEBUG STEP 5: Catching any errors during the process ---
+    console.error('[selectRole Controller] CRITICAL ERROR after role update but before response:', error);
+    // Pass the error to the global error handler
+    next(error); 
+  }
 });
 
 export const createMemberProfile = catchAsync(async (req, res, next) => {
-  console.log('[AuthController] createMemberProfile endpoint hit.');
-
-  // Get the token payload directly from the request, populated by the gatekeeper.
   const authPayload = req.auth?.payload;
   if (!authPayload) {
-    throw new AppError('Authentication payload not found. Middleware has failed.', 401);
+    throw new AppError('Authentication payload not found.', 401);
   }
-
-  // Pass the raw token payload and the body data to the service layer.
-  // The service layer will handle the rest.
   const profile = await authService.createProfile({
-    authPayload: authPayload, // Pass the entire payload
+    authPayload: authPayload,
     profileType: 'MEMBER',
     data: req.body,
   });
-
   res.status(201).json({ success: true, message: "Member profile created successfully.", data: profile });
 });
+
 export const createTrainerProfile = catchAsync(async (req, res, next) => {
-  const userId = req.user.id; // Provided by jwtAuth middleware
-  const profile = await authService.createProfile({
+  const userId = req.user.id;
+  await authService.createProfile({
     userId,
     profileType: 'TRAINER',
     data: req.body,
   });
-  res.status(201).json({ success: true, message: 'Trainer profile created successfully.', data: profile });
+
+  const updatedUser = await authService.getFullUserById(userId);
+  const newToken = generateInternalToken(updatedUser);
+
+  res.status(201).json({
+    success: true,
+    message: 'Trainer profile created successfully.',
+    data: {
+      token: newToken,
+      user: updatedUser,
+    },
+  });
 });
 
 export const createGymProfile = catchAsync(async (req, res, next) => {
-  const userId = req.user.id; // Provided by jwtAuth middleware
-  // Allow frontend to send either flat fields or wrapped in { data: { ... } }
+  const userId = req.user.id;
   const profileData = req.body.data || req.body;
-  const gym = await authService.createProfile({
+  await authService.createProfile({
     userId,
     profileType: 'GYM_OWNER',
     data: profileData,
   });
-  res.status(201).json({ success: true, message: 'Gym profile created successfully.', data: gym });
-});
 
-export const createMerchantProfile = catchAsync(async (req, res, next) => {
-  const { user } = req;
-  const profileData = req.body;
-  const newProfile = await authService.createProfile({ userId: user.id, profileType: 'MERCHANT', data: profileData });
-  
-  // Re-issue a token with the updated user role and include the new profile
-  const updatedUser = { ...user, role: 'MERCHANT', merchantProfile: newProfile };
+  const updatedUser = await authService.getFullUserById(userId);
   const newToken = generateInternalToken(updatedUser);
 
   res.status(201).json({
-    status: 'success',
+    success: true,
+    message: 'Gym profile created successfully.',
+    data: {
+      token: newToken,
+      user: updatedUser,
+    },
+  });
+});
+
+// ✅✅✅ UPDATED MERCHANT CONTROLLER FOR CONSISTENCY ✅✅✅
+export const createMerchantProfile = catchAsync(async (req, res, next) => {
+  const userId = req.user.id;
+
+  // 1. Create the profile
+  await authService.createProfile({ 
+    userId, 
+    profileType: 'MERCHANT', 
+    data: req.body 
+  });
+  
+  // 2. Get the full, up-to-date user object from the database
+  const updatedUser = await authService.getFullUserById(userId);
+
+  // 3. Generate a new token based on the true state of the user
+  const newToken = generateInternalToken(updatedUser);
+
+  // 4. Send the consistent response structure
+  res.status(201).json({
+    success: true,
     message: 'Merchant profile created successfully',
     data: {
       token: newToken,
       user: updatedUser,
-      profile: newProfile,
     },
   });
 });

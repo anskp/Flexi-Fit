@@ -1,26 +1,30 @@
-// On your BACKEND in Routes/merchantRoutes.js
+// src/routes/merchantRoutes.js
+
 import express from 'express';
 import * as merchantController from '../controllers/merchantController.js';
-import jwtAuth from '../middlewares/jwtAuth.js';
-import roleAuth from '../middlewares/roleAuth.js';
-import validate, {
-    productSchema,
-    updateProductSchema,
-    productIdParamSchema
-} from '../validators/merchantValidator.js';
+import authGatekeeper from '../middlewares/authGatekeeper.js';
+import roleAuth from '../middlewares/roleAuth.js'; // Assuming you have a role-checking middleware
 
 const router = express.Router();
 
-// Protect all merchant routes and ensure the user has the 'MERCHANT' role
-router.use(jwtAuth, roleAuth('MERCHANT'));
+// ✅ Protect all routes and ensure the user has the 'MERCHANT' role.
+router.use(authGatekeeper, roleAuth('MERCHANT'));
 
-// Product management routes
-router.post('/products', validate(productSchema), merchantController.createProduct);
+// --- Product Management for the Logged-in Merchant ---
+// POST /api/merchant/products -> Creates a new product for THIS merchant
+router.post('/products', merchantController.createMyProduct);
+
+// GET /api/merchant/products -> Gets all products for THIS merchant
 router.get('/products', merchantController.getMyProducts);
-router.patch('/products/:productId', validate(productIdParamSchema), validate(updateProductSchema), merchantController.updateMyProduct);
-router.delete('/products/:productId', validate(productIdParamSchema), merchantController.deleteMyProduct);
 
-// Order management routes
-router.get('/orders', merchantController.getMyOrders);
+// PUT /api/merchant/products/:productId -> Updates one of THIS merchant's products
+router.put('/products/:productId', merchantController.updateMyProduct);
+
+// DELETE /api/merchant/products/:productId -> Deletes one of THIS merchant's products
+router.delete('/products/:productId', merchantController.deleteMyProduct);
+
+// --- Order Management for the Logged-in Merchant ---
+// GET /api/merchant/orders -> Gets all orders for THIS merchant
+
 
 export default router;
