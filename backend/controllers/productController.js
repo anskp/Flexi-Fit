@@ -1,31 +1,16 @@
-// src/controllers/productController.js
+// src/controllers/ProductController.js
+
 import * as productService from '../services/productService.js';
 import catchAsync from '../utils/catchAsync.js';
 
-// --- Admin ---
-export const createProduct = catchAsync(async (req, res) => {
-  const newProduct = await productService.createProduct(req.body);
-  res.status(201).json({ success: true, data: newProduct });
-});
-
-export const updateProduct = catchAsync(async (req, res) => {
-  const updatedProduct = await productService.updateProduct(req.params.id, req.body);
-  res.status(200).json({ success: true, data: updatedProduct });
-});
-
-export const deleteProduct = catchAsync(async (req, res) => {
-  await productService.deleteProduct(req.params.id);
-  res.status(204).send();
-});
-
-// --- Public ---
-export const getAllProducts = catchAsync(async (req, res) => {
-  const result = await productService.getAllProducts(req.query);
+export const getAllPublicProducts = catchAsync(async (req, res) => {
+  // Pass pagination query params like { page, limit } to the service
+  const result = await productService.getAllPublicProducts(req.query);
   res.status(200).json({ success: true, ...result });
 });
 
-export const getProductById = catchAsync(async (req, res) => {
-    const product = await productService.getProductById(req.params.id);
+export const getPublicProductById = catchAsync(async (req, res) => {
+    const { productId } = req.params;
+    const product = await productService.getPublicProductById(productId);
     res.status(200).json({ success: true, data: product });
 });
-

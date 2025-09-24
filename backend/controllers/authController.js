@@ -4,12 +4,8 @@ import * as authService from '../services/authService.js';
 import jwt from 'jsonwebtoken';
 import catchAsync from '../utils/catchAsync.js';
 import AppError from '../utils/AppError.js';
+import { generateInternalToken } from '../utils/tokenUtils.js';
 
-// --- Token Generation ---
-const generateInternalToken = (user) => {
-  const payload = { id: user.id, email: user.email, role: user.role };
-  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
-};
 
 // --- Auth0 Verification & Token Exchange ---
 export const verifyUser = catchAsync(async (req, res, next) => {
