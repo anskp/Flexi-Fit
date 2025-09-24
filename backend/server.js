@@ -1,4 +1,3 @@
-
 import dotenv from 'dotenv';
 // ✅✅✅ STEP 1: Load environment variables at the VERY TOP of your application ✅✅✅
 // This MUST be the first line to ensure all other files can access the variables.
@@ -9,6 +8,8 @@ import cors from 'cors';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
+import path from 'path'; // ✅ IMPORT PATH
+import { fileURLToPath } from 'url'; // ✅ IMPORT URL
 
 // --- Import All Route Files ---
 import authRoutes from './Routes/authRoutes.js';
@@ -35,6 +36,7 @@ import cartRoutes from './Routes/cartRoutes.js';
 import trainingRoutes from './Routes/trainingRoutes.js';
 import merchantRoutes from './Routes/merchantRoutes.js';
 import { handleSendMessage } from './controllers/chatController.js';
+
 
 const app = express();
 const httpServer = createServer(app);
@@ -87,6 +89,11 @@ app.use((req, res, next) => {
   console.log('---------------------------------');
   next();
 });
+
+// ✅✅✅ ADD THIS SECTION TO SERVE UPLOADED FILES ✅✅✅
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // --- Register All API Routes ---
 app.use('/api/auth', authRoutes);

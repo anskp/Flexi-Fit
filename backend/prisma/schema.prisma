@@ -516,7 +516,7 @@ model Post {
   author    User      @relation("UserPosts", fields: [authorId], references: [id], onDelete: Cascade)
   authorId  String
   comments  Comment[]
-
+  imageUrl String?
   @@index([authorId])
 }
 

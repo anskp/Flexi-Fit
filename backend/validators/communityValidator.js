@@ -5,11 +5,14 @@ import AppError from '../utils/AppError.js';
 const validate = (schema) => (req, res, next) => {
   const { error } = schema.validate({ ...req.body, ...req.params, ...req.query });
   if (error) {
+    // Log the validation error for easier debugging on the server
+    console.error('❌ Joi Validation Error:', error.details.map((d) => d.message).join('; '));
     return next(new AppError(error.details.map((d) => d.message).join('; '), 400));
   }
   return next();
 };
 
+// Assuming CUIDs are 25 characters long, which is standard for CUIDv1
 const cuidSchema = Joi.string().length(25).required();
 
 export const postContentSchema = Joi.object({
@@ -34,4 +37,3 @@ export const paginationSchema = Joi.object({
 });
 
 export default validate;
-

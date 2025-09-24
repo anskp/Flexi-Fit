@@ -1,7 +1,8 @@
-// Routes/communityRoutes.js
+// src/routes/communityRoutes.js
 import express from 'express';
 import * as communityController from '../controllers/communityController.js';
-import jwtAuth from '../middlewares/jwtAuth.js';
+import { auth0Middleware } from '../middlewares/auth0Middleware.js';
+import upload from '../middlewares/upload.js';
 import validate, {
   postContentSchema,
   commentContentSchema,
@@ -12,69 +13,73 @@ import validate, {
 
 const router = express.Router();
 
-
-
 // --- Post Routes ---
 
-// GET all posts (publicly accessible, but could require auth if you choose)
+// GET all posts
 router.get(
     '/posts',
     validate(paginationSchema),
     communityController.getAllPosts
 );
 
-// GET a single post and its comments (publicly accessible)
+// GET a single post
 router.get(
     '/posts/:postId',
     validate(postIdParamSchema),
     communityController.getPostById
 );
 
-// POST to create a new post (requires auth)
+// POST to create a new post
 router.post(
   '/posts',
-  jwtAuth,
-  validate(postContentSchema),
+  auth0Middleware,         // 1. Validate the user token
+  upload.single('image'),  // 2. Handle the file upload
+  validate(postContentSchema), // 3. Validate the text content
   communityController.createPost
 );
 
-// PUT to update a user's own post (requires auth)
+// POST to like/unlike a post
+router.post(
+  '/posts/:postId/like',
+  auth0Middleware,
+  validate(postIdParamSchema),
+  communityController.likePost
+);
+
+// PUT to update a post
 router.put(
   '/posts/:postId',
-  jwtAuth,
-  validate(postIdParamSchema), // Validate the param
-  validate(postContentSchema),  // Validate the body
+  auth0Middleware,
+  validate(postIdParamSchema),
+  validate(postContentSchema),
   communityController.updatePost
 );
 
-// DELETE a user's own post (requires auth)
+// DELETE a post
 router.delete(
   '/posts/:postId',
-  jwtAuth,
+  auth0Middleware,
   validate(postIdParamSchema),
   communityController.deletePost
 );
 
-
 // --- Comment Routes ---
 
-// POST to create a comment on a post (requires auth)
+// POST to create a comment
 router.post(
   '/posts/:postId/comments',
-  jwtAuth,
+  auth0Middleware,
   validate(postIdParamSchema),
   validate(commentContentSchema),
   communityController.createComment
 );
 
-// DELETE a user's own comment (requires auth)
+// DELETE a comment
 router.delete(
   '/comments/:commentId',
-  jwtAuth,
+  auth0Middleware,
   validate(commentIdParamSchema),
   communityController.deleteComment
 );
 
-
 export default router;
-
