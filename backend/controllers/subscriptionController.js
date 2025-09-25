@@ -1,48 +1,29 @@
 // src/controllers/subscriptionController.js
 
 import * as subscriptionService from '../services/subscriptionService.js';
-
-// A utility to wrap async functions and catch errors, passing them to the global error handler
 import catchAsync from '../utils/catchAsync.js';
-/**
- * Creates a "stubbed" checkout session.
- * In the future, this will return a real Chargebee Hosted Page URL.
- */
-export const createSubscriptionCheckout = catchAsync(async (req, res, next) => {
-  const { planId } = req.body;
-  const result = await subscriptionService.createCheckoutSession(req.user.id, planId);
+
+export const createCheckoutSession = catchAsync(async (req, res) => {
+  const userId = req.user.id;
+  const { planId, planType } = req.body; // e.g., planId: 'xyz', planType: 'GYM'
+
+  // The service returns a secure URL hosted by Chargebee
+  const checkoutUrl = await subscriptionService.createCheckoutSession({ userId, planId, planType });
   
-  res.status(200).json({
-    success: true,
-    message: 'Checkout session created successfully.',
-    data: result, // This will contain the { checkoutUrl: '...' } object
-  });
+  res.status(200).json({ success: true, data: { checkoutUrl } });
 });
 
-/**
- * Initiates a "stubbed" subscription cancellation.
- * In the future, this will trigger a real cancellation request to Chargebee.
- */
-export const cancelSubscription = catchAsync(async (req, res, next) => {
-  const { subscriptionId } = req.params;
-  const result = await subscriptionService.cancelSubscription(req.user.id, subscriptionId);
-  
-  res.status(200).json({
-    success: true,
-    data: result, // This will contain the { message: '...' } object
-  });
+export const createPortalSession = catchAsync(async (req, res) => {
+    const userId = req.user.id;
+    // The service returns a secure URL for the customer portal
+    const portalUrl = await subscriptionService.createPortalSession(userId);
+    res.status(200).json({ success: true, data: { portalUrl } });
 });
 
-/**
- * Gets the subscriptions for the currently logged-in user from the local database.
- * This function remains fully operational.
- */
-export const getMySubscriptions = catchAsync(async (req, res, next) => {
-  const subscriptions = await subscriptionService.getMySubscriptions(req.user.id);
-  
-  res.status(200).json({
-    success: true,
-    data: subscriptions,
-  });
+export const handleChargebeeWebhook = catchAsync(async (req, res) => {
+    // The service handles verifying and processing the webhook
+    await subscriptionService.processWebhook(req.body, req.headers);
+    
+    // Always send a 200 OK back to Chargebee immediately to acknowledge receipt
+    res.status(200).send(); 
 });
-

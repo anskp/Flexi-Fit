@@ -1,49 +1,28 @@
-// Routes/subscriptionRoutes.js
+// src/routes/subscriptionRoutes.js
 
 import express from 'express';
-import * as subController from '../controllers/subscriptionController.js';
-import jwtAuth from '../middlewares/jwtAuth.js';
-import validate, {
-  createCheckoutSchema,
-  cancelSubscriptionSchema
-} from '../validators/subscriptionValidator.js'; // Assumes validator file is created
+import * as subscriptionController from '../controllers/subscriptionController.js';
+import authGatekeeper from '../middlewares/authGatekeeper.js';
 
 const router = express.Router();
 
-// Apply JWT authentication to all subscription routes.
-// A user must be logged in to perform any of these actions.
-router.use(jwtAuth);
-
-/**
- * @route   POST /api/subscriptions/checkout
- * @desc    Creates a checkout session for a specific plan.
- * @access  Private (Authenticated User)
- */
+// This public endpoint is for Chargebee to send updates to.
+// It must come BEFORE any global JSON parsers if they interfere with raw bodies.
 router.post(
-  '/checkout',
-  validate(createCheckoutSchema),
-  subController.createSubscriptionCheckout
+    '/webhooks/chargebee', 
+    express.raw({type: 'application/json'}), // Use express.raw to get the raw buffer for signature verification
+    subscriptionController.handleChargebeeWebhook
 );
 
-/**
- * @route   POST /api/subscriptions/cancel/:subscriptionId
- * @desc    Requests to cancel a specific subscription.
- * @access  Private (Authenticated User)
- */
-router.post(
-  '/cancel/:subscriptionId',
-  validate(cancelSubscriptionSchema),
-  subController.cancelSubscription
-);
+// All other subscription routes are for authenticated users.
+router.use(authGatekeeper);
 
-/**
- * @route   GET /api/subscriptions/me
- * @desc    Get all subscriptions for the logged-in user.
- * @access  Private (Authenticated User)
- */
-router.get(
-  '/me',
-  subController.getMySubscriptions
-);
+// POST /api/subscriptions/create-checkout-session
+// A member uses this to start the subscription process for a specific Gym or Trainer plan.
+router.post('/create-checkout-session', subscriptionController.createCheckoutSession);
+
+// GET /api/subscriptions/portal-session
+// A member uses this to manage their existing subscriptions (e.g., cancel, update card).
+router.post('/portal-session', subscriptionController.createPortalSession);
 
 export default router;
