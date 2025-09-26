@@ -1,24 +1,45 @@
-// src/controllers/communityController.js
 import * as communityService from '../services/communityService.js';
+import * as authService from '../services/authService.js'; // ⬅️ IMPORT AUTH SERVICE
 import catchAsync from '../utils/catchAsync.js';
+import AppError from '../utils/AppError.js';
 
-// --- Post Controllers ---
-export const createPost = catchAsync(async (req, res) => {
+// ✅ --- THE FIX --- ✅
+// We are copying the exact, working pattern from your dietController.
+// This helper function finds the user ID regardless of the auth method.
+const getUserId = async (req) => {
+  // If Auth0 middleware was used and set req.auth (for mobile client)
+  if (req.auth?.payload?.sub) {
+    console.log('[CommunityController] Using Auth0 user ID from payload');
+    const user = await authService.getUserByAuth0Id(req.auth.payload.sub);
+    if (!user) {
+      throw new AppError('User not found for the given Auth0 ID.', 404);
+    }
+    return user.id;
+  }
+  // If a different JWT middleware was used and set req.user (for another client)
+  if (req.user?.id) {
+    console.log('[CommunityController] Using JWT user ID');
+    return req.user.id;
+  }
+  // If no user information is found
+  throw new AppError('Authentication failed: No user identifier found in request.', 401);
+};
+
+
+export const createPost = catchAsync(async (req, res, next) => {
   console.log('➡️ [CONTROLLER] Reached createPost controller.');
   
-  if (!req.file) {
-    console.log('❌ [CONTROLLER] File not found on req.file. Upload failed or was missing.');
-    return res.status(400).json({ success: false, message: 'Post image is required.' });
-  }
+  // Use the reliable helper function to get the user ID
+  const userId = await getUserId(req);
   
-  console.log('✅ [CONTROLLER] Image file received:', req.file);
-  console.log('✅ [CONTROLLER] Post content received:', req.body.content);
+  const { content, imageUrl } = req.body;
   
-  // The full path for the image URL, to be stored in the database
-  const imageUrl = `/uploads/${req.file.filename}`;
+  console.log('✅ [CONTROLLER] Image URL from client:', imageUrl);
+  console.log('✅ [CONTROLLER] Post content from client:', content);
   
-  // req.user.id is guaranteed to exist by the auth0Middleware
-  const newPost = await communityService.createPost(req.user.id, req.body.content, imageUrl);
+  // Pass the correct userId to the service
+  const newPost = await communityService.createPost(userId, content, imageUrl);
+  
   res.status(201).json({ success: true, message: 'Post created successfully.', data: newPost });
 });
 
@@ -36,33 +57,35 @@ export const getPostById = catchAsync(async (req, res) => {
 
 export const updatePost = catchAsync(async (req, res) => {
   console.log('➡️ [CONTROLLER] Reached updatePost controller.');
-  const updatedPost = await communityService.updatePost(req.user.id, req.params.postId, req.body.content);
+  const userId = await getUserId(req); // ⬅️ USE HELPER
+  const updatedPost = await communityService.updatePost(userId, req.params.postId, req.body.content);
   res.status(200).json({ success: true, message: 'Post updated successfully.', data: updatedPost });
 });
 
 export const deletePost = catchAsync(async (req, res) => {
   console.log('➡️ [CONTROLLER] Reached deletePost controller.');
-  await communityService.deletePost(req.user.id, req.params.postId);
+  const userId = await getUserId(req); // ⬅️ USE HELPER
+  await communityService.deletePost(userId, req.params.postId);
   res.status(204).send();
 });
 
-// --- Like Controller ---
 export const likePost = catchAsync(async (req, res) => {
   console.log('➡️ [CONTROLLER] Reached likePost controller.');
-  const userId = req.user.id;
+  const userId = await getUserId(req); // ⬅️ USE HELPER
   const result = await communityService.likePost(userId, req.params.postId);
   res.status(200).json({ success: true, message: result.message, data: result.data });
 });
 
-// --- Comment Controllers ---
 export const createComment = catchAsync(async (req, res) => {
   console.log('➡️ [CONTROLLER] Reached createComment controller.');
-  const newComment = await communityService.createComment(req.user.id, req.params.postId, req.body.content);
+  const userId = await getUserId(req); // ⬅️ USE HELPER
+  const newComment = await communityService.createComment(userId, req.params.postId, req.body.content);
   res.status(201).json({ success: true, message: 'Comment added successfully.', data: newComment });
 });
 
 export const deleteComment = catchAsync(async (req, res) => {
   console.log('➡️ [CONTROLLER] Reached deleteComment controller.');
-  await communityService.deleteComment(req.user.id, req.params.commentId);
+  const userId = await getUserId(req); // ⬅️ USE HELPER
+  await communityService.deleteComment(userId, req.params.commentId);
   res.status(204).send();
 });

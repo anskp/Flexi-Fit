@@ -1,9 +1,11 @@
-// src/routes/communityRoutes.js
 import express from 'express';
 import * as communityController from '../controllers/communityController.js';
 import { auth0Middleware } from '../middlewares/auth0Middleware.js';
-import upload from '../middlewares/upload.js';
-import validate, {
+// ✅ FIXED: Import the new specific validators instead of the old generic one
+import {
+  validateBody,
+  validateParams,
+  validateQuery,
   postContentSchema,
   commentContentSchema,
   postIdParamSchema,
@@ -15,70 +17,62 @@ const router = express.Router();
 
 // --- Post Routes ---
 
-// GET all posts
 router.get(
     '/posts',
-    validate(paginationSchema),
+    validateQuery(paginationSchema), // Use validateQuery for req.query
     communityController.getAllPosts
 );
 
-// GET a single post
 router.get(
     '/posts/:postId',
-    validate(postIdParamSchema),
+    validateParams(postIdParamSchema), // Use validateParams for req.params
     communityController.getPostById
 );
 
-// POST to create a new post
 router.post(
   '/posts',
-  auth0Middleware,         // 1. Validate the user token
-  upload.single('image'),  // 2. Handle the file upload
-  validate(postContentSchema), // 3. Validate the text content
+  auth0Middleware,         
+  validateBody(postContentSchema), // Use validateBody for req.body
   communityController.createPost
 );
 
-// POST to like/unlike a post
 router.post(
   '/posts/:postId/like',
   auth0Middleware,
-  validate(postIdParamSchema),
+  validateParams(postIdParamSchema), // Use validateParams
   communityController.likePost
 );
 
-// PUT to update a post
 router.put(
   '/posts/:postId',
   auth0Middleware,
-  validate(postIdParamSchema),
-  validate(postContentSchema),
+  validateParams(postIdParamSchema), // Validate params separately
+  validateBody(postContentSchema),   // Validate body separately
   communityController.updatePost
 );
 
-// DELETE a post
 router.delete(
   '/posts/:postId',
   auth0Middleware,
-  validate(postIdParamSchema),
+  validateParams(postIdParamSchema), // Use validateParams
   communityController.deletePost
 );
 
 // --- Comment Routes ---
 
-// POST to create a comment
+// ✅ FIXED: This route now correctly separates param and body validation, solving the error.
 router.post(
   '/posts/:postId/comments',
   auth0Middleware,
-  validate(postIdParamSchema),
-  validate(commentContentSchema),
+  validateParams(postIdParamSchema),   // First, validate the postId from the URL
+  validateBody(commentContentSchema),    // Second, validate the content from the body
   communityController.createComment
 );
 
-// DELETE a comment
 router.delete(
   '/comments/:commentId',
   auth0Middleware,
-  validate(commentIdParamSchema),
+  validateParams(commentIdParamSchema), // Use validateParams
   communityController.deleteComment
 );
 
