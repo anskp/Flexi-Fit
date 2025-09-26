@@ -10,7 +10,7 @@ export default function TrainerProfileForm() {
     bio: '',
     experience: '',
     gallery: [],
-    plans: [{ name: 'Monthly Coaching', price: '', duration: 'monthly' }],
+    plans: [{ name: '', price: '', duration: 'month' }],
   });
 
   const { setAuthData } = useAuth();
@@ -26,23 +26,22 @@ export default function TrainerProfileForm() {
 
   const handlePhotoChange = (e) => {
     const files = Array.from(e.target.files);
-    if (files.length > 5) {
-        alert("You can only upload a maximum of 5 photos for your gallery.");
+    if (formData.gallery.length + files.length > 5) {
+        alert("You can only upload a maximum of 5 photos.");
         return;
     }
-    setFormData((prev) => ({ ...prev, gallery: files }));
+    setFormData((prev) => ({ ...prev, gallery: [...prev.gallery, ...files] }));
     const previews = files.map(file => URL.createObjectURL(file));
-    setPhotoPreviews(previews);
+    setPhotoPreviews(prev => [...prev, ...previews]);
   };
 
   const addPlan = () => {
-    setFormData((prev) => ({ ...prev, plans: [...prev.plans, { name: 'Monthly Coaching', price: '', duration: 'monthly' }] }));
+    setFormData((prev) => ({ ...prev, plans: [...prev.plans, { name: '', price: '', duration: 'month' }] }));
   };
 
   const handlePlanChange = (index, field, value) => {
-    const newPlans = formData.plans.map((plan, i) =>
-      i === index ? { ...plan, [field]: value } : plan
-    );
+    const newPlans = [...formData.plans];
+    newPlans[index][field] = value;
     setFormData((prev) => ({ ...prev, plans: newPlans }));
   };
 
@@ -54,27 +53,41 @@ export default function TrainerProfileForm() {
   const validate = () => {
     const newErrors = {};
     if (!formData.bio.trim() || formData.bio.length < 50) newErrors.bio = 'A detailed bio of at least 50 characters is required.';
-    if (!formData.experience || parseInt(formData.experience, 10) < 0) newErrors.experience = 'Please enter a valid number of years for your experience.';
-    if (formData.gallery.length === 0) newErrors.gallery = 'Upload at least one photo for your gallery.';
-    const hasPricedPlan = formData.plans.some(p => p.price && parseFloat(p.price) > 0);
-    if (!hasPricedPlan) newErrors.plans = 'You must set a price for at least one coaching plan.';
+    if (formData.experience == null || formData.experience === '' || parseInt(formData.experience, 10) < 0) newErrors.experience = 'Please enter a valid number of years.';
+    if (formData.gallery.length === 0) newErrors.gallery = 'Upload at least one photo.';
+
+    const planNames = new Set();
+    formData.plans.forEach((plan, index) => {
+        const trimmedName = plan.name.trim();
+        if (!trimmedName) {
+            newErrors[`planName-${index}`] = 'Plan name is required.';
+        } else if (planNames.has(trimmedName.toLowerCase())) {
+            newErrors[`planName-${index}`] = 'Plan names must be unique.';
+        } else {
+            planNames.add(trimmedName.toLowerCase());
+        }
+        if (plan.price == null || plan.price === '' || isNaN(parseFloat(plan.price)) || parseFloat(plan.price) <= 0) {
+            newErrors[`planPrice-${index}`] = 'A valid, positive price is required.';
+        }
+    });
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrors({});
+
     if (validate()) {
       setLoading(true);
-      setErrors({});
-
       try {
         const apiPayload = {
-          ...formData,
+          bio: formData.bio,
           experience: parseInt(formData.experience, 10),
           gallery: formData.gallery.map(file => `https://placehold.co/600x400?text=${encodeURIComponent(file.name)}`),
           plans: formData.plans
-            .filter(p => p.price && parseFloat(p.price) > 0)
+            .filter(p => p.name && p.price && parseFloat(p.price) > 0)
             .map(p => ({ ...p, price: parseFloat(p.price) }))
         };
 
@@ -84,6 +97,8 @@ export default function TrainerProfileForm() {
           setAuthData(response.data.token, response.data.user);
           alert('✅ Trainer profile submitted successfully!');
           navigate('/dashboard'); 
+        } else {
+          throw new Error(response.message || 'An unknown error occurred.');
         }
       } catch (err) {
         setErrors({ submit: parseApiError(err) });
@@ -93,37 +108,35 @@ export default function TrainerProfileForm() {
       }
     }
   };
-  
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-teal-50 py-12 px-4">
-      <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-xl">
-        <div className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white p-8 text-center rounded-t-2xl">
+    <div className="min-h-screen bg-gray-950 text-white py-12 px-4">
+      <div className="max-w-3xl mx-auto bg-gray-900 rounded-2xl shadow-xl border border-gray-700">
+        <div className="bg-gray-800 text-white p-8 text-center">
           <h1 className="text-3xl font-bold">Create Your Trainer Profile</h1>
-          <p className="text-teal-100 mt-2">Showcase your expertise to attract new clients.</p>
+          <p className="text-gray-400 mt-2">Showcase your expertise to attract new clients.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="p-8 space-y-8">
-          {errors.submit && <div className="p-3 bg-red-100 text-red-800 rounded-lg">{errors.submit}</div>}
+          {errors.submit && <div className="p-3 bg-red-900/50 text-red-300 rounded-lg">{errors.submit}</div>}
 
-          {/* Bio and Experience */}
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
-              <label htmlFor="bio" className="block text-sm font-medium text-gray-700">Your Bio</label>
-              <textarea id="bio" name="bio" value={formData.bio} onChange={handleChange} rows="5" className={`mt-1 w-full border ${errors.bio ? 'border-red-500' : 'border-gray-300'} rounded-lg shadow-sm`} placeholder="Tell potential clients about your training philosophy, specialties, and what makes you a great coach..." required />
-              {errors.bio && <p className="text-red-500 text-xs mt-1">{errors.bio}</p>}
+              <label htmlFor="bio" className="block text-sm font-medium text-gray-300 mb-2">Your Bio</label>
+              <textarea id="bio" name="bio" value={formData.bio} onChange={handleChange} rows="5" className={`w-full bg-gray-800 border ${errors.bio ? 'border-red-500' : 'border-gray-600'} rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-teal-500`} placeholder="Tell potential clients about your training philosophy, specialties..." required />
+              {errors.bio && <p className="text-red-400 text-xs mt-1">{errors.bio}</p>}
             </div>
             <div>
-              <label htmlFor="experience" className="block text-sm font-medium text-gray-700">Years of Experience</label>
-              <input id="experience" name="experience" type="number" value={formData.experience} onChange={handleChange} className={`mt-1 w-full border ${errors.experience ? 'border-red-500' : 'border-gray-300'} rounded-lg shadow-sm`} placeholder="e.g., 5" required />
-              {errors.experience && <p className="text-red-500 text-xs mt-1">{errors.experience}</p>}
+              <label htmlFor="experience" className="block text-sm font-medium text-gray-300 mb-2">Years of Experience</label>
+              <input id="experience" name="experience" type="number" value={formData.experience} onChange={handleChange} className={`w-full bg-gray-800 border ${errors.experience ? 'border-red-500' : 'border-gray-600'} rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-teal-500`} placeholder="e.g., 5" required />
+              {errors.experience && <p className="text-red-400 text-xs mt-1">{errors.experience}</p>}
             </div>
           </div>
           
-          {/* Gallery Photos */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Your Gallery (up to 5 images)</label>
-            <input type="file" name="gallery" onChange={handlePhotoChange} multiple accept="image/*" className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"/>
-            {errors.gallery && <p className="text-red-500 text-xs mt-1">{errors.gallery}</p>}
+            <label className="block text-sm font-medium text-gray-300 mb-2">Your Gallery (up to 5 images)</label>
+            <input type="file" name="gallery" onChange={handlePhotoChange} multiple accept="image/*" className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:font-semibold file:bg-gray-700 file:text-gray-300 hover:file:bg-gray-600"/>
+            {errors.gallery && <p className="text-red-400 text-xs mt-1">{errors.gallery}</p>}
             {photoPreviews.length > 0 && (
               <div className="mt-4 grid grid-cols-3 sm:grid-cols-5 gap-3">
                 {photoPreviews.map((src, i) => <img key={i} src={src} alt={`Gallery preview ${i+1}`} className="w-full h-24 object-cover rounded-lg"/>)}
@@ -131,26 +144,42 @@ export default function TrainerProfileForm() {
             )}
           </div>
 
-          {/* Coaching Plans */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Your Coaching Plans</label>
-            <div className="space-y-3">
+            <label className="block text-sm font-medium text-gray-300 mb-3">Your Coaching Plans</label>
+            <div className="space-y-4">
               {formData.plans.map((plan, index) => (
-                <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <input type="text" value={plan.name} onChange={e => handlePlanChange(index, 'name', e.target.value)} placeholder="Plan Name (e.g., Monthly)" className="w-1/3 border-gray-300 rounded-lg shadow-sm" />
-                  <input type="text" value={plan.duration} onChange={e => handlePlanChange(index, 'duration', e.target.value)} placeholder="Duration (e.g., monthly)" className="w-1/3 border-gray-300 rounded-lg shadow-sm" />
-                  <input type="number" value={plan.price} onChange={e => handlePlanChange(index, 'price', e.target.value)} placeholder="Price ($)" className="w-1/3 border-gray-300 rounded-lg shadow-sm" />
-                  <button type="button" onClick={() => removePlan(index)} className="text-red-500 hover:text-red-700 font-bold text-xl">&times;</button>
+                <div key={index} className="flex flex-col sm:flex-row items-start gap-3 p-4 bg-gray-800 border border-gray-700 rounded-lg">
+                  <div className="w-full sm:w-1/3">
+                    <input type="text" value={plan.name} onChange={e => handlePlanChange(index, 'name', e.target.value)} placeholder="Plan Name" className={`w-full bg-gray-700 border ${errors[`planName-${index}`] ? 'border-red-500' : 'border-gray-600'} rounded-lg p-3`} required />
+                    {errors[`planName-${index}`] && <p className="text-red-400 text-xs mt-1">{errors[`planName-${index}`]}</p>}
+                  </div>
+                  <div className="w-full sm:w-1/3">
+                    <select 
+                      value={plan.duration} 
+                      onChange={e => handlePlanChange(index, 'duration', e.target.value)} 
+                      className={`w-full bg-gray-700 border ${errors[`planDuration-${index}`] ? 'border-red-500' : 'border-gray-600'} rounded-lg p-3 appearance-none`} 
+                      required
+                    >
+                      <option value="month">Month</option>
+                      <option value="year">Year</option>
+                      <option value="week">Week</option>
+                      <option value="day">Day</option>
+                    </select>
+                    {errors[`planDuration-${index}`] && <p className="text-red-400 text-xs mt-1">{errors[`planDuration-${index}`]}</p>}
+                  </div>
+                  <div className="w-full sm:w-1/3">
+                    <input type="number" value={plan.price} onChange={e => handlePlanChange(index, 'price', e.target.value)} placeholder="Price ($)" className={`w-full bg-gray-700 border ${errors[`planPrice-${index}`] ? 'border-red-500' : 'border-gray-600'} rounded-lg p-3`} required />
+                    {errors[`planPrice-${index}`] && <p className="text-red-400 text-xs mt-1">{errors[`planPrice-${index}`]}</p>}
+                  </div>
+                  <button type="button" onClick={() => removePlan(index)} className="text-gray-500 hover:text-red-400 font-bold text-2xl p-1 self-center">&times;</button>
                 </div>
               ))}
             </div>
-            {errors.plans && <p className="text-red-500 text-xs mt-1">{errors.plans}</p>}
-            <button type="button" onClick={addPlan} className="mt-3 px-4 py-2 text-sm font-medium text-teal-600 bg-teal-100 rounded-lg hover:bg-teal-200">+ Add a Plan</button>
+            <button type="button" onClick={addPlan} className="mt-4 px-4 py-2 text-sm font-medium text-teal-300 bg-teal-800/50 rounded-lg hover:bg-teal-800/80">+ Add a Plan</button>
           </div>
 
-          {/* Submit Button */}
-          <div className="pt-5">
-            <button type="submit" disabled={loading} className="w-full bg-teal-500 hover:bg-teal-600 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg transition-colors">
+          <div className="pt-5 border-t border-gray-700">
+            <button type="submit" disabled={loading} className="w-full bg-teal-500 hover:bg-teal-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg">
               {loading ? 'Saving Profile...' : 'Publish Trainer Profile'}
             </button>
           </div>

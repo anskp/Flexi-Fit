@@ -109,7 +109,7 @@ model Gym {
   photos            Json
   facilities        Json
   manager           User             @relation("GymManager", fields: [managerId], references: [id])
-  managerId         String
+  managerId         String   @unique
   plans             GymPlan[]
   schedules         Schedule[]
   status            String           @default("pending")
