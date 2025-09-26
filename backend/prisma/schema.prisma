@@ -51,6 +51,7 @@ model User {
   bookings              Booking[]
   fcmTokens             FcmToken[]
   paymentMethods        PaymentMethod[]
+  likes Like[]
 }
 
 model MemberProfile {
@@ -516,7 +517,8 @@ model Post {
   author    User      @relation("UserPosts", fields: [authorId], references: [id], onDelete: Cascade)
   authorId  String
   comments  Comment[]
-
+  likes Like[]
+  imageUrl String?
   @@index([authorId])
 }
 
@@ -530,4 +532,16 @@ model Comment {
   authorId  String
 
   @@index([postId])
+}
+model Like {
+  id     String @id @default(cuid())
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  createdAt DateTime @default(now())
+
+  // This is crucial: It ensures a user can only like a post once.
+  @@unique([userId, postId])
 }

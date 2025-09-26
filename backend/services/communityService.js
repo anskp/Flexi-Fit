@@ -1,4 +1,3 @@
-// src/services/communityService.js
 import { PrismaClient } from '@prisma/client';
 import AppError from '../utils/AppError.js';
 
@@ -6,39 +5,77 @@ const prisma = new PrismaClient();
 
 // --- Post Services ---
 
-export const createPost = async (authorId, content) => {
-  return await prisma.post.create({
-    data: { authorId, content },
-    include: { author: { select: { id: true, email: true } } }
-  });
+export const createPost = async (authorId, content, imageUrl) => {
+  // This function is now fully correct and serves as the template for the others.
+  try {
+    const newPost = await prisma.post.create({
+      data: {
+        content,
+        imageUrl,
+        author: {
+          connect: {
+            id: authorId
+          }
+        }
+      },
+      include: {
+        author: {
+          select: { id: true, email: true } // Correctly selects only existing fields
+        },
+        comments: true,
+        likes: true,
+        _count: {
+          select: { comments: true, likes: true }
+        },
+      }
+    });
+    return newPost;
+  } catch (error) {
+    console.error('❌ [FATAL SERVICE ERROR] Error during prisma.post.create:', error);
+    throw error;
+  }
 };
 
-export const getAllPosts = async ({ page, limit }) => {
-  const skip = (page - 1) * limit;
+export const getAllPosts = async ({ page = 1, limit = 10 }) => {
+  const skip = (parseInt(page) - 1) * parseInt(limit);
   const [posts, total] = await prisma.$transaction([
     prisma.post.findMany({
       skip,
-      take: limit,
+      take: parseInt(limit),
       orderBy: { createdAt: 'desc' },
       include: {
+        // ✅ FIXED: Select only 'id' and 'email' for the post's author.
         author: { select: { id: true, email: true } },
-        _count: { select: { comments: true } },
+        comments: {
+            include: {
+                // ✅ FIXED: Select only 'id' and 'email' for the comment's author.
+                author: { select: { id: true, email: true } }
+            },
+            orderBy: { createdAt: 'asc' }
+        },
+        likes: true,
+        _count: { select: { comments: true, likes: true } },
       },
     }),
     prisma.post.count(),
   ]);
-  return { data: posts, pagination: { total, page, limit, totalPages: Math.ceil(total / limit) } };
+  return { data: posts, pagination: { total, page: parseInt(page), limit: parseInt(limit), totalPages: Math.ceil(total / parseInt(limit)) } };
 };
 
 export const getPostById = async (postId) => {
     const post = await prisma.post.findUnique({
         where: { id: postId },
         include: {
+            // ✅ FIXED: Select only 'id' and 'email' for the post's author.
             author: { select: { id: true, email: true } },
             comments: {
-                include: { author: { select: { id: true, email: true } } },
+                include: {
+                    // ✅ FIXED: Select only 'id' and 'email' for the comment's author.
+                    author: { select: { id: true, email: true } }
+                },
                 orderBy: { createdAt: 'asc' }
-            }
+            },
+            likes: true
         }
     });
     if (!post) throw new AppError('Post not found.', 404);
@@ -64,16 +101,17 @@ export const deletePost = async (authorId, postId) => {
   await prisma.post.delete({ where: { id: postId } });
 };
 
-
-// --- Comment Services ---
-
 export const createComment = async (authorId, postId, content) => {
-    // Ensure the post exists before allowing a comment
     const postExists = await prisma.post.count({ where: { id: postId }});
     if (!postExists) throw new AppError('Cannot comment on a post that does not exist.', 404);
 
     return await prisma.comment.create({
-        data: { authorId, postId, content },
+        data: {
+            content,
+            author: { connect: { id: authorId } },
+            post: { connect: { id: postId } }
+        },
+        // ✅ FIXED: Select only 'id' and 'email' for the comment's author.
         include: { author: { select: { id: true, email: true } } }
     });
 };
@@ -86,3 +124,31 @@ export const deleteComment = async (authorId, commentId) => {
     await prisma.comment.delete({ where: { id: commentId } });
 };
 
+export const likePost = async (userId, postId) => {
+  const existingLike = await prisma.like.findUnique({
+    where: {
+      userId_postId: {
+        userId: userId,
+        postId: postId,
+      },
+    },
+  });
+
+  if (existingLike) {
+    await prisma.like.delete({
+      where: {
+        id: existingLike.id,
+      },
+    });
+    return { message: 'Post unliked successfully.', data: { liked: false } };
+  } else {
+    // ✅ FIXED: Use the robust 'connect' syntax for creating the like.
+    await prisma.like.create({
+      data: {
+        user: { connect: { id: userId } },
+        post: { connect: { id: postId } }
+      },
+    });
+    return { message: 'Post liked successfully.', data: { liked: true } };
+  }
+};

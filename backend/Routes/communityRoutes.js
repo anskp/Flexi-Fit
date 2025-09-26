@@ -1,8 +1,11 @@
-// Routes/communityRoutes.js
 import express from 'express';
 import * as communityController from '../controllers/communityController.js';
-import jwtAuth from '../middlewares/jwtAuth.js';
-import validate, {
+import { auth0Middleware } from '../middlewares/auth0Middleware.js';
+// ✅ FIXED: Import the new specific validators instead of the old generic one
+import {
+  validateBody,
+  validateParams,
+  validateQuery,
   postContentSchema,
   commentContentSchema,
   postIdParamSchema,
@@ -12,69 +15,65 @@ import validate, {
 
 const router = express.Router();
 
-
-
 // --- Post Routes ---
 
-// GET all posts (publicly accessible, but could require auth if you choose)
 router.get(
     '/posts',
-    validate(paginationSchema),
+    validateQuery(paginationSchema), // Use validateQuery for req.query
     communityController.getAllPosts
 );
 
-// GET a single post and its comments (publicly accessible)
 router.get(
     '/posts/:postId',
-    validate(postIdParamSchema),
+    validateParams(postIdParamSchema), // Use validateParams for req.params
     communityController.getPostById
 );
 
-// POST to create a new post (requires auth)
 router.post(
   '/posts',
-  jwtAuth,
-  validate(postContentSchema),
+  auth0Middleware,         
+  validateBody(postContentSchema), // Use validateBody for req.body
   communityController.createPost
 );
 
-// PUT to update a user's own post (requires auth)
+router.post(
+  '/posts/:postId/like',
+  auth0Middleware,
+  validateParams(postIdParamSchema), // Use validateParams
+  communityController.likePost
+);
+
 router.put(
   '/posts/:postId',
-  jwtAuth,
-  validate(postIdParamSchema), // Validate the param
-  validate(postContentSchema),  // Validate the body
+  auth0Middleware,
+  validateParams(postIdParamSchema), // Validate params separately
+  validateBody(postContentSchema),   // Validate body separately
   communityController.updatePost
 );
 
-// DELETE a user's own post (requires auth)
 router.delete(
   '/posts/:postId',
-  jwtAuth,
-  validate(postIdParamSchema),
+  auth0Middleware,
+  validateParams(postIdParamSchema), // Use validateParams
   communityController.deletePost
 );
 
-
 // --- Comment Routes ---
 
-// POST to create a comment on a post (requires auth)
+// ✅ FIXED: This route now correctly separates param and body validation, solving the error.
 router.post(
   '/posts/:postId/comments',
-  jwtAuth,
-  validate(postIdParamSchema),
-  validate(commentContentSchema),
+  auth0Middleware,
+  validateParams(postIdParamSchema),   // First, validate the postId from the URL
+  validateBody(commentContentSchema),    // Second, validate the content from the body
   communityController.createComment
 );
 
-// DELETE a user's own comment (requires auth)
 router.delete(
   '/comments/:commentId',
-  jwtAuth,
-  validate(commentIdParamSchema),
+  auth0Middleware,
+  validateParams(commentIdParamSchema), // Use validateParams
   communityController.deleteComment
 );
 
-
 export default router;
-
