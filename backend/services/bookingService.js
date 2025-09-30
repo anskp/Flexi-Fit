@@ -7,7 +7,7 @@ import AppError from '../utils/AppError.js';
 
 const prisma = new PrismaClient();
 
-// This helper function would ideally be in a shared `chargebeeService.js`
+// This helper funtion would ideally be in a shared `chargebeeService.js`
 const getOrCreateChargebeeCustomer = async (userId) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (user.chargebeeCustomerId) return user.chargebeeCustomerId;

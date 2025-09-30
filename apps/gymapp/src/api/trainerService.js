@@ -5,11 +5,10 @@ import apiClient from './apiClient';
  * @description Fetches the list of a trainer's active subscribers.
  * @returns {Promise<object>} The backend response with the list of subscribers.
  */
-export const getMySubscribers = async () => {
-    const response = await apiClient.get('/trainers/subscribers');
+export const getMyClients = async () => { // ✅ RENAMED FOR CLARITY IN THE FRONTEND
+    const response = await apiClient.get('/trainers/subscribers'); // Calls the existing subscribers route
     return response.data;
 };
-
 /**
  * @description Fetches the trainer's own detailed profile data.
  * @param {string} userId - The user ID of the trainer.

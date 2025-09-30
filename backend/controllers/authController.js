@@ -157,3 +157,36 @@ export const createMerchantProfile = catchAsync(async (req, res, next) => {
     },
   });
 });
+// src/controllers/authController.js
+
+// You need this function to generate a valid internal JWT
+
+
+// ✅✅✅ NEW CONTROLLER FOR ADMIN EXCHANGE ✅✅✅
+export const verifyUserForAdmin = catchAsync(async (req, res, next) => {
+  // req.auth is populated by checkAuth0Jwt in the middleware
+  const auth0Payload = req.auth?.payload;
+  if (!auth0Payload) {
+    throw new AppError('Auth0 token is missing or invalid.', 401);
+  }
+
+  // Find or create a user in our database based on the Auth0 ID
+  const user = await authService.verifyAuth0User(auth0Payload);
+
+  // Check for Admin Role (This is critical for the Admin SPA)
+  if (user.role !== 'ADMIN') {
+    throw new AppError('Access Denied. Only Admin users can log in to the Admin Dashboard.', 403);
+  }
+
+  // Generate our own internal JWT
+  const internalToken = generateInternalToken(user);
+
+  res.status(200).json({
+    success: true,
+    message: 'User verified and authenticated.',
+    data: {
+      token: internalToken,
+      user: user,
+    },
+  });
+});
