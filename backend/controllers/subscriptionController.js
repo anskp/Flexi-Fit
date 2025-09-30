@@ -42,13 +42,24 @@ export const createCheckoutSession = catchAsync(async (req, res) => {
 });
 
 export const createPortalSession = catchAsync(async (req, res) => {
-    const userId = await getUserIdFromRequest(req); // Use the helper here too for consistency
+    console.log("--- Inside createPortalSession Controller ---");
+    
+    // Use the existing helper function to reliably get the user ID.
+    const userId = await getUserIdFromRequest(req);
+    
+    console.log(`[Controller] Calling createPortalSession service for User ID: ${userId}`);
     const portalUrl = await subscriptionService.createPortalSession(userId);
+
+    console.log("[Controller] Service returned a portal URL. Sending success response.");
     res.status(200).json({ success: true, data: { portalUrl } });
 });
 
 export const handleChargebeeWebhook = catchAsync(async (req, res) => {
-    // This route is public and does not need authentication
-    await subscriptionService.processWebhook(req.body, req.headers);
+    // Pass both the parsed body (for easy access to data) and the rawBody (for verification)
+    await subscriptionService.processWebhook({
+        parsedBody: req.body,
+        rawBody: req.rawBody,
+        headers: req.headers
+    });
     res.status(200).send(); 
 });

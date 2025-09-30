@@ -34,34 +34,24 @@ export const updateUserProfile = async (user, updateData) => {
 
   switch (role) {
     case 'MEMBER':
-      return await prisma.memberProfile.update({
-        where: { userId },
-        data: updateData,
-      });
+      return await prisma.memberProfile.update({ where: { userId }, data: updateData });
     case 'TRAINER':
-        return await prisma.trainerProfile.update({
-            where: { userId },
-            data: updateData
-        });
+      return await prisma.trainerProfile.update({ where: { userId }, data: updateData });
     case 'GYM_OWNER':
-        // For a gym owner, they update their managed gym's profile
-        const gym = await prisma.gym.findFirst({ where: { managerId: userId } });
-        if (!gym) throw new AppError('No managed gym found for this user.', 404);
-        return await prisma.gym.update({
-            where: { id: gym.id },
-            data: updateData
-        });
+      const gym = await prisma.gym.findFirst({ where: { managerId: userId } });
+      if (!gym) throw new AppError('No managed gym found for this user.', 404);
+      return await prisma.gym.update({ where: { id: gym.id }, data: updateData });
     default:
       throw new AppError('No updatable profile for this user role.', 400);
   }
 };
+
 /**
- * @description Fetches the full user object and their role-specific profile.
+ * @description Fetches the full user object including their role-specific profile and active subscriptions.
  */
 export const getUserProfile = async (userId) => {
-  console.log(`[UserService] Attempting to fetch profile for User ID: ${userId}`);
+  console.log(`[UserService] Attempting to fetch full profile for User ID: ${userId}`);
   if (!userId) {
-    console.error("[UserService] ERROR: getUserProfile was called without a userId.");
     throw new AppError("User not identified.", 401);
   }
 
@@ -71,22 +61,33 @@ export const getUserProfile = async (userId) => {
       include: {
           memberProfile: true,
           trainerProfile: true,
-          managedGyms: { take: 1 },
+          managedGyms: { take: 1 }, // Assuming a user manages at most one gym
+          merchantProfile: true,
+          // ✅ THIS IS THE CRITICAL ADDITION
+          subscriptions: {
+            where: {
+              status: 'active' // Only fetch their active subscriptions
+            },
+            // Optionally include plan details if needed on the profile screen
+            include: {
+              gymPlan: { select: { id: true, name: true } },
+              trainerPlan: { select: { id: true, name: true } }
+            }
+          },
       },
     });
 
     if (!user) {
-      console.error(`[UserService] ERROR: No user found in database with ID: ${userId}`);
       throw new AppError("User not found.", 404);
     }
     
-    console.log(`[UserService] Successfully fetched profile for User ID: ${userId}`);
-    return user;
+    console.log(`[UserService] Successfully fetched full profile for User ID: ${userId}`);
+    // Exclude password before sending back to client
+    const { password, ...userResponse } = user;
+    return userResponse;
 
   } catch (error) {
-    // ✅ This will catch the crash and log it!
-    console.error(`[UserService] FATAL ERROR during prisma.user.findUnique:`, error);
+    console.error(`[UserService] FATAL ERROR during profile fetch:`, error);
     throw new AppError('Failed to retrieve user profile due to a server error.', 500);
   }
 };
-

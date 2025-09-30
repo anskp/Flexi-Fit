@@ -81,12 +81,8 @@ export const getMyGymProfile = catchAsync(async (req, res) => {
     res.status(200).json({ success: true, data: gym });
 });
 
-// This controller now fetches members without needing a gymId in the URL
 export const getGymMembers = catchAsync(async (req, res) => {
-  // ✅ Get gymId from the route parameters
-  const { gymId } = req.params;
-  // The owner's ID from the token is used for a security check
-  const members = await gymService.getMembers(gymId, req.user.id);
+  // The owner's ID comes securely from their authentication token.
+  const members = await gymService.getMyMembers(req.user.id);
   res.status(200).json({ success: true, data: members });
 });
-

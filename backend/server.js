@@ -75,7 +75,11 @@ io.on('connection', (socket) => {
 
 // --- Standard Express Middleware ---
 app.use(cors());
-app.use(express.json()); // Middleware to parse JSON bodies
+app.use(express.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  }
+})); // Middleware to parse JSON bodies
 
 app.use(express.urlencoded({ extended: true }));
 app.use((req, res, next) => {

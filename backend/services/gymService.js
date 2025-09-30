@@ -274,29 +274,48 @@ export const getMyGym = async (ownerId) => {
     
     // ✅ LOG: Success! We found the gym.
     console.log(`[GymService] Successfully found gym "${gym.name}" (ID: ${gym.id}) for manager ID: ${ownerId}`);
-
+    console.log("[GymService] Full gym object returned from DB:", JSON.stringify(gym, null, 2)); 
     return gym;
 };
 
 /**
  * @description Fetches active members for the gym managed by the logged-in owner.
  */
-export const getMyMembers = async (ownerId) => {
-    // First, find the gym managed by this owner
-    const gym = await prisma.gym.findFirst({
-        where: { managerId: ownerId },
-        select: { id: true }
-    });
-    if (!gym) throw new AppError('No managed gym found for this account.', 404);
 
-    // Now, use the found gymId to get the members
+export const getMyMembers = async (ownerId) => {
+    // 1. Find the gym managed by this owner. This is a crucial security check.
+    const gym = await prisma.gym.findUnique({
+        where: { managerId: ownerId },
+        select: { id: true } // We only need the ID
+    });
+
+    if (!gym) {
+        throw new AppError('No managed gym found for this account.', 404);
+    }
+
+    // 2. Now, use the found gym.id to get all active subscriptions for that gym.
     return await prisma.subscription.findMany({
-        where: { status: 'active', gymPlan: { gymId: gym.id } },
-        include: {
-            user: { select: { id: true, email: true, memberProfile: true } },
-            gymPlan: { select: { name: true } }
+        where: { 
+            status: 'active', 
+            gymPlan: { gymId: gym.id } 
         },
-        orderBy: { startDate: 'desc' }
+        include: {
+            // Include the user's details and their specific member profile
+            user: { 
+                select: { 
+                    id: true, 
+                    email: true, 
+                    memberProfile: true 
+                } 
+            },
+            // Include the name of the plan they are subscribed to
+            gymPlan: { 
+                select: { name: true } 
+            }
+        },
+        orderBy: { 
+            startDate: 'desc' 
+        }
     });
 };
 

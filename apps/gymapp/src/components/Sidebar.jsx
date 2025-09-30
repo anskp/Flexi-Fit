@@ -154,9 +154,7 @@ export default function Sidebar() {
       case "GYM_OWNER":
   return [
     { name: "Dashboard", icon: <DashboardIcon />, path: "/gym/dashboard" },
-    { name: "Trainers", icon: <TrainersIcon />, path: "/gym/trainers" },
     { name: "Members", icon: <MembersIcon />, path: "/gym/members" },
-    { name: "Schedule", icon: <ScheduleIcon />, path: "/gym/schedule" },
     { name: "Payments", icon: <PaymentsIcon />, path: "/gym/payments" },
     { name: "Gym Profile", icon: <ProfileIcon />, path: "/gym/gym-profile" },
   ];

@@ -147,6 +147,7 @@ model GymPlan {
   duration        String
   subscriptions   Subscription[]
   chargebeePlanId String?        @unique
+  priceCreated     Boolean   @default(false)
 }
 
 model TrainerPlan {
@@ -160,6 +161,7 @@ model TrainerPlan {
   chargebeePlanId   String?        @unique
   trialEnabled      Boolean        @default(false)
   trialDurationDays Int?
+  priceCreated     Boolean   @default(false)
 }
 
 model Subscription {

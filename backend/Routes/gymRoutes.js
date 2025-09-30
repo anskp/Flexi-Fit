@@ -61,7 +61,7 @@ ownerRouter.get('/dashboard', gymController.getOwnerDashboard);
 ownerRouter.put('/:id', validate(updateGymSchema), gymController.updateGym);
 
 // --- Member & Trainer Management ---
-ownerRouter.get('/members/:gymId', gymController.getGymMembers);
+ownerRouter.get('/members', gymController.getGymMembers); 
 ownerRouter.post('/:gymId/trainers/assign', validate(gymAndTrainerIdSchema), gymController.assignTrainer);
 ownerRouter.post('/:gymId/trainers/unassign', validate(gymAndTrainerIdSchema), gymController.unassignTrainer);
 

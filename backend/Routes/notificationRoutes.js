@@ -21,6 +21,12 @@ router.post(
     validate(sendGymNotificationSchema),
     notificationController.sendNotificationToGymMembers
 );
-
+// Send notification to a specific user (Gym Owner only)
+router.post(
+  '/user/:userId',
+  roleAuth('GYM_OWNER'),
+  validate(sendGymNotificationSchema), // reuse same validation: { title, message }
+  notificationController.sendNotificationToUser
+);
 export default router;
 

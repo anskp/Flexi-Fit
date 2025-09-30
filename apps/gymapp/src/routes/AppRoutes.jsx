@@ -16,9 +16,7 @@ import MerchantProfileForm from '../pages/MerchantProfileForm';
 // Import Main App Pages
 // ===== GYM OWNER =====
 import GymDashboard from '../pages/Gym/GymDashboard';
-import GymTrainers from '../pages/Gym/GymTrainers';
 import GymMembers from '../pages/Gym/GymMembers';
-import GymSchedule from '../pages/Gym/GymSchedule';
 import GymPayments from '../pages/Gym/GymPayments';
 import GymProfile from '../pages/Gym/GymProfile';
 
@@ -98,9 +96,7 @@ const AppRoutes = () => {
         <Route path="/gym/*" element={<MainLayout />}>
           <Route index element={<GymDashboard />} />
           <Route path="dashboard" element={<GymDashboard />} />
-          <Route path="trainers" element={<GymTrainers />} />
           <Route path="members" element={<GymMembers />} />
-          <Route path="schedule" element={<GymSchedule />} />
           <Route path="payments" element={<GymPayments />} />
           <Route path="gym-profile" element={<GymProfile />} />
         </Route>

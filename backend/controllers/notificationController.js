@@ -41,3 +41,36 @@ export const deleteNotification = catchAsync(async (req, res) => {
     await notificationService.deleteNotification(userId, req.params.id);
     res.status(200).json({ success: true, message: 'Notification deleted.' });
 });
+export const sendNotificationToUser = catchAsync(async (req, res) => {
+  const ownerId = req.user.id;
+  const { userId } = req.params;
+  const { title, message } = req.body;
+
+  // Optional: check if the user is subscribed to any of this owner's gyms
+  const subscriptions = await prisma.subscription.findMany({
+    where: {
+      userId,
+      status: 'active',
+      gymPlan: { gym: { managerId: ownerId } }
+    }
+  });
+
+  if (subscriptions.length === 0) {
+    return res.status(403).json({ success: false, message: "User is not an active member of your gyms." });
+  }
+
+  // Create notification in DB
+  await prisma.notification.create({
+    data: {
+      recipientId: userId,
+      gymId: subscriptions[0].gymPlan.gymId, // assign first gymId
+      title,
+      message
+    }
+  });
+
+  // Send push via FCM
+  await notificationService.sendPushNotification([userId], { title, body: message }, {});
+
+  res.status(200).json({ success: true, message: `Notification sent to ${subscriptions[0].userId}` });
+});
