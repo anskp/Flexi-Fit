@@ -29,7 +29,6 @@
     "@prisma/client": "^6.16.2",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.2",
-    "cloudinary": "^2.7.0",
     "chargebee-typescript": "^2.53.0",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
