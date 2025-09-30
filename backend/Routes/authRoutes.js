@@ -18,7 +18,7 @@ const router = express.Router();
 // --- Client-Specific Verification Endpoints ---
 router.post('/verify-user', auth0Middleware, authController.verifyUser);
 router.post('/verify-member', auth0Middleware, authController.verifyMember);
-
+router.post('/verify-user-admin', auth0Middleware, authController.verifyUserForAdmin);
 const flattenMemberProfileData = (req, res, next) => {
   const { body } = req;
   if (body.weight && typeof body.weight === 'object') {

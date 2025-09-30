@@ -1,28 +1,96 @@
 // src/pages/Trainer/TrainerProfile.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import * as trainerService from '../../api/trainerService';
+import { useAuth } from '../../context/AuthContext';
+import { Edit, CheckCircle, Mail, Phone, AlertCircle } from 'lucide-react'; 
 
-// Mock Data
-const MOCK_TRAINER = {
-  name: "Alex T",
-  avatar: "https://via.placeholder.com/120/4ade80/FFFFFF?text=AT",
-  experience: "8 Years",
-  specialties: ["Personal Training", "Group Fitness", "Nutrition Coaching"],
-  certifications: [
-    "CrossFit Level 1",
-    "CPSA Certified",
-    "Open Water Diver",
-    "Certified Strength & Conditioning Specialist",
-  ],
-  bio: "I’ve been training clients for over 8 years, helping them achieve their fitness goals through science-backed methods and personalized coaching. I specialize in strength, endurance, and mobility, and I love seeing people transform their lives.",
+// Mock Data (to be used if API fails)
+const FALLBACK_TRAINER = {
+  name: "Trainer",
+  avatar: "https://via.placeholder.com/120/4ade80/FFFFFF?text=TR",
+  experience: "0 Years",
+  specialties: ["Personal Training", "Group Fitness"],
+  certifications: ["Certified Trainer"],
+  bio: "Loading biography...",
   contact: {
-    email: "alex@flexifit.com",
-    phone: "+1 (212) 555-1234",
-    paymentMethods: true,
+    email: 'loading@example.com',
+    phone: 'N/A',
+    paymentMethods: false,
   },
+  plans: [],
 };
 
+
 export default function TrainerProfile() {
+  const [trainerData, setTrainerData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const { user, logout } = useAuth();
+
+  const fetchTrainerProfile = async () => {
+    // Check user.id defensively before proceeding with the fetch
+    if (!user || !user.id) {
+        setIsLoading(false);
+        setError("User not logged in or ID not found. Please re-login.");
+        return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+        // The service should return a profile object with a nested 'user'
+        const profile = await trainerService.getMyProfile(user.id);
+        
+        // CRITICAL FIX: Make the mapping defensive against nulls
+        const formattedData = {
+            id: profile.id,
+            name: profile.user?.email?.split('@')[0] || profile.name || 'Trainer',
+            avatar: profile.gallery?.[0] || 'https://via.placeholder.com/120/4ade80/FFFFFF?text=AT',
+            experience: `${profile.experience || 0} Years`,
+            specialties: profile.specialties || ["Personal Training", "Group Fitness"],
+            certifications: profile.certifications || ["Certified Trainer"],
+            bio: profile.bio || 'No biography available.',
+            contact: {
+                email: profile.user?.email || 'N/A',
+                phone: profile.phone || 'Not provided', 
+                paymentMethods: true,
+            },
+            plans: profile.plans || [],
+        };
+        setTrainerData(formattedData);
+    } catch (err) {
+        setError(err.response?.data?.message || 'Failed to load profile.');
+        setTrainerData(FALLBACK_TRAINER);
+        console.error('Fetch Profile Error:', err);
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTrainerProfile();
+  }, [user]);
+
+  const trainer = trainerData || FALLBACK_TRAINER;
+  
+  if (isLoading) {
+    return (
+      <div className="w-full max-w-5xl mx-auto text-center py-20">
+        <p className="text-gray-400 mt-4">Loading Trainer Profile...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full max-w-5xl mx-auto text-center py-20">
+        <AlertCircle size={32} className="text-red-500 mx-auto" />
+        <p className="text-red-400 mb-4">{error}</p>
+        <button onClick={fetchTrainerProfile} className="bg-teal-600 text-white px-4 py-2 rounded-lg">Try Again</button>
+      </div>
+    );
+  }
+
 
   return (
     <div className="w-full animate-fade-in max-w-5xl mx-auto px-4 py-6">
@@ -33,6 +101,7 @@ export default function TrainerProfile() {
           onClick={() => setShowEditModal(true)}
           className="bg-teal-600 hover:bg-teal-500 text-white py-2 px-5 rounded-lg font-medium transition transform hover:scale-105 shadow-md"
         >
+          <Edit size={16} className="inline-block mr-2" />
           Edit Profile
         </button>
       </div>
@@ -42,19 +111,19 @@ export default function TrainerProfile() {
         <div className="bg-gray-800 p-6 rounded-xl shadow-xl border border-gray-700">
           <div className="flex flex-col items-center mb-6">
             <img
-              src={MOCK_TRAINER.avatar}
-              alt={MOCK_TRAINER.name}
+              src={trainer.avatar}
+              alt={trainer.name}
               className="w-32 h-32 rounded-full object-cover border-4 border-teal-500 mb-4"
             />
-            <h2 className="text-xl font-bold text-white">{MOCK_TRAINER.name}</h2>
-            <p className="text-gray-400 text-sm">{MOCK_TRAINER.experience} Experience</p>
+            <h2 className="text-xl font-bold text-white">{trainer.name}</h2>
+            <p className="text-gray-400 text-sm">{trainer.experience} Experience</p>
           </div>
 
           {/* Specialties */}
           <div className="mb-6">
             <h3 className="text-lg font-bold text-white mb-3">Specialties</h3>
             <div className="flex flex-wrap gap-2">
-              {MOCK_TRAINER.specialties.map((spec, i) => (
+              {trainer.specialties.map((spec, i) => (
                 <span
                   key={i}
                   className="px-3 py-1 bg-gray-700 text-teal-300 rounded-lg text-sm font-medium"
@@ -69,11 +138,9 @@ export default function TrainerProfile() {
           <div>
             <h3 className="text-lg font-bold text-white mb-3">Certifications</h3>
             <div className="space-y-2">
-              {MOCK_TRAINER.certifications.map((cert, i) => (
+              {trainer.certifications.map((cert, i) => (
                 <div key={i} className="flex items-center gap-2 text-gray-300 text-sm">
-                  <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
+                  <CheckCircle size={16} className="text-green-400" />
                   {cert}
                 </div>
               ))}
@@ -89,33 +156,29 @@ export default function TrainerProfile() {
             <div className="space-y-4">
               <div>
                 <label className="block text-gray-400 text-sm mb-1">Email</label>
-                <input
-                  type="email"
-                  value={MOCK_TRAINER.contact.email}
-                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  readOnly
-                />
+                <div className="flex items-center bg-gray-700 border border-gray-600 rounded-lg px-4 py-3">
+                  <Mail size={16} className="text-teal-500 mr-3" />
+                  <input type="email" value={trainer.contact.email} className="flex-1 bg-transparent text-white focus:outline-none" readOnly />
+                </div>
               </div>
               <div>
                 <label className="block text-gray-400 text-sm mb-1">Phone</label>
-                <input
-                  type="tel"
-                  value={MOCK_TRAINER.contact.phone}
-                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  readOnly
-                />
+                <div className="flex items-center bg-gray-700 border border-gray-600 rounded-lg px-4 py-3">
+                  <Phone size={16} className="text-teal-500 mr-3" />
+                  <input type="tel" value={trainer.contact.phone} className="flex-1 bg-transparent text-white focus:outline-none" readOnly />
+                </div>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between pt-2 border-t border-gray-700">
                 <label className="block text-gray-400 text-sm">Payment Methods</label>
-                <button
+                <span
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                    MOCK_TRAINER.contact.paymentMethods
+                    trainer.contact.paymentMethods
                       ? 'bg-teal-600 text-white'
                       : 'bg-gray-600 text-gray-300'
                   }`}
                 >
-                  {MOCK_TRAINER.contact.paymentMethods ? 'Enabled' : 'Disabled'}
-                </button>
+                  {trainer.contact.paymentMethods ? 'Enabled' : 'Disabled'}
+                </span>
               </div>
             </div>
           </div>
@@ -124,7 +187,7 @@ export default function TrainerProfile() {
           <div className="bg-gray-800 p-6 rounded-xl shadow-xl border border-gray-700">
             <h3 className="text-xl font-bold text-white mb-4">Bio</h3>
             <p className="text-gray-300 leading-relaxed whitespace-pre-line">
-              {MOCK_TRAINER.bio}
+              {trainer.bio}
             </p>
           </div>
         </div>
@@ -136,45 +199,22 @@ export default function TrainerProfile() {
           <div className="bg-gray-800 rounded-xl p-6 w-full max-w-2xl max-h-screen overflow-y-auto shadow-2xl border border-gray-700">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold text-white">Edit Profile</h3>
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="text-gray-400 hover:text-white text-2xl"
-              >
-                ×
-              </button>
+              <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-white text-2xl">×</button>
             </div>
             <p className="text-gray-400 mb-6">This is a mock modal. In real app, you’d see form fields here.</p>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Name</label>
-                <input
-                  type="text"
-                  defaultValue={MOCK_TRAINER.name}
-                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                />
+                <input type="text" defaultValue={trainer.name} className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Bio</label>
-                <textarea
-                  rows="4"
-                  defaultValue={MOCK_TRAINER.bio}
-                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                ></textarea>
+                <textarea rows="4" defaultValue={trainer.bio} className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500"></textarea>
               </div>
             </div>
             <div className="flex gap-3 pt-4">
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="flex-1 bg-teal-600 hover:bg-teal-500 text-white py-3 px-4 rounded-lg font-medium transition"
-              >
-                Save Changes
-              </button>
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-3 px-4 rounded-lg font-medium transition"
-              >
-                Cancel
-              </button>
+              <button onClick={() => setShowEditModal(false)} className="flex-1 bg-teal-600 hover:bg-teal-500 text-white py-3 px-4 rounded-lg font-medium transition">Save Changes</button>
+              <button onClick={() => setShowEditModal(false)} className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-3 px-4 rounded-lg font-medium transition">Cancel</button>
             </div>
           </div>
         </div>

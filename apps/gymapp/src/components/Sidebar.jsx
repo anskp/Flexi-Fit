@@ -162,7 +162,6 @@ export default function Sidebar() {
   return [
     { name: "Dashboard", icon: <DashboardIcon />, path: "/trainer/dashboard" },
     { name: "Clients", icon: <MembersIcon />, path: "/trainer/clients" },
-    { name: "Schedule", icon: <ScheduleIcon />, path: "/trainer/schedule" },
     { name: "Payments", icon: <PaymentsIcon />, path: "/trainer/payments" },
     { name: "My Profile", icon: <ProfileIcon />, path: "/trainer/profile" },
   ];

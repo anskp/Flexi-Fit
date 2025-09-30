@@ -1,18 +1,21 @@
+// src/main.jsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { Auth0Provider } from '@auth0/auth0-react';
 import App from './App.jsx';
 import './index.css';
-import { AuthProvider } from './context/AuthContext'; // Assuming you will create this file
+import { AuthProvider } from './context/AuthContext';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <Auth0Provider
       domain="dev-1de0bowjvfbbcx7q.us.auth0.com"
-      clientId="rwah022fY6bSPr5gstiKqPAErQjgynT2" // Using the same client ID for now
+      clientId="xeqwBZVDu0UwBB93r8cdemCb9SF3gKU0"
       authorizationParams={{
         redirect_uri: window.location.origin,
-        audience: 'https://api.fitnessclub.com',
+        audience: 'https://dev-1de0bowjvfbbcx7q.us.auth0.com/api/v2/',
+        // ✅✅✅ THE DEFINITIVE FIX IS HERE: ADD ALL REQUIRED SCOPES TO THE TOP LEVEL
+         scope: 'openid profile email read:admin_dashboard', 
       }}
     >
       <AuthProvider>
