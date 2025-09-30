@@ -12,11 +12,10 @@ const validate = (schema) => (req, res, next) => {
 const cuidSchema = Joi.string().length(25).required();
 
 const workoutLogSchema = Joi.object({
-    exerciseId: cuidSchema.required(),
-    sets: Joi.number().integer().min(0).optional().allow(null),
-    reps: Joi.number().integer().min(0).optional().allow(null),
-    weight: Joi.number().min(0).optional().allow(null),
-    notes: Joi.string().optional().allow('', null),
+    name: Joi.string().required(),
+    type: Joi.string().required(),
+    equipment: Joi.array().items(Joi.string()).required(),
+    difficulty: Joi.string().required(),
 });
 
 export const logSessionSchema = Joi.object({
@@ -30,19 +29,6 @@ export const logSessionSchema = Joi.object({
   equipment: Joi.array().items(Joi.string()).optional().allow(null),
   exercises: Joi.array().items(workoutLogSchema).min(1).required(),
 });
-
-// Schema for validating the individual exercise objects you are sending
-const exerciseSeedSchema = Joi.object({
-    id: Joi.string().required(),
-    name: Joi.string().required(),
-    type: Joi.string().required(),
-    equipment: Joi.array().items(Joi.string()).required(),
-    difficulty: Joi.string().required(),
-});
-
-// ✅ FIXED: The 'export' keyword is now correctly added here.
-export const seedLibrarySchema = Joi.array().items(exerciseSeedSchema).min(1).required();
-
 
 export const getHistorySchema = Joi.object({
   page: Joi.number().integer().min(1).default(1),

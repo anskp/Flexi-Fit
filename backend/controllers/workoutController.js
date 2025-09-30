@@ -15,28 +15,14 @@ const getUserId = async (req) => {
   throw new AppError('Authentication error: User ID could not be determined.', 401);
 };
 
-export const getExerciseLibrary = catchAsync(async (req, res) => {
-  const library = await workoutService.getLibrary();
-  res.status(200).json({ success: true, data: library });
-});
-
-// ✅ NEW CONTROLLER: Handles the one-time request to seed the library.
-export const seedExerciseLibrary = catchAsync(async (req, res) => {
-  const exercises = await workoutService.seedLibrary(req.body);
-  res.status(201).json({
-    success: true,
-    message: `Successfully created or updated ${exercises.length} exercises.`,
-    data: exercises,
-  });
-});
-
+// Only keep logWorkoutSession - remove getExerciseLibrary and addExercisesToLibrary
 export const logWorkoutSession = catchAsync(async (req, res) => {
   const userId = await getUserId(req);
   const newSession = await workoutService.logSession(userId, req.body);
   res.status(201).json({ success: true, message: 'Workout logged successfully.', data: newSession });
 });
 
-// ... other controllers ...
+// Keep other controllers if needed
 export const getWorkoutHistory = catchAsync(async (req, res) => {
   const userId = await getUserId(req);
   const history = await workoutService.getHistory(userId, req.query);
