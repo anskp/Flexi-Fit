@@ -15,14 +15,12 @@ const getUserId = async (req) => {
   throw new AppError('Authentication error: User ID could not be determined.', 401);
 };
 
-// Only keep logWorkoutSession - remove getExerciseLibrary and addExercisesToLibrary
 export const logWorkoutSession = catchAsync(async (req, res) => {
   const userId = await getUserId(req);
   const newSession = await workoutService.logSession(userId, req.body);
   res.status(201).json({ success: true, message: 'Workout logged successfully.', data: newSession });
 });
 
-// Keep other controllers if needed
 export const getWorkoutHistory = catchAsync(async (req, res) => {
   const userId = await getUserId(req);
   const history = await workoutService.getHistory(userId, req.query);
@@ -31,6 +29,12 @@ export const getWorkoutHistory = catchAsync(async (req, res) => {
 
 export const deleteWorkoutSession = catchAsync(async (req, res) => {
   const userId = await getUserId(req);
-  await workoutService.deleteSession(userId, req.params.sessionId);
-  res.status(204).send();
+  const result = await workoutService.deleteSession(userId, req.params.sessionId);
+  res.status(200).json({ success: true, message: 'Workout session deleted successfully.', data: result });
+});
+
+export const deleteExerciseFromSession = catchAsync(async (req, res) => {
+  const userId = await getUserId(req);
+  const result = await workoutService.deleteExerciseFromSession(userId, req.params.sessionId, req.params.exerciseId);
+  res.status(200).json({ success: true, message: 'Exercise removed from session successfully.', data: result });
 });
