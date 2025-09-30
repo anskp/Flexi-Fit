@@ -39,4 +39,9 @@ export const sessionIdParamSchema = Joi.object({
     sessionId: cuidSchema.required(),
 });
 
+export const deleteExerciseSchema = Joi.object({
+    sessionId: cuidSchema.required(),
+    exerciseId: Joi.string().required(),
+});
+
 export default validate;

@@ -65,7 +65,6 @@ export const logSession = async (userId, sessionData) => {
   }
 }
 
-// Keep other functions if needed
 export const getHistory = async (userId, { page = 1, limit = 10 }) => {
   const skip = (page - 1) * limit;
   
@@ -98,6 +97,7 @@ export const getHistory = async (userId, { page = 1, limit = 10 }) => {
 }
 
 export const deleteSession = async (userId, sessionId) => {
+  // First check if the session exists and belongs to the user
   const session = await prisma.workoutSession.findFirst({
     where: {
       id: sessionId,
@@ -109,11 +109,84 @@ export const deleteSession = async (userId, sessionId) => {
     throw new AppError('Workout session not found', 404);
   }
 
+  // Delete the workout logs associated with the session
   await prisma.workoutLog.deleteMany({
     where: { sessionId }
   });
 
+  // Delete the workout session
   await prisma.workoutSession.delete({
     where: { id: sessionId }
   });
+
+  return { success: true };
+}
+
+export const deleteExerciseFromSession = async (userId, sessionId, exerciseId) => {
+  // First check if the session exists and belongs to the user
+  const session = await prisma.workoutSession.findFirst({
+    where: {
+      id: sessionId,
+      userId
+    },
+    include: {
+      logs: {
+        include: {
+          exercise: true
+        }
+      }
+    }
+  });
+
+  if (!session) {
+    throw new AppError('Workout session not found', 404);
+  }
+
+  // Check if the exercise exists in the session
+  const exerciseLog = session.logs.find(log => log.exerciseId === exerciseId);
+  if (!exerciseLog) {
+    throw new AppError('Exercise not found in this session', 404);
+  }
+
+  // Delete the workout log entry
+  await prisma.workoutLog.delete({
+    where: {
+      id: exerciseLog.id
+    }
+  });
+
+  // Get remaining exercises to update session data
+  const remainingLogs = await prisma.workoutLog.findMany({
+    where: { sessionId },
+    include: { exercise: true }
+  });
+
+  // Update session with new equipment and muscle groups if there are remaining exercises
+  if (remainingLogs.length > 0) {
+    const remainingExercises = remainingLogs.map(log => log.exercise);
+    const allEquipment = remainingExercises.flatMap(ex => ex.equipment || []);
+    const uniqueEquipment = [...new Set(allEquipment)];
+    
+    const allMuscleGroups = remainingExercises.flatMap(ex => ex.type ? [ex.type] : []);
+    const uniqueMuscleGroups = [...new Set(allMuscleGroups)];
+
+    await prisma.workoutSession.update({
+      where: { id: sessionId },
+      data: {
+        equipment: uniqueEquipment,
+        muscleGroups: uniqueMuscleGroups
+      }
+    });
+  } else {
+    // If no exercises left, clear equipment and muscle groups
+    await prisma.workoutSession.update({
+      where: { id: sessionId },
+      data: {
+        equipment: [],
+        muscleGroups: []
+      }
+    });
+  }
+
+  return { success: true };
 }

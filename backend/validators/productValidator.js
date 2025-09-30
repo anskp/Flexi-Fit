@@ -40,4 +40,3 @@ export const paginationSchema = Joi.object({
 });
 
 export default validate;
-
