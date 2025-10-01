@@ -1,3 +1,4 @@
+// validators/notificationValidator.js
 import Joi from 'joi';
 import AppError from '../utils/AppError.js';
 
@@ -12,9 +13,12 @@ export const registerTokenSchema = Joi.object({
 });
 
 export const sendGymNotificationSchema = Joi.object({
-    gymId: Joi.string().length(25).required(),
     title: Joi.string().required(),
     message: Joi.string().required(),
+});
+
+export const notificationIdParamSchema = Joi.object({
+    id: Joi.string().required(),
 });
 
 export default validate;
